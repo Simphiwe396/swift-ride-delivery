@@ -82,9 +82,6 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 module.exports = mongoose.model('User', userSchema);
-backend/models/Driver.js
-
-javascript
 const mongoose = require('mongoose');
 
 const driverSchema = new mongoose.Schema({
