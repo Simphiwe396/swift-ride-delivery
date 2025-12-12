@@ -1,0 +1,246 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftRide - Premium Delivery Service</title>
+    
+    <!-- PWA Configuration -->
+    <meta name="application-name" content="SwiftRide">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6C63FF">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Mapbox GL -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loader"></div>
+        <h2>SwiftRide Delivery</h2>
+        <p>Loading your experience...</p>
+    </div>
+    
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+                <h1>SwiftRide</h1>
+            </div>
+            <nav class="main-nav">
+                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+                <a href="#track" class="nav-link"><i class="fas fa-map-marker-alt"></i> Track</a>
+                <a href="#pricing" class="nav-link"><i class="fas fa-tag"></i> Pricing</a>
+                <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
+            </nav>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Hero Section -->
+            <section id="home" class="hero-section">
+                <div class="hero-content">
+                    <h2>Delivery in Minutes, Not Hours</h2>
+                    <p>Track your packages in real-time with our premium delivery service</p>
+                    
+                    <!-- User Type Selection -->
+                    <div class="user-type-selector">
+                        <div class="user-card" onclick="redirectTo('customer')">
+                            <i class="fas fa-shopping-bag"></i>
+                            <h3>Customer</h3>
+                            <p>Send packages</p>
+                        </div>
+                        <div class="user-card" onclick="redirectTo('driver')">
+                            <i class="fas fa-motorcycle"></i>
+                            <h3>Driver</h3>
+                            <p>Earn money</p>
+                        </div>
+                        <div class="user-card" onclick="redirectTo('admin')">
+                            <i class="fas fa-chart-line"></i>
+                            <h3>Business</h3>
+                            <p>Manage deliveries</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Map Preview -->
+                <div class="map-preview">
+                    <div id="previewMap"></div>
+                </div>
+            </section>
+            
+            <!-- Features Section -->
+            <section class="features-section">
+                <h2>Why Choose SwiftRide?</h2>
+                <div class="features-grid">
+                    <div class="feature">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <h3>Real-Time Tracking</h3>
+                        <p>Watch your delivery move on live map</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Fast Delivery</h3>
+                        <p>Average delivery time: 30 minutes</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Secure & Safe</h3>
+                        <p>All drivers verified and insured</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <h3>Affordable Rates</h3>
+                        <p>From R5/km with no hidden fees</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Pricing Section -->
+            <section id="pricing" class="pricing-section">
+                <h2>Simple, Transparent Pricing</h2>
+                <div class="pricing-cards">
+                    <div class="pricing-card">
+                        <h3>Economy</h3>
+                        <div class="price">R5<span>/km</span></div>
+                        <ul>
+                            <li><i class="fas fa-check"></i> 2-3 hour delivery</li>
+                            <li><i class="fas fa-check"></i> Basic tracking</li>
+                            <li><i class="fas fa-times"></i> No priority</li>
+                        </ul>
+                        <button class="select-btn" onclick="selectRate(5)">Select</button>
+                    </div>
+                    <div class="pricing-card popular">
+                        <div class="badge">Most Popular</div>
+                        <h3>Standard</h3>
+                        <div class="price">R10<span>/km</span></div>
+                        <ul>
+                            <li><i class="fas fa-check"></i> 1 hour delivery</li>
+                            <li><i class="fas fa-check"></i> Live tracking</li>
+                            <li><i class="fas fa-check"></i> SMS updates</li>
+                        </ul>
+                        <button class="select-btn" onclick="selectRate(10)">Select</button>
+                    </div>
+                    <div class="pricing-card">
+                        <h3>Express</h3>
+                        <div class="price">R20<span>/km</span></div>
+                        <ul>
+                            <li><i class="fas fa-check"></i> 30 minute delivery</li>
+                            <li><i class="fas fa-check"></i> Premium tracking</li>
+                            <li><i class="fas fa-check"></i> Priority service</li>
+                        </ul>
+                        <button class="select-btn" onclick="selectRate(20)">Select</button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- CTA Section -->
+            <section class="cta-section">
+                <h2>Ready to Deliver?</h2>
+                <p>Join thousands of satisfied customers and drivers</p>
+                <div class="cta-buttons">
+                    <button class="cta-btn primary" onclick="redirectTo('customer')">
+                        <i class="fas fa-box"></i> Send a Package
+                    </button>
+                    <button class="cta-btn secondary" onclick="redirectTo('driver')">
+                        <i class="fas fa-motorcycle"></i> Become a Driver
+                    </button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>SwiftRide</h4>
+                    <p>Premium delivery service for businesses and individuals</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p><i class="fas fa-phone"></i> +27 11 123 4567</p>
+                    <p><i class="fas fa-envelope"></i> support@swiftride.co.za</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Download</h4>
+                    <button class="install-btn" onclick="installPWA()">
+                        <i class="fas fa-download"></i> Install App
+                    </button>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 SwiftRide Delivery. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+        
+        // Redirect functions
+        function redirectTo(userType) {
+            localStorage.setItem('userType', userType);
+            window.location.href = userType + '.html';
+        }
+        
+        function selectRate(rate) {
+            localStorage.setItem('selectedRate', rate);
+            redirectTo('customer');
+        }
+        
+        // Install PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted install');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+    </script>
+</body>
+</html>
