@@ -1,65 +1,59 @@
-// backend/server.js
-const socketUtil = require('./utils/socket');
+import express from "express";
+import http from "http";
+import cors from "cors";
+import mongoose from "mongoose";
+import { Server } from "socket.io";
+import dotenv from "dotenv";
+import Driver from "./models/Driver.js";
 
 
-const authRoutes = require('./routes/auth');
-const driversRoutes = require('./routes/drivers');
-const tripsRoutes = require('./routes/trips');
-const trackingRoutes = require('./routes/tracking');
-const adminRoutes = require('./routes/admin');
+dotenv.config();
 
 
 const app = express();
-const server = http.createServer(app);
-
-
-// Middlewares
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 
-// Static frontend hosting (optional) — serve the `frontend` folder
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/drivers', driversRoutes);
-app.use('/api/trips', tripsRoutes);
-app.use('/api/tracking', trackingRoutes);
-app.use('/api/admin', adminRoutes);
+mongoose.connect(process.env.MONGODB_URI).then(() =>
+console.log("DB Connected")
+);
 
 
-// Fallback to index.html for SPA routes (if used)
-app.get('*', (req, res) => {
-res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+io.on("connection", socket => {
+console.log("driver connected");
+
+
+socket.on("driverLocation", async data => {
+const { name, lat, lng } = data;
+
+
+await Driver.findOneAndUpdate(
+{ name },
+{ name, lastLat: lat, lastLng: lng, active: true },
+{ upsert: true }
+);
+
+
+io.emit("driverLocation", {
+driverId: name,
+name,
+lat,
+lng
+});
+});
 });
 
 
-// Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
-if (!MONGODB_URI) {
-console.error('MONGODB_URI not set in environment');
-process.exit(1);
-}
-
-
-mongoose.connect(MONGODB_URI, {
-useNewUrlParser: true,
-useUnifiedTopology: true,
-}).then(() => {
-console.log('MongoDB connected');
-}).catch((err) => {
-console.error('Mongo connection error', err);
-process.exit(1);
+app.get("/drivers", async (req, res) => {
+res.json(await Driver.find());
 });
 
 
-// Initialize sockets (keeps your live map integration intact)
-socketUtil.init(server);
-
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-console.log(`Server running on port ${PORT}`);
-});
+server.listen(process.env.PORT || 10000, () =>
+console.log("Server running")
+);
