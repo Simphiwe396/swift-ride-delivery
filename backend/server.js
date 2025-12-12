@@ -1,40 +1,42 @@
-// ... (your top requires remain the same)
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http, {
   cors: {
-    origin: "*", // <- Change to "*" for now to test, restrict later
+    origin: "*", // Allow all for now
     methods: ["GET", "POST"]
   }
 });
 
-// ============= MIDDLEWARE SETUP (FIXED ORDER) =============
-// 1. Security first
+// ============= MIDDLEWARE =============
 app.use(helmet());
-// 2. CORS once, here
 app.use(cors({
-  origin: "*", // Allow all for now. Change to your frontend URL later.
+  origin: "*", // Allow all for now - change to your frontend URL later
   credentials: true
 }));
-// 3. Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Rate Limiting
+// Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100
 });
 app.use('/api/', limiter);
 
-// ============= DATABASE CONNECTION =============
+// ============= DATABASE =============
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
 .then(() => console.log('✅ MongoDB Connected'))
-.catch(err => console.log('❌ MongoDB Connection Error:', err.message)); // Log just the message
+.catch(err => console.log('❌ MongoDB Connection Error:', err.message));
 
 // ============= ROUTES =============
 // Import Routes
@@ -44,7 +46,7 @@ const tripRoutes = require('./routes/trips');
 const adminRoutes = require('./routes/admin');
 const trackingRoutes = require('./routes/tracking');
 
-// Mapbox Config Endpoint (place BEFORE other /api routes)
+// Mapbox Config Endpoint
 app.get('/api/config/mapbox-token', (req, res) => {
     res.json({
         token: process.env.MAPBOX_PUBLIC_TOKEN || 'test_token'
@@ -58,4 +60,83 @@ app.use('/api/trips', tripRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tracking', trackingRoutes);
 
-// ... (The rest of your file - Socket.io, health check, server start - remains the same)
+// ============= SOCKET.IO =============
+const activeDrivers = new Map();
+const activeAdmins = new Map();
+
+io.on('connection', (socket) => {
+  console.log('🔌 New client connected:', socket.id);
+  
+  socket.on('driver_connect', (driverId) => {
+    activeDrivers.set(driverId, socket.id);
+    console.log(`🚗 Driver ${driverId} connected`);
+    
+    socket.on('location_update', (data) => {
+      io.emit(`driver_${driverId}_location`, {
+        driverId,
+        location: data.location,
+        speed: data.speed,
+        heading: data.heading,
+        timestamp: Date.now()
+      });
+    });
+    
+    socket.on('status_update', (data) => {
+      io.emit(`driver_${driverId}_status`, {
+        driverId,
+        status: data.status,
+        timestamp: Date.now()
+      });
+    });
+  });
+  
+  socket.on('admin_connect', (adminId) => {
+    activeAdmins.set(adminId, socket.id);
+    console.log(`👑 Admin ${adminId} connected`);
+  });
+  
+  socket.on('customer_connect', (customerId) => {
+    console.log(`👤 Customer ${customerId} connected`);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected:', socket.id);
+    
+    for (const [driverId, socketId] of activeDrivers.entries()) {
+      if (socketId === socket.id) {
+        activeDrivers.delete(driverId);
+        io.emit(`driver_${driverId}_offline`, { driverId });
+        break;
+      }
+    }
+    
+    for (const [adminId, socketId] of activeAdmins.entries()) {
+      if (socketId === socket.id) {
+        activeAdmins.delete(adminId);
+        break;
+      }
+    }
+  });
+});
+
+// ============= HEALTH CHECK =============
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date(),
+    uptime: process.uptime()
+  });
+});
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('../frontend'));
+}
+
+// ============= START SERVER =============
+const PORT = process.env.PORT || 5000;
+http.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔗 Backend URL: http://localhost:${PORT}`);
+  console.log(`🗺️  Mapbox Token: ${process.env.MAPBOX_PUBLIC_TOKEN ? 'Loaded' : 'Missing'}`);
+});
