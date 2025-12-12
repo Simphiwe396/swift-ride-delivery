@@ -46,6 +46,17 @@ const adminRoutes = require('./routes/admin');
 const trackingRoutes = require('./routes/tracking');
 
 // Use Routes
+// Add this route BEFORE your other app.use() routes
+app.get('/api/config/mapbox-token', (req, res) => {
+    res.json({ 
+        token: process.env.MAPBOX_PUBLIC_TOKEN 
+    });
+});
+app.use(cors({
+  // Add your frontend Render URL here
+  origin: ['https://swiftride-frontend.onrender.com', 'http://localhost:3000'],
+  credentials: true
+}));
 app.use('/api/auth', authRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/trips', tripRoutes);

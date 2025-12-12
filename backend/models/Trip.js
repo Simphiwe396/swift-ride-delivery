@@ -110,3 +110,5 @@ const tripSchema = new mongoose.Schema({
     default: 'normal'
   }
 });
+
+module.exports = mongoose.model('Trip', tripSchema);
