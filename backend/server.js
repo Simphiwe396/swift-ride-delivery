@@ -1,142 +1,65 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+// backend/server.js
+const socketUtil = require('./utils/socket');
+
+
+const authRoutes = require('./routes/auth');
+const driversRoutes = require('./routes/drivers');
+const tripsRoutes = require('./routes/trips');
+const trackingRoutes = require('./routes/tracking');
+const adminRoutes = require('./routes/admin');
+
 
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
-  cors: {
-    origin: "*", // Allow all for now
-    methods: ["GET", "POST"]
-  }
-});
+const server = http.createServer(app);
 
-// ============= MIDDLEWARE =============
-app.use(helmet());
-app.use(cors({
-  origin: "*", // Allow all for now - change to your frontend URL later
-  credentials: true
-}));
+
+// Middlewares
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
-});
-app.use('/api/', limiter);
 
-// ============= DATABASE =============
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB Connected'))
-.catch(err => console.log('❌ MongoDB Connection Error:', err.message));
+// Static frontend hosting (optional) — serve the `frontend` folder
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
-// ============= ROUTES =============
-// Import Routes
-const authRoutes = require('./routes/auth');
-const driverRoutes = require('./routes/drivers');
-const tripRoutes = require('./routes/trips');
-const adminRoutes = require('./routes/admin');
-const trackingRoutes = require('./routes/tracking');
 
-// Mapbox Config Endpoint
-app.get('/api/config/mapbox-token', (req, res) => {
-    res.json({
-        token: process.env.MAPBOX_PUBLIC_TOKEN || 'test_token'
-    });
-});
-
-// Use Routes
+// API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/drivers', driverRoutes);
-app.use('/api/trips', tripRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/drivers', driversRoutes);
+app.use('/api/trips', tripsRoutes);
 app.use('/api/tracking', trackingRoutes);
+app.use('/api/admin', adminRoutes);
 
-// ============= SOCKET.IO =============
-const activeDrivers = new Map();
-const activeAdmins = new Map();
 
-io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id);
-  
-  socket.on('driver_connect', (driverId) => {
-    activeDrivers.set(driverId, socket.id);
-    console.log(`🚗 Driver ${driverId} connected`);
-    
-    socket.on('location_update', (data) => {
-      io.emit(`driver_${driverId}_location`, {
-        driverId,
-        location: data.location,
-        speed: data.speed,
-        heading: data.heading,
-        timestamp: Date.now()
-      });
-    });
-    
-    socket.on('status_update', (data) => {
-      io.emit(`driver_${driverId}_status`, {
-        driverId,
-        status: data.status,
-        timestamp: Date.now()
-      });
-    });
-  });
-  
-  socket.on('admin_connect', (adminId) => {
-    activeAdmins.set(adminId, socket.id);
-    console.log(`👑 Admin ${adminId} connected`);
-  });
-  
-  socket.on('customer_connect', (customerId) => {
-    console.log(`👤 Customer ${customerId} connected`);
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('🔌 Client disconnected:', socket.id);
-    
-    for (const [driverId, socketId] of activeDrivers.entries()) {
-      if (socketId === socket.id) {
-        activeDrivers.delete(driverId);
-        io.emit(`driver_${driverId}_offline`, { driverId });
-        break;
-      }
-    }
-    
-    for (const [adminId, socketId] of activeAdmins.entries()) {
-      if (socketId === socket.id) {
-        activeAdmins.delete(adminId);
-        break;
-      }
-    }
-  });
+// Fallback to index.html for SPA routes (if used)
+app.get('*', (req, res) => {
+res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
-// ============= HEALTH CHECK =============
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date(),
-    uptime: process.uptime()
-  });
-});
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('../frontend'));
+// Connect to MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
+if (!MONGODB_URI) {
+console.error('MONGODB_URI not set in environment');
+process.exit(1);
 }
 
-// ============= START SERVER =============
-const PORT = process.env.PORT || 5000;
-http.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔗 Backend URL: http://localhost:${PORT}`);
-  console.log(`🗺️  Mapbox Token: ${process.env.MAPBOX_PUBLIC_TOKEN ? 'Loaded' : 'Missing'}`);
+
+mongoose.connect(MONGODB_URI, {
+useNewUrlParser: true,
+useUnifiedTopology: true,
+}).then(() => {
+console.log('MongoDB connected');
+}).catch((err) => {
+console.error('Mongo connection error', err);
+process.exit(1);
+});
+
+
+// Initialize sockets (keeps your live map integration intact)
+socketUtil.init(server);
+
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+console.log(`Server running on port ${PORT}`);
 });
