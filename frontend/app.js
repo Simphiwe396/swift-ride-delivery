@@ -610,6 +610,44 @@ function hideModal(modalId) {
 function initializePageFeatures() {
   const page = document.body.dataset.page;
   
+  console.log('Initializing page:', page);
+  
+  switch(page) {
+    case 'home':
+      initHomePage();
+      break;
+    case 'admin':
+      initAdminPage();
+      break;
+    case 'driver':
+      if (!AppState.user || AppState.user.userType !== 'driver') {
+        showNotification('Access denied. Driver login required.', 'error');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 2000);
+        return;
+      }
+      initDriverPage();
+      break;
+    case 'customer':
+      if (!AppState.user || AppState.user.userType !== 'customer') {
+        showNotification('Access denied. Customer login required.', 'error');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 2000);
+        return;
+      }
+      initCustomerPage();
+      break;
+    case 'tracking':
+      initTrackingPage();
+      break;
+  }
+}
+
+function initializePageFeatures() {
+  const page = document.body.dataset.page;
+  
   switch(page) {
     case 'home':
       initHomePage();
@@ -632,29 +670,17 @@ function initializePageFeatures() {
 function initHomePage() {
   console.log('Initializing home page...');
   
-  // Initialize preview map
-  const mapContainer = document.getElementById('previewMap');
-  if (mapContainer) {
-    // Wait a bit for DOM to be fully ready
+  // Initialize preview map - ONLY if it doesn't exist
+  const previewMapDiv = document.getElementById('previewMap');
+  if (previewMapDiv && !previewMapDiv._leaflet_id) {
+    // Wait a bit for DOM to be ready
     setTimeout(() => {
       try {
-        // Clear any existing map
-        if (mapContainer._leaflet_id) {
-          console.log('Clearing existing map from previewMap');
-          mapContainer.innerHTML = '';
-          delete mapContainer._leaflet_id;
-        }
-        
-        // Set fixed dimensions
-        mapContainer.style.height = '400px';
-        mapContainer.style.width = '100%';
-        mapContainer.style.borderRadius = '12px';
-        mapContainer.style.overflow = 'hidden';
-        
-        // Create new map manager
         const previewMap = new MapManager('previewMap', {
           center: APP_CONFIG.MAP_CONFIG.defaultCenter,
-          zoom: 13
+          zoom: 13,
+          scrollWheelZoom: false, // Prevent zoom on scroll
+          dragging: true
         });
         
         const map = previewMap.initialize();
@@ -662,8 +688,7 @@ function initHomePage() {
         if (map) {
           // Add sample marker
           previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
-            popup: 'Johannesburg CBD',
-            icon: previewMap.getDefaultIcon()
+            popup: 'Johannesburg CBD'
           });
           
           // Add sample driver markers
@@ -679,25 +704,11 @@ function initHomePage() {
               popup: `Driver ${driver.id} - ${driver.status}`
             });
           });
-          
-          // Fit map to show all markers
-          setTimeout(() => {
-            const allMarkers = [
-              previewMap.markers.get('center'),
-              ...sampleDrivers.map(d => previewMap.markers.get(d.id))
-            ].filter(m => m);
-            
-            if (allMarkers.length > 0) {
-              previewMap.fitBounds(allMarkers);
-            }
-          }, 500);
-          
-          console.log('✅ Home page map initialized successfully');
         }
       } catch (error) {
-        console.error('Failed to initialize home page map:', error);
+        console.error('Home page map error:', error);
       }
-    }, 100);
+    }, 1000);
   }
 }
 
@@ -765,19 +776,69 @@ function initCustomerPage() {
 }
 
 function initTrackingPage() {
-  // Initialize tracking page
-  AppState.mapManager = new MapManager('trackingMap', {
-    center: APP_CONFIG.MAP_CONFIG.defaultCenter,
-    zoom: 14
-  });
-  AppState.mapManager.initialize();
+  console.log('Initializing tracking page...');
   
-  // Load tracking data from URL parameters
+  // Get driver ID from URL
   const urlParams = new URLSearchParams(window.location.search);
-  const tripId = urlParams.get('tripId');
+  const driverId = urlParams.get('driverId');
   
-  if (tripId) {
-    loadTripTracking(tripId);
+  if (driverId) {
+    // Load and track specific driver
+    trackSpecificDriver(driverId);
+  } else {
+    // Initialize empty map
+    AppState.mapManager = new MapManager('trackingMap', {
+      center: APP_CONFIG.MAP_CONFIG.defaultCenter,
+      zoom: 14,
+      scrollWheelZoom: false
+    });
+    AppState.mapManager.initialize();
+    
+    showNotification('No driver selected for tracking', 'warning');
+  }
+}
+
+async function trackSpecificDriver(driverId) {
+  try {
+    // Initialize map
+    AppState.mapManager = new MapManager('trackingMap', {
+      center: APP_CONFIG.MAP_CONFIG.defaultCenter,
+      zoom: 14,
+      scrollWheelZoom: false
+    });
+    AppState.mapManager.initialize();
+    
+    // Get driver info
+    const driver = await API.request(`/drivers/${driverId}`);
+    
+    // Update UI
+    document.getElementById('trackingHeader').innerHTML = `
+      <h2>Tracking Driver: ${driver.name}</h2>
+      <p>Vehicle: ${driver.vehicle?.model || 'Not specified'}</p>
+      <p>Status: <span class="status-${driver.status}">${driver.status}</span></p>
+    `;
+    
+    // Add driver marker if location exists
+    if (driver.currentLocation) {
+      AppState.mapManager.addMarker(`driver_${driverId}`, 
+        [driver.currentLocation.lat, driver.currentLocation.lng], {
+          icon: AppState.mapManager.getDriverIcon(driver.status),
+          popup: `<strong>${driver.name}</strong><br>Status: ${driver.status}<br>Vehicle: ${driver.vehicle?.model || 'N/A'}`
+        }
+      );
+      
+      // Center map on driver
+      AppState.mapManager.centerMap([driver.currentLocation.lat, driver.currentLocation.lng]);
+    }
+    
+    // Listen for driver location updates via WebSocket
+    if (AppState.socket) {
+      AppState.socket.emit('track_driver', { driverId });
+    }
+    
+  } catch (error) {
+    console.error('Failed to track driver:', error);
+    showNotification('Failed to load driver tracking', 'error');
   }
 }
 
@@ -1000,7 +1061,7 @@ function renderDriversList(drivers) {
         <h4>${driver.name}</h4>
         <div class="driver-meta">
           <span class="driver-rating">
-            <i class="fas fa-star"></i> ${driver.rating.toFixed(1)}
+            <i class="fas fa-star"></i> ${driver.rating?.toFixed(1) || '5.0'}
           </span>
           <span class="driver-vehicle">
             <i class="fas fa-motorcycle"></i> ${driver.vehicle?.model || 'N/A'}
@@ -1008,12 +1069,13 @@ function renderDriversList(drivers) {
           <span class="driver-status-text">${driver.status}</span>
         </div>
         <p>📍 ${driver.currentLocation?.address || 'Location unknown'}</p>
+        <p>📞 ${driver.phone || 'No phone'}</p>
       </div>
       <div class="driver-actions">
-        <button class="action-btn primary" onclick="trackDriver('${driver._id}')">
-          <i class="fas fa-map-marker-alt"></i> Track
+        <button class="action-btn track-btn" onclick="trackDriver('${driver._id}')">
+          <i class="fas fa-map-marker-alt"></i> Track Live
         </button>
-        <button class="action-btn secondary" onclick="messageDriver('${driver._id}')">
+        <button class="action-btn message-btn" onclick="messageDriver('${driver._id}')">
           <i class="fas fa-comment"></i> Message
         </button>
       </div>
@@ -1225,9 +1287,7 @@ window.installPWA = installPWA;
 window.showModal = showModal;
 window.hideModal = hideModal;
 window.logout = logout;
-window.trackDriver = (driverId) => {
-  window.location.href = `tracking.html?driverId=${driverId}`;
-};
+
 window.messageDriver = (driverId) => {
   showModal('messageModal');
   document.getElementById('messageDriverId').value = driverId;
@@ -2392,22 +2452,30 @@ window.installPWA = installPWA;
 window.openChat = openChat;
 window.closeChat = closeChat;
 window.sendChatMessage = sendChatMessage;
-window.contactDriver = (driverId) => {
-    // Implementation for contacting driver
-    showNotification('Calling driver...', 'info');
+
+// Keep these three functions - they're the final versions
+window.trackDriver = (driverId) => {
+  console.log('Tracking driver:', driverId);
+  
+  // Store driver ID for tracking
+  localStorage.setItem('trackingDriverId', driverId);
+  
+  // Redirect to tracking page
+  window.location.href = `tracking.html?driverId=${driverId}`;
 };
 
 window.messageDriver = (driverId) => {
-    // Get driver info and open chat
-    API.request(`/drivers/${driverId}`).then(driver => {
-        openChat({ id: driverId, name: driver.name });
-    }).catch(error => {
-        showNotification('Failed to start chat', 'error');
-    });
+  // Get driver info and open chat
+  API.request(`/drivers/${driverId}`).then(driver => {
+    openChat({ id: driverId, name: driver.name });
+  }).catch(error => {
+    showNotification('Failed to start chat', 'error');
+  });
 };
 
-window.trackDriver = (driverId) => {
-    window.location.href = `tracking.html?driverId=${driverId}`;
+window.contactDriver = (driverId) => {
+  // Implementation for contacting driver
+  showNotification('Calling driver...', 'info');
 };
 
 window.formatCurrency = formatCurrency;
