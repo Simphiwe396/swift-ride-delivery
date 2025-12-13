@@ -215,15 +215,12 @@ class MapManager {
         this.options.zoom
       );
       
-      // Add Mapbox tiles
-      L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-        attribution: '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom,
-        id: 'mapbox/streets-v11',
-        tileSize: 512,
-        zoomOffset: -1,
-        accessToken: 'your_mapbox_token_here' // Replace with your token
-      }).addTo(this.map);
+  // Add OpenStreetMap tiles (free, no token required)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom,
+      minZoom: APP_CONFIG.MAP_CONFIG.minZoom
+  }).addTo(this.map);
       
       console.log('🗺️ Map initialized');
     }
@@ -1107,6 +1104,10 @@ function formatTime(minutes) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return `${hours}h ${mins > 0 ? `${mins}m` : ''}`;
+}
+
+function redirectTo(url) {
+  window.location.href = url;
 }
 
 // ===== EXPORT FUNCTIONS TO GLOBAL SCOPE =====

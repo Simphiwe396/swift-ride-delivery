@@ -16,12 +16,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
     <link rel="manifest" href="./site.webmanifest">
+    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
 
-    <!-- Icons -->
-    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
-    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <link rel="manifest" href="manifest.json">
-    
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -29,13 +25,34 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <!-- Mapbox GL -->
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
-    
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./styles.css">
+    
+    <!-- Map Preview CSS -->
+    <style>
+        #previewMap {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .map-preview {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Fix for map tiles */
+        .leaflet-container {
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .leaflet-tile-pane {
+            filter: hue-rotate(10deg) saturate(1.2);
+        }
+    </style>
 </head>
-<body>
+<body data-page="home">
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
@@ -200,51 +217,69 @@
     
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    <script src="app.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(registration => {
-                    console.log('Service Worker registered:', registration);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
+            });
         }
         
-        // Redirect functions
+        // Redirect function for index.html
         function redirectTo(userType) {
             localStorage.setItem('userType', userType);
             window.location.href = userType + '.html';
         }
         
+        // Rate selection function
         function selectRate(rate) {
             localStorage.setItem('selectedRate', rate);
             redirectTo('customer');
         }
         
-        // Install PWA
+        // PWA Installation
         let deferredPrompt;
+        
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
+            
+            // Show install button if hidden
+            const installBtn = document.querySelector('.install-btn');
+            if (installBtn) {
+                installBtn.style.display = 'flex';
+            }
         });
         
         function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted install');
-                    }
-                    deferredPrompt = null;
-                });
+            if (!deferredPrompt) {
+                alert('PWA installation not available in this browser.');
+                return;
             }
+            
+            deferredPrompt.prompt();
+            
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                } else {
+                    console.log('User dismissed the install prompt');
+                }
+                deferredPrompt = null;
+            });
         }
     </script>
+    
+    <!-- Load app.js after everything is ready -->
+    <script src="./app.js" defer></script>
 </body>
 </html>
