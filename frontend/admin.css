@@ -1,162 +1,113 @@
-/* -------------------------
-   GLOBAL RESET + THEME
---------------------------*/
+:root {
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --primary: #2563eb;
+  --text: #111827;
+  --muted: #6b7280;
+  --online: #16a34a;
+}
+
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
-  font-family: "Inter", Arial, sans-serif;
 }
 
 body {
-  background: #f5f6fa;
-  color: #333;
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
 }
 
-/* -------------------------
-   LAYOUT
---------------------------*/
-#sidebar {
-  width: 300px;
-  background: #ffffff;
-  border-right: 1px solid #e5e5e5;
-  padding: 20px;
+/* Layout */
+.dashboard {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 16px;
   overflow-y: auto;
 }
 
-#map {
-  flex: 1;
-  height: 100%;
+.sidebar h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
 }
 
-/* -------------------------
-   SIDEBAR TITLE
---------------------------*/
-.sidebar-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 15px;
-}
-
-/* -------------------------
-   DRIVER LIST
---------------------------*/
-.driver-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+/* Driver cards */
 .driver-card {
-  padding: 12px 14px;
-  background: #fff;
+  background: #f9fafb;
   border-radius: 10px;
-  border: 1px solid #e3e3e3;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 12px;
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: 0.15s ease;
+  transition: background 0.2s;
 }
 
 .driver-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+  background: #eef2ff;
 }
 
 .driver-name {
-  font-size: 16px;
   font-weight: 600;
 }
 
-.driver-info {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font-size: 13px;
-  color: #666;
-}
-
-/* -------------------------
-   STATUS BADGES
---------------------------*/
-.status {
-  display: inline-block;
-  padding: 3px 7px;
-  border-radius: 8px;
+.driver-status {
   font-size: 12px;
-  font-weight: 600;
-  text-transform: capitalize;
+  color: var(--online);
 }
 
-.status.online {
-  background: #d1f7d6;
-  color: #0b7a18;
+/* Main area */
+.main {
+  display: flex;
+  flex-direction: column;
 }
 
-.status.offline {
-  background: #ffe1e1;
-  color: #b20000;
+/* Map MUST have height */
+#map {
+  flex: 1;
+  width: 100%;
+  min-height: 400px;
 }
 
-.status.ontrip {
-  background: #dbe7ff;
-  color: #0048c3;
+/* Trip panel */
+.trip-panel {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  max-height: 220px;
+  overflow-y: auto;
 }
 
-/* -------------------------
-   TRIP HISTORY PANEL
---------------------------*/
-#trip-history {
-  margin-top: 25px;
+.trip-panel h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
 }
 
-.history-title {
-  font-size: 17px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.trip-entry {
-  background: #fafafa;
-  padding: 10px 12px;
-  border: 1px solid #e3e3e3;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.trip-entry strong {
-  font-size: 14px;
-}
-
-.trip-distance {
+.trip-item {
   font-size: 13px;
-  margin-top: 4px;
-  color: #555;
+  color: var(--muted);
+  margin-bottom: 6px;
 }
 
-/* -------------------------
-   SCROLLBAR
---------------------------*/
-#sidebar::-webkit-scrollbar {
-  width: 7px;
-}
-
-#sidebar::-webkit-scrollbar-thumb {
-  background: #b5b5b5;
-  border-radius: 10px;
-}
-
-#sidebar::-webkit-scrollbar-track {
-  background: #f0f0f0;
-}
-
-/* -------------------------
-   RESPONSIVE
---------------------------*/
+/* Mobile */
 @media (max-width: 768px) {
-  #sidebar {
-    width: 250px;
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    height: 220px;
+  }
+
+  #map {
+    height: calc(100vh - 440px);
   }
 }

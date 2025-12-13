@@ -1,7 +1,7 @@
 // ===== APPLICATION CONFIGURATION =====
 const APP_CONFIG = {
   // API Endpoints
-  API_BASE_URL: 'https://swift-ride-api.onrender.com/api',
+  API_BASE_URL: 'https://swiftride-api.onrender.com/api',
   // For local testing: 'http://localhost:5000/api'
   
   // Map Configuration
@@ -956,7 +956,6 @@ function renderDeliveriesList(deliveries) {
 }
 
 // ===== PWA INSTALLATION =====
-let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -2380,7 +2379,6 @@ if ('serviceWorker' in navigator) {
 }
 
 // PWA installation
-let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -2443,4 +2441,18 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', window.initSwiftRideApp);
 } else {
     window.initSwiftRideApp();
+}
+
+// ===== SERVICE WORKER REGISTRATION =====
+// This MUST be added to enable PWA functionality
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(registration => {
+        console.log('✅ Service Worker registered with scope:', registration.scope);
+      })
+      .catch(error => {
+        console.error('❌ Service Worker registration failed:', error);
+      });
+  });
 }

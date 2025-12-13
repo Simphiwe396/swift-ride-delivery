@@ -1,3 +1,54 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const socket = io();
+
+  const map = L.map("map").setView([-26.2041, 28.0473], 12);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+  }).addTo(map);
+
+  const markers = {};
+  const driverList = document.getElementById("driverList");
+  const tripHistory = document.getElementById("tripHistory");
+
+  socket.on("driverLocation", (data) => {
+    const { name, lat, lng, dailyDistance } = data;
+    if (!name || lat == null || lng == null) return;
+
+    // Marker
+    if (!markers[name]) {
+      const marker = L.marker([lat, lng]).addTo(map);
+      markers[name] = marker;
+
+      const card = document.createElement("div");
+      card.className = "driver-card";
+      card.innerHTML = `
+        <div class="driver-name">${name}</div>
+        <div class="driver-status">Online</div>
+      `;
+
+      card.onclick = () => {
+        map.setView([lat, lng], 15);
+        marker.openPopup();
+      };
+
+      driverList.appendChild(card);
+    }
+
+    markers[name].setLatLng([lat, lng]);
+    markers[name].bindPopup(`
+      <b>${name}</b><br/>
+      Distance today: ${(dailyDistance / 1000).toFixed(2)} km
+    `);
+
+    // Trip history
+    tripHistory.innerHTML = `
+      <div class="trip-item">
+        ${name}: ${(dailyDistance / 1000).toFixed(2)} km today
+      </div>
+    `;
+  });
+});
 // ===== ADMIN DASHBOARD FUNCTIONS =====
 
 // Global variables for admin dashboard

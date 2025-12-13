@@ -1,149 +1,111 @@
-const WebSocket = require('ws');
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // meters
+  const toRad = (v) => (v * Math.PI) / 180;
 
-class TrackingServer {
-    constructor(server) {
-        this.wss = new WebSocket.Server({ server });
-        this.driverConnections = new Map(); // driverId -> WebSocket
-        this.adminConnections = new Set(); // Admin WebSockets
-        this.driverLocations = new Map(); // driverId -> location
-        
-        this.setupWebSocket();
-    }
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
 
-    setupWebSocket() {
-        this.wss.on('connection', (ws, req) => {
-            console.log('New WebSocket connection');
-            
-            ws.on('message', (message) => {
-                this.handleMessage(ws, message);
-            });
-            
-            ws.on('close', () => {
-                this.handleDisconnection(ws);
-            });
-        });
-    }
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
 
-    handleMessage(ws, message) {
-        try {
-            const data = JSON.parse(message);
-            
-            switch(data.type) {
-                case 'register_driver':
-                    this.registerDriver(ws, data.driverId);
-                    break;
-                    
-                case 'register_admin':
-                    this.registerAdmin(ws);
-                    break;
-                    
-                case 'location_update':
-                    this.handleLocationUpdate(data.driverId, data.location);
-                    break;
-                    
-                case 'get_drivers':
-                    this.sendDriverList(ws);
-                    break;
-                    
-                case 'get_locations':
-                    this.sendAllLocations(ws);
-                    break;
-            }
-            
-        } catch (error) {
-            console.error('WebSocket message error:', error);
-        }
-    }
-
-    registerDriver(ws, driverId) {
-        this.driverConnections.set(driverId, ws);
-        console.log(`Driver ${driverId} registered for WebSocket`);
-        
-        // Send confirmation
-        ws.send(JSON.stringify({
-            type: 'registered',
-            driverId: driverId,
-            message: 'WebSocket connected for real-time tracking'
-        }));
-    }
-
-    registerAdmin(ws) {
-        this.adminConnections.add(ws);
-        console.log('Admin registered for WebSocket');
-        
-        // Send current driver locations
-        this.sendDriverList(ws);
-    }
-
-    handleLocationUpdate(driverId, location) {
-        // Store location
-        this.driverLocations.set(driverId, {
-            ...location,
-            timestamp: Date.now()
-        });
-        
-        // Broadcast to all admins
-        this.broadcastToAdmins({
-            type: 'driver_location',
-            driverId: driverId,
-            location: location
-        });
-    }
-
-    broadcastToAdmins(message) {
-        const messageStr = JSON.stringify(message);
-        this.adminConnections.forEach(adminWs => {
-            if (adminWs.readyState === WebSocket.OPEN) {
-                adminWs.send(messageStr);
-            }
-        });
-    }
-
-    sendDriverList(ws) {
-        const drivers = Array.from(this.driverLocations.entries()).map(([driverId, location]) => ({
-            driverId,
-            location,
-            lastUpdate: location.timestamp
-        }));
-        
-        ws.send(JSON.stringify({
-            type: 'all_drivers',
-            drivers: drivers
-        }));
-    }
-
-    sendAllLocations(ws) {
-        const locations = {};
-        this.driverLocations.forEach((location, driverId) => {
-            locations[driverId] = location;
-        });
-        
-        ws.send(JSON.stringify({
-            type: 'all_locations',
-            locations: locations
-        }));
-    }
-
-    handleDisconnection(ws) {
-        // Remove from driver connections
-        for (const [driverId, driverWs] of this.driverConnections.entries()) {
-            if (driverWs === ws) {
-                this.driverConnections.delete(driverId);
-                console.log(`Driver ${driverId} disconnected`);
-                
-                // Notify admins
-                this.broadcastToAdmins({
-                    type: 'driver_offline',
-                    driverId: driverId
-                });
-                break;
-            }
-        }
-        
-        // Remove from admin connections
-        if (this.adminConnections.has(ws)) {
-            this.adminConnections.delete(ws);
-            console.log('Admin disconnected');
-        }
-    }
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+const { Server } = require('socket.io');
+let io;
+
+module.exports = {
+  init(server) {
+    io = new Server(server, { cors: { origin: '*' } });
+    
+    // Make sure Driver model is available
+    const Driver = require('./models/Driver'); // Adjust path as needed
+
+    io.on('connection', (socket) => {
+      console.log('Client connected:', socket.id);
+
+      socket.on('driver:location', async (data) => {
+        try {
+          const { name, lat, lng } = data;
+          
+          if (!name || lat == null || lng == null) {
+            console.log('Invalid location data received');
+            return;
+          }
+
+          console.log(`Location update from ${name}: ${lat}, ${lng}`);
+
+          const today = new Date().toISOString().split("T")[0];
+
+          let driver = await Driver.findOne({ name });
+
+          if (!driver) {
+            // Create new driver record
+            driver = new Driver({
+              name,
+              lastLat: lat,
+              lastLng: lng,
+              dailyDistance: 0,
+              lastUpdateDate: today,
+            });
+            console.log(`New driver created: ${name}`);
+          } else {
+            // Check if date has changed (new day)
+            if (driver.lastUpdateDate !== today) {
+              driver.dailyDistance = 0; // reset daily distance
+              driver.lastUpdateDate = today;
+              console.log(`Daily distance reset for ${name}`);
+            }
+
+            // Calculate distance from last position
+            if (driver.lastLat && driver.lastLng) {
+              const distance = getDistance(
+                driver.lastLat,
+                driver.lastLng,
+                lat,
+                lng
+              );
+              driver.dailyDistance += distance;
+              console.log(`Distance added for ${name}: ${distance.toFixed(2)}m`);
+            }
+
+            // Update location
+            driver.lastLat = lat;
+            driver.lastLng = lng;
+          }
+
+          await driver.save();
+
+          // Prepare data for broadcast
+          const driverData = {
+            name,
+            lat,
+            lng,
+            dailyDistance: Math.round(driver.dailyDistance),
+            lastUpdateDate: driver.lastUpdateDate,
+            timestamp: new Date().toISOString()
+          };
+
+          console.log(`Broadcasting update for ${name}, daily: ${driverData.dailyDistance}m`);
+
+          // Broadcast to all connected clients
+          io.emit('admin:driverUpdate', driverData);
+
+        } catch (error) {
+          console.error('Error processing driver location:', error);
+          socket.emit('error', { message: 'Failed to update location' });
+        }
+      });
+
+      // Optional: Handle disconnection
+      socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+      });
+    });
+  },
+  
+  io() { return io; }
+};

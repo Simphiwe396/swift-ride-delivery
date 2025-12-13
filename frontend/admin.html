@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - SwiftRide Delivery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide Admin">
@@ -15,6 +15,11 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+    <link rel="manifest" href="./site.webmanifest">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -221,6 +226,23 @@
                 </a>
             </nav>
         </aside>
+
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <h2>Drivers</h2>
+      <div id="driverList"></div>
+    </aside>
+
+    <main class="main">
+      <div id="map"></div>
+
+      <section class="trip-panel">
+        <h3>Trip History (Today)</h3>
+        <div id="tripHistory"></div>
+      </section>
+    </main>
+  </div>
         
         <!-- Main Content -->
         <main class="main-dashboard">
@@ -626,6 +648,7 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
     <script src="admin.js"></script>
