@@ -61,12 +61,12 @@
                 <i class="fas fa-bolt"></i>
                 <h1>SwiftRide</h1>
             </div>
-            <nav class="main-nav">
-                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-                <a href="#track" class="nav-link"><i class="fas fa-map-marker-alt"></i> Track</a>
-                <a href="#pricing" class="nav-link"><i class="fas fa-tag"></i> Pricing</a>
-                <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
-            </nav>
+<nav class="main-nav">
+    <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+    <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
+    <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
+    <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
+</nav>
         </header>
         
         <!-- Main Content -->
@@ -130,43 +130,25 @@
                 </div>
             </section>
             
-            <!-- Pricing Section -->
-            <section id="pricing" class="pricing-section">
-                <h2>Simple, Transparent Pricing</h2>
-                <div class="pricing-cards">
-                    <div class="pricing-card">
-                        <h3>Economy</h3>
-                        <div class="price">R5<span>/km</span></div>
-                        <ul>
-                            <li><i class="fas fa-check"></i> 2-3 hour delivery</li>
-                            <li><i class="fas fa-check"></i> Basic tracking</li>
-                            <li><i class="fas fa-times"></i> No priority</li>
-                        </ul>
-                        <button class="select-btn" onclick="selectRate(5)">Select</button>
-                    </div>
-                    <div class="pricing-card popular">
-                        <div class="badge">Most Popular</div>
-                        <h3>Standard</h3>
-                        <div class="price">R10<span>/km</span></div>
-                        <ul>
-                            <li><i class="fas fa-check"></i> 1 hour delivery</li>
-                            <li><i class="fas fa-check"></i> Live tracking</li>
-                            <li><i class="fas fa-check"></i> SMS updates</li>
-                        </ul>
-                        <button class="select-btn" onclick="selectRate(10)">Select</button>
-                    </div>
-                    <div class="pricing-card">
-                        <h3>Express</h3>
-                        <div class="price">R20<span>/km</span></div>
-                        <ul>
-                            <li><i class="fas fa-check"></i> 30 minute delivery</li>
-                            <li><i class="fas fa-check"></i> Premium tracking</li>
-                            <li><i class="fas fa-check"></i> Priority service</li>
-                        </ul>
-                        <button class="select-btn" onclick="selectRate(20)">Select</button>
-                    </div>
-                </div>
-            </section>
+<!-- Recent Tracking History Section -->
+<section id="tracking" class="tracking-history-section">
+    <h2>Recent Driver Tracking</h2>
+    <p class="section-subtitle">Track recent driver deliveries and status</p>
+    
+    <div class="tracking-history-container" id="trackingHistory">
+        <!-- Tracking history cards will be loaded here -->
+        <div class="loading-trackings">
+            <div class="loader"></div>
+            <p>Loading tracking history...</p>
+        </div>
+    </div>
+    
+    <div class="view-all-container">
+        <button class="view-all-btn" onclick="redirectTo('admin')">
+            <i class="fas fa-chart-line"></i> View All Trackings
+        </button>
+    </div>
+</section>
             
             <!-- CTA Section -->
             <section class="cta-section">

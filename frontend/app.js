@@ -645,21 +645,48 @@ function initializePageFeatures() {
   }
 }
 
+// ===== PAGE-SPECIFIC INITIALIZATION =====
 function initializePageFeatures() {
   const page = document.body.dataset.page;
+  
+  console.log('Initializing page:', page);
+  
+  // Don't redirect if no user but on home or tracking page
+  if (!AppState.user && (page === 'home' || page === 'tracking')) {
+    console.log('No user but on public page:', page);
+  } else if (!AppState.user && (page === 'admin' || page === 'driver' || page === 'customer')) {
+    console.log('No user on protected page');
+    showModal('loginModal');
+    return;
+  }
   
   switch(page) {
     case 'home':
       initHomePage();
       break;
     case 'admin':
-      initAdminPage();
+      if (AppState.user?.userType === 'admin') {
+        initAdminPage();
+      } else {
+        showNotification('Admin access required', 'error');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+      }
       break;
     case 'driver':
-      initDriverPage();
+      if (AppState.user?.userType === 'driver') {
+        initDriverPage();
+      } else {
+        showNotification('Driver login required', 'error');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+      }
       break;
     case 'customer':
-      initCustomerPage();
+      if (AppState.user?.userType === 'customer') {
+        initCustomerPage();
+      } else {
+        showNotification('Customer login required', 'error');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+      }
       break;
     case 'tracking':
       initTrackingPage();
@@ -710,6 +737,204 @@ function initHomePage() {
       }
     }, 1000);
   }
+}
+
+// ===== TRACKING HISTORY FUNCTIONS =====
+async function loadTrackingHistory() {
+    try {
+        const container = document.getElementById('trackingHistory');
+        if (!container) return;
+        
+        // Show loading state
+        container.innerHTML = `
+            <div class="loading-trackings">
+                <div class="loader"></div>
+                <p>Loading tracking history...</p>
+            </div>
+        `;
+        
+        // Try to fetch real tracking data
+        let trackings = [];
+        try {
+            const response = await API.request('/trips/recent');
+            trackings = response.trips || response || [];
+        } catch (error) {
+            console.log('Using sample tracking data');
+            // Fallback to sample data if API fails
+            trackings = getSampleTrackings();
+        }
+        
+        // Render tracking cards
+        renderTrackingHistory(trackings);
+        
+    } catch (error) {
+        console.error('Failed to load tracking history:', error);
+        // Show error state
+        const container = document.getElementById('trackingHistory');
+        if (container) {
+            container.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load tracking history</p>
+                    <button class="retry-btn" onclick="loadTrackingHistory()">Retry</button>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderTrackingHistory(trackings) {
+    const container = document.getElementById('trackingHistory');
+    if (!container) return;
+    
+    if (!trackings || trackings.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>No tracking history available</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Limit to 6 trackings for home page
+    const recentTrackings = trackings.slice(0, 6);
+    
+    container.innerHTML = recentTrackings.map(tracking => `
+        <div class="tracking-card">
+            <div class="tracking-header">
+                <div class="tracking-driver-info">
+                    <div class="driver-avatar-sm">
+                        ${tracking.driver?.name?.charAt(0) || 'D'}
+                    </div>
+                    <div>
+                        <h4>${tracking.driver?.name || 'Driver #' + tracking.driverId?.substring(0, 6)}</h4>
+                        <small>Trip #${tracking.tripId?.substring(0, 8) || 'N/A'}</small>
+                    </div>
+                </div>
+                <span class="tracking-status status-${tracking.status || 'pending'}">
+                    ${tracking.status || 'pending'}
+                </span>
+            </div>
+            
+            <div class="tracking-details">
+                <div class="tracking-route">
+                    <i class="fas fa-map-marker-alt" style="color: #4CAF50;"></i>
+                    <span>${tracking.pickup?.address || 'Pickup location'}</span>
+                </div>
+                <div class="tracking-route">
+                    <i class="fas fa-flag-checkered" style="color: #FF9800;"></i>
+                    <span>${tracking.destinations?.[0]?.address || 'Destination'}</span>
+                </div>
+                
+                <div class="tracking-time">
+                    <span><i class="fas fa-clock"></i> ${formatTimeFromNow(tracking.createdAt)}</span>
+                    <span><i class="fas fa-road"></i> ${tracking.distance ? tracking.distance.toFixed(1) + 'km' : 'N/A'}</span>
+                </div>
+                
+                <div class="tracking-actions">
+                    <button class="track-btn-small" onclick="trackDriver('${tracking.driverId || tracking._id}')">
+                        <i class="fas fa-map-marker-alt"></i> Track Again
+                    </button>
+                    <button class="track-btn-small" onclick="viewTrackingDetails('${tracking._id}')">
+                        <i class="fas fa-eye"></i> Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getSampleTrackings() {
+    return [
+        {
+            _id: '1',
+            tripId: 'TRIP001',
+            driverId: 'DRV001',
+            driver: { name: 'John Driver' },
+            status: 'delivered',
+            pickup: { address: 'Johannesburg CBD' },
+            destinations: [{ address: 'Sandton City Mall' }],
+            distance: 12.5,
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+        },
+        {
+            _id: '2',
+            tripId: 'TRIP002',
+            driverId: 'DRV002',
+            driver: { name: 'Sarah Rider' },
+            status: 'in-progress',
+            pickup: { address: 'Rosebank Mall' },
+            destinations: [{ address: 'Fourways Mall' }],
+            distance: 8.2,
+            createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
+        },
+        {
+            _id: '3',
+            tripId: 'TRIP003',
+            driverId: 'DRV003',
+            driver: { name: 'Mike Courier' },
+            status: 'pending',
+            pickup: { address: 'Pretoria CBD' },
+            destinations: [{ address: 'Midrand' }],
+            distance: 15.8,
+            createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
+        },
+        {
+            _id: '4',
+            tripId: 'TRIP004',
+            driverId: 'DRV004',
+            driver: { name: 'Lisa Express' },
+            status: 'delivered',
+            pickup: { address: 'Morningside' },
+            destinations: [{ address: 'Randburg' }],
+            distance: 6.3,
+            createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() // 3 hours ago
+        },
+        {
+            _id: '5',
+            tripId: 'TRIP005',
+            driverId: 'DRV005',
+            driver: { name: 'Tom Swift' },
+            status: 'cancelled',
+            pickup: { address: 'Soweto' },
+            destinations: [{ address: 'Roodepoort' }],
+            distance: 18.9,
+            createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
+        },
+        {
+            _id: '6',
+            tripId: 'TRIP006',
+            driverId: 'DRV006',
+            driver: { name: 'Anna Fast' },
+            status: 'delivered',
+            pickup: { address: 'Bryanston' },
+            destinations: [{ address: 'Parkhurst' }],
+            distance: 4.7,
+            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() // 5 hours ago
+        }
+    ];
+}
+
+function formatTimeFromNow(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+}
+
+// Helper functions for buttons
+function viewTrackingDetails(trackingId) {
+    console.log('Viewing tracking details:', trackingId);
+    showNotification('Loading tracking details...', 'info');
+    // You can implement a modal or redirect here
 }
 
 function initAdminPage() {
@@ -772,6 +997,102 @@ function initCustomerPage() {
   // Load customer's delivery history
   if (AppState.user) {
     loadCustomerHistory();
+  }
+}
+
+async function trackSpecificDriver(driverId) {
+  try {
+    console.log('Tracking specific driver:', driverId);
+    
+    // Initialize map if not already done
+    if (!AppState.mapManager) {
+      AppState.mapManager = new MapManager('trackingMap', {
+        center: APP_CONFIG.MAP_CONFIG.defaultCenter,
+        zoom: 14,
+        scrollWheelZoom: false
+      });
+      AppState.mapManager.initialize();
+    }
+    
+    // Get driver info
+    const driver = await API.request(`/drivers/${driverId}`);
+    
+    // Update tracking UI
+    updateTrackingUI(driver);
+    
+    // Add driver marker if location exists
+    if (driver.currentLocation) {
+      AppState.mapManager.addMarker(
+        `driver_${driverId}`,
+        [driver.currentLocation.lat, driver.currentLocation.lng],
+        {
+          icon: AppState.mapManager.getDriverIcon(driver.status),
+          popup: `<strong>${driver.name}</strong><br>Status: ${driver.status}<br>Vehicle: ${driver.vehicle?.model || 'N/A'}`
+        }
+      );
+      
+      // Center map on driver
+      AppState.mapManager.centerMap([driver.currentLocation.lat, driver.currentLocation.lng]);
+    }
+    
+    // Listen for driver location updates via WebSocket
+    if (AppState.socket) {
+      AppState.socket.emit('track_driver', { driverId });
+      
+      // Also listen for updates
+      AppState.socket.on('driver_location', (data) => {
+        if (data.driverId === driverId) {
+          // Update marker
+          AppState.mapManager.updateMarker(
+            `driver_${driverId}`,
+            [data.location.lat, data.location.lng]
+          );
+          
+          // Update UI
+          updateDriverLocationUI(data);
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Failed to track driver:', error);
+    showNotification('Failed to load driver tracking', 'error');
+  }
+}
+
+function updateTrackingUI(driver) {
+  const trackingContainer = document.getElementById('trackingInfo');
+  if (!trackingContainer) return;
+  
+  trackingContainer.innerHTML = `
+    <div class="tracking-card">
+      <h3>Tracking: ${driver.name}</h3>
+      <div class="tracking-details">
+        <p><strong>Status:</strong> 
+          <span class="status-badge badge-${driver.status}">${driver.status}</span>
+        </p>
+        <p><strong>Vehicle:</strong> ${driver.vehicle?.model || 'Not specified'}</p>
+        <p><strong>Rating:</strong> ⭐ ${driver.rating?.toFixed(1) || '5.0'}</p>
+        <p><strong>Phone:</strong> ${driver.phone || 'N/A'}</p>
+        <p><strong>Location:</strong> ${driver.currentLocation?.address || 'Unknown'}</p>
+      </div>
+      <div class="driver-contact">
+        <button class="btn btn-primary" onclick="contactDriver('${driver._id}')">
+          <i class="fas fa-phone"></i> Call Driver
+        </button>
+        <button class="btn btn-secondary" onclick="messageDriver('${driver._id}')">
+          <i class="fas fa-comment"></i> Message
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function updateDriverLocationUI(data) {
+  // Update location in tracking UI if elements exist
+  const locationElement = document.querySelector('.tracking-details p:nth-child(5)');
+  if (locationElement) {
+    locationElement.innerHTML = `<strong>Location:</strong> ${data.location.address || 'Updating...'}`;
   }
 }
 
@@ -1087,8 +1408,8 @@ function updateDriverInList(driverId, location) {
   const driverCard = document.querySelector(`[data-driver-id="${driverId}"]`);
   if (driverCard) {
     const locationElement = driverCard.querySelector('p');
-    if (locationElement) {
-      locationElement.textContent = `📍 ${location.address || 'Updating location...'}`;
+    if (locationElement && location.address) {
+      locationElement.textContent = `📍 ${location.address}`;
     }
   }
 }
@@ -1282,11 +1603,15 @@ function redirectTo(url) {
 }
 
 // ===== EXPORT FUNCTIONS TO GLOBAL SCOPE =====
+// Export functions
 window.redirectTo = redirectTo;
 window.installPWA = installPWA;
 window.showModal = showModal;
 window.hideModal = hideModal;
 window.logout = logout;
+window.trackDriver = trackDriver;
+
+// That's it - no more duplicate initialization!
 
 window.messageDriver = (driverId) => {
   showModal('messageModal');
@@ -2453,15 +2778,15 @@ window.openChat = openChat;
 window.closeChat = closeChat;
 window.sendChatMessage = sendChatMessage;
 
-// Keep these three functions - they're the final versions
+// ===== SIMPLE TRACK DRIVER FUNCTION =====
 window.trackDriver = (driverId) => {
-  console.log('Tracking driver:', driverId);
-  
-  // Store driver ID for tracking
-  localStorage.setItem('trackingDriverId', driverId);
-  
-  // Redirect to tracking page
-  window.location.href = `tracking.html?driverId=${driverId}`;
+    console.log('Tracking driver:', driverId);
+    
+    // Store in localStorage
+    localStorage.setItem('trackingDriverId', driverId);
+    
+    // Open tracking page
+    window.location.href = `tracking.html?driverId=${driverId}`;
 };
 
 window.messageDriver = (driverId) => {
@@ -2590,36 +2915,67 @@ window.installPWA = async () => {
 
 // Export the main initialization function
 window.initSwiftRideApp = () => {
-    console.log('SwiftRide App starting...');
-    
-    // Check if user is authenticated
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-        try {
-            AppState.token = token;
-            AppState.user = JSON.parse(user);
-            
-            // Connect to WebSocket
-            connectWebSocket();
-            
-            // Update UI
-            updateUIForLoggedInUser();
-            
-        } catch (error) {
-            console.error('Failed to restore session:', error);
-            logout();
-        }
+  console.log('SwiftRide App starting...')
+  
+  // Check if user is authenticated
+  const token = localStorage.getItem('token');
+  const user = localStorage.getItem('user');
+  
+  if (token && user) {
+    try {
+      AppState.token = token;
+      AppState.user = JSON.parse(user);
+      
+      // Connect to WebSocket
+      connectWebSocket();
+      
+      // Update UI
+      updateUIForLoggedInUser();
+      
+    } catch (error) {
+      console.error('Failed to restore session:', error);
+      logout();
     }
+  }
 };
 
 // Auto-initialize if this is the main app.js
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.initSwiftRideApp);
+  document.addEventListener('DOMContentLoaded', window.initSwiftRideApp);
 } else {
-    window.initSwiftRideApp();
+  window.initSwiftRideApp();
 }
+
+// ===== FIX TRACK BUTTON =====
+// Ensure trackDriver is available globally and works
+document.addEventListener('click', function(e) {
+  // Check if clicked element or its parent has onclick with trackDriver
+  let element = e.target;
+  
+  // Traverse up to find the button with trackDriver
+  while (element && element !== document.body) {
+    const onclick = element.getAttribute('onclick');
+    if (onclick && onclick.includes('trackDriver')) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Extract driverId from onclick attribute
+      const match = onclick.match(/trackDriver\('([^']+)'\)/);
+      if (match && match[1]) {
+        const driverId = match[1];
+        console.log('Tracking driver:', driverId);
+        
+        // Store driver ID for tracking
+        localStorage.setItem('trackingDriverId', driverId);
+        
+        // Redirect to tracking page
+        window.location.href = `tracking.html?driverId=${driverId}`;
+      }
+      return false;
+    }
+    element = element.parentElement;
+  }
+}, true);
 
 // ===== SERVICE WORKER REGISTRATION =====
 // This MUST be added to enable PWA functionality

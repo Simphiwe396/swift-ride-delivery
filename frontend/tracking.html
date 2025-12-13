@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tracking - SwiftRide</title>
+    
+    <!-- PWA Configuration -->
+    <meta name="application-name" content="SwiftRide">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6C63FF">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+    <link rel="manifest" href="./site.webmanifest">
+    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
+
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./styles.css">
+    
+    <!-- Tracking Page Specific CSS -->
+    <style>
+        .tracking-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .tracking-header {
+            background: linear-gradient(135deg, #6C63FF, #4A43C8);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+        
+        .tracking-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        #trackingMap {
+            flex: 1;
+            height: 500px;
+            margin: 0 2rem 2rem 2rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .status-online {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .status-offline {
+            color: #FF9800;
+            font-weight: 600;
+        }
+        
+        .status-busy {
+            color: #F44336;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body data-page="tracking">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loader"></div>
+        <h2>SwiftRide Delivery</h2>
+        <p>Loading tracking information...</p>
+    </div>
+    
+    <!-- Tracking Container -->
+    <div class="tracking-container">
+        <!-- Header -->
+        <header class="tracking-header">
+            <div>
+                <h1><i class="fas fa-map-marker-alt"></i> Live Driver Tracking</h1>
+                <p>Real-time location tracking</p>
+            </div>
+            <button class="back-btn" onclick="window.location.href='admin.html'">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
+        </header>
+        
+        <!-- Tracking Info -->
+        <div class="tracking-info">
+            <h2 id="trackingDriverName">Loading driver information...</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Driver Status</span>
+                    <span class="info-value" id="driverStatus">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Vehicle</span>
+                    <span class="info-value" id="driverVehicle">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Current Location</span>
+                    <span class="info-value" id="driverLocation">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Speed</span>
+                    <span class="info-value" id="driverSpeed">0 km/h</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Update</span>
+                    <span class="info-value" id="lastUpdate">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Estimated Arrival</span>
+                    <span class="info-value" id="eta">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map -->
+        <div id="trackingMap"></div>
+        
+        <!-- Controls -->
+        <div class="map-controls" style="position: fixed; bottom: 30px; right: 30px;">
+            <button class="map-btn" onclick="centerOnDriver()" title="Center on Driver">
+                <i class="fas fa-location-arrow"></i>
+            </button>
+            <button class="map-btn" onclick="zoomIn()" title="Zoom In">
+                <i class="fas fa-plus"></i>
+            </button>
+            <button class="map-btn" onclick="zoomOut()" title="Zoom Out">
+                <i class="fas fa-minus"></i>
+            </button>
+            <button class="map-btn" onclick="shareLocation()" title="Share Location">
+                <i class="fas fa-share-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="./app.js"></script>
+    
+    <!-- Tracking Page JavaScript -->
+    <script>
+        let trackedDriverId = null;
+        let driverMarker = null;
+        
+        // Get driver ID from URL
+        function getDriverIdFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('driverId') || localStorage.getItem('trackingDriverId');
+        }
+        
+        // Update tracking info
+        function updateTrackingInfo(driver) {
+            if (!driver) return;
+            
+            document.getElementById('trackingDriverName').textContent = `Tracking: ${driver.name}`;
+            document.getElementById('driverStatus').textContent = driver.status;
+            document.getElementById('driverStatus').className = `status-${driver.status}`;
+            document.getElementById('driverVehicle').textContent = driver.vehicle?.model || 'Not specified';
+            document.getElementById('driverLocation').textContent = driver.currentLocation?.address || 'Unknown';
+            
+            // Update last update time
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+        }
+        
+        // Center map on driver
+        function centerOnDriver() {
+            if (AppState.mapManager && trackedDriverId) {
+                // Get driver marker and center
+                const marker = AppState.mapManager.markers.get(`driver_${trackedDriverId}`);
+                if (marker) {
+                    AppState.mapManager.centerMap(marker.getLatLng());
+                }
+            }
+        }
+        
+        // Zoom functions
+        function zoomIn() {
+            if (AppState.mapManager?.map) {
+                AppState.mapManager.map.zoomIn();
+            }
+        }
+        
+        function zoomOut() {
+            if (AppState.mapManager?.map) {
+                AppState.mapManager.map.zoomOut();
+            }
+        }
+        
+        // Share location
+        function shareLocation() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'SwiftRide Driver Tracking',
+                    text: 'I\'m tracking a SwiftRide driver in real-time!',
+                    url: window.location.href
+                });
+            } else {
+                alert('Copy this link to share: ' + window.location.href);
+            }
+        }
+        
+        // Initialize tracking
+        async function initTracking() {
+            trackedDriverId = getDriverIdFromURL();
+            
+            if (!trackedDriverId) {
+                document.getElementById('trackingDriverName').textContent = 'No driver selected for tracking';
+                showNotification('Please select a driver to track', 'warning');
+                return;
+            }
+            
+            // Initialize map
+            AppState.mapManager = new MapManager('trackingMap', {
+                center: APP_CONFIG.MAP_CONFIG.defaultCenter,
+                zoom: 14,
+                scrollWheelZoom: false
+            });
+            AppState.mapManager.initialize();
+            
+            // Try to get driver info
+            try {
+                const driver = await API.request(`/drivers/${trackedDriverId}`);
+                updateTrackingInfo(driver);
+                
+                // Add driver marker if location exists
+                if (driver.currentLocation) {
+                    driverMarker = AppState.mapManager.addMarker(
+                        `driver_${trackedDriverId}`,
+                        [driver.currentLocation.lat, driver.currentLocation.lng],
+                        {
+                            icon: AppState.mapManager.getDriverIcon(driver.status),
+                            popup: `<strong>${driver.name}</strong><br>Status: ${driver.status}<br>Vehicle: ${driver.vehicle?.model || 'N/A'}`
+                        }
+                    );
+                    
+                    // Center map on driver
+                    AppState.mapManager.centerMap([driver.currentLocation.lat, driver.currentLocation.lng]);
+                }
+                
+                // Listen for driver location updates
+                if (AppState.socket) {
+                    AppState.socket.emit('track_driver', { driverId: trackedDriverId });
+                    
+                    // Listen for location updates
+                    AppState.socket.on('driver_location', (data) => {
+                        if (data.driverId === trackedDriverId) {
+                            // Update marker
+                            AppState.mapManager.updateMarker(
+                                `driver_${trackedDriverId}`,
+                                [data.location.lat, data.location.lng]
+                            );
+                            
+                            // Update speed
+                            if (data.speed) {
+                                document.getElementById('driverSpeed').textContent = 
+                                    `${Math.round(data.speed * 3.6)} km/h`;
+                            }
+                            
+                            // Update last update time
+                            const now = new Date();
+                            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Failed to track driver:', error);
+                document.getElementById('trackingDriverName').textContent = 'Failed to load driver information';
+                showNotification('Could not load driver tracking', 'error');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initTracking, 1000);
+        });
+    </script>
+</body>
+</html>

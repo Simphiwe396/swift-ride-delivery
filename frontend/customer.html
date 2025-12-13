@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - SwiftRide</title>
+    
+    <!-- PWA Configuration -->
+    <meta name="application-name" content="SwiftRide">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6C63FF">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+    <link rel="manifest" href="./site.webmanifest">
+    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
+
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-page="customer">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loader"></div>
+        <h2>SwiftRide Delivery</h2>
+        <p>Loading your dashboard...</p>
+    </div>
+    
+    <!-- App Container -->
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-bolt"></i> SwiftRide</h2>
+                <div class="user-info">
+                    <div class="user-avatar">C</div>
+                    <div>
+                        <strong id="customerName">Customer</strong>
+                        <small>Customer Account</small>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="sidebar-link active" onclick="showDashboard()">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="#" class="sidebar-link" onclick="showNewDelivery()">
+                    <i class="fas fa-box"></i> New Delivery
+                </a>
+                <a href="#" class="sidebar-link" onclick="showMyDeliveries()">
+                    <i class="fas fa-shipping-fast"></i> My Deliveries
+                </a>
+                <a href="#" class="sidebar-link" onclick="showTrackDelivery()">
+                    <i class="fas fa-map-marker-alt"></i> Track Delivery
+                </a>
+                <a href="#" class="sidebar-link" onclick="showPayment()">
+                    <i class="fas fa-credit-card"></i> Payment
+                </a>
+                <a href="#" class="sidebar-link" onclick="showSettings()">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="#" class="sidebar-link" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-dashboard">
+            <!-- Header -->
+            <header class="dashboard-header">
+                <h1>Customer Dashboard</h1>
+                <div class="header-actions">
+                    <button class="notification-btn" onclick="showNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="showNewDelivery()">
+                        <i class="fas fa-plus"></i> New Delivery
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="activeDeliveries">0</h3>
+                        <p>Active Deliveries</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="deliveryTime">0</h3>
+                        <p>Avg Delivery Time</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalSpent">R 0.00</h3>
+                        <p>Total Spent</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="customerRating">5.0</h3>
+                        <p>Your Rating</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Section -->
+            <div class="map-container">
+                <div id="customerMap"></div>
+                <div class="map-controls">
+                    <button class="map-btn" onclick="findNearbyDrivers()">
+                        <i class="fas fa-motorcycle"></i>
+                    </button>
+                    <button class="map-btn" onclick="centerToMyLocation()">
+                        <i class="fas fa-location-arrow"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <button class="action-btn primary" onclick="showNewDelivery()">
+                        <i class="fas fa-box"></i>
+                        <span>New Delivery</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="showTrackDelivery()">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Track Delivery</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="showPayment()">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Add Payment</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="showHistory()">
+                        <i class="fas fa-history"></i>
+                        <span>History</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="./app.js"></script>
+    
+    <!-- Customer Page JavaScript -->
+    <script>
+        // Initialize customer dashboard
+        function showDashboard() {
+            // Update active deliveries
+            if (AppState.user) {
+                document.getElementById('customerName').textContent = AppState.user.name;
+            }
+        }
+        
+        function showNewDelivery() {
+            showModal('newDeliveryModal');
+        }
+        
+        function showMyDeliveries() {
+            loadCustomerDeliveries();
+        }
+        
+        function showTrackDelivery() {
+            showModal('trackModal');
+        }
+        
+        function showPayment() {
+            showModal('paymentModal');
+        }
+        
+        function showSettings() {
+            showModal('settingsModal');
+        }
+        
+        function showNotifications() {
+            showModal('notificationsModal');
+        }
+        
+        function findNearbyDrivers() {
+            showNotification('Finding nearby drivers...', 'info');
+        }
+        
+        function centerToMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    if (AppState.mapManager) {
+                        AppState.mapManager.centerMap([latitude, longitude]);
+                    }
+                });
+            }
+        }
+        
+        // Load customer deliveries
+        async function loadCustomerDeliveries() {
+            if (!AppState.user) return;
+            
+            try {
+                const response = await API.getTrips(AppState.user._id);
+                document.getElementById('activeDeliveries').textContent = response.length || 0;
+                
+                // Update stats
+                if (response.length > 0) {
+                    const totalFare = response.reduce((sum, trip) => sum + (trip.fare?.total || 0), 0);
+                    document.getElementById('totalSpent').textContent = `R ${totalFare.toFixed(2)}`;
+                }
+            } catch (error) {
+                console.error('Failed to load deliveries:', error);
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                showDashboard();
+                loadCustomerDeliveries();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
