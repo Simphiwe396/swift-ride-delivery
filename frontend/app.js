@@ -205,30 +205,80 @@ class MapManager {
       zoom: APP_CONFIG.MAP_CONFIG.defaultZoom,
       ...options
     };
+    
+    // Check if we already have a map instance
+    this._checkExistingMap();
+  }
+  
+  _checkExistingMap() {
+    // Check if container exists and already has a map
+    const container = document.getElementById(this.containerId);
+    if (container && container._leaflet_id) {
+      console.log(`Map container ${this.containerId} already has a map. Will reuse it.`);
+    }
   }
   
   initialize() {
+    const container = document.getElementById(this.containerId);
+    
+    if (!container) {
+      console.error(`Map container ${this.containerId} not found!`);
+      return null;
+    }
+    
+    // If map already exists, don't create a new one
+    if (container._leaflet_id && window.L) {
+      // Try to get existing map
+      const existingMap = L.DomUtil.get(this.containerId)._leaflet_id;
+      if (existingMap) {
+        console.log(`Reusing existing map for ${this.containerId}`);
+        this.map = L.map(this.containerId, { reuse: true });
+        return this.map;
+      }
+    }
+    
+    // Clear container content first
+    container.innerHTML = '';
+    
+    // Set fixed height for map container
+    container.style.height = '100%';
+    container.style.width = '100%';
+    container.style.position = 'relative';
+    
     if (!this.map) {
-      // Initialize Leaflet map
-      this.map = L.map(this.containerId).setView(
-        this.options.center, 
-        this.options.zoom
-      );
-      
-  // Add OpenStreetMap tiles (free, no token required)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom,
-      minZoom: APP_CONFIG.MAP_CONFIG.minZoom
-  }).addTo(this.map);
-      
-      console.log('🗺️ Map initialized');
+      try {
+        // Initialize Leaflet map
+        this.map = L.map(this.containerId, {
+          center: this.options.center,
+          zoom: this.options.zoom,
+          zoomControl: true,
+          attributionControl: true
+        });
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom,
+          minZoom: APP_CONFIG.MAP_CONFIG.minZoom
+        }).addTo(this.map);
+        
+        // Add scale control
+        L.control.scale().addTo(this.map);
+        
+        console.log(`🗺️ Map initialized in ${this.containerId}`);
+        
+      } catch (error) {
+        console.error(`Failed to initialize map in ${this.containerId}:`, error);
+        return null;
+      }
     }
     
     return this.map;
   }
   
   addMarker(id, latlng, options = {}) {
+    if (!this.map) return null;
+    
     const defaultOptions = {
       title: 'Location',
       draggable: false,
@@ -248,7 +298,7 @@ class MapManager {
   
   updateMarker(id, latlng) {
     const marker = this.markers.get(id);
-    if (marker) {
+    if (marker && this.map) {
       marker.setLatLng(latlng);
       return true;
     }
@@ -257,13 +307,15 @@ class MapManager {
   
   removeMarker(id) {
     const marker = this.markers.get(id);
-    if (marker) {
+    if (marker && this.map) {
       this.map.removeLayer(marker);
       this.markers.delete(id);
     }
   }
   
   addRoute(waypoints, options = {}) {
+    if (!this.map) return null;
+    
     const defaultOptions = {
       color: '#6C63FF',
       weight: 4,
@@ -308,6 +360,21 @@ class MapManager {
     if (markers.length > 0 && this.map) {
       const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
       this.map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }
+  
+  // Add this method to properly destroy the map
+  destroy() {
+    if (this.map) {
+      this.map.remove();
+      this.map = null;
+      this.markers.clear();
+      
+      // Clear the container
+      const container = document.getElementById(this.containerId);
+      if (container) {
+        container.innerHTML = '';
+      }
     }
   }
 }
@@ -563,32 +630,74 @@ function initializePageFeatures() {
 }
 
 function initHomePage() {
+  console.log('Initializing home page...');
+  
   // Initialize preview map
-  if (document.getElementById('previewMap')) {
-    const previewMap = new MapManager('previewMap', {
-      center: APP_CONFIG.MAP_CONFIG.defaultCenter,
-      zoom: 13
-    });
-    previewMap.initialize();
-    
-    // Add sample markers
-    previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
-      popup: 'Johannesburg CBD'
-    });
-    
-    // Add sample driver markers
-    const sampleDrivers = [
-      { id: 'driver1', lat: -26.190, lng: 28.030, status: 'online' },
-      { id: 'driver2', lat: -26.200, lng: 28.040, status: 'busy' },
-      { id: 'driver3', lat: -26.180, lng: 28.020, status: 'online' }
-    ];
-    
-    sampleDrivers.forEach(driver => {
-      previewMap.addMarker(driver.id, [driver.lat, driver.lng], {
-        icon: previewMap.getDriverIcon(driver.status),
-        popup: `Driver ${driver.id} - ${driver.status}`
-      });
-    });
+  const mapContainer = document.getElementById('previewMap');
+  if (mapContainer) {
+    // Wait a bit for DOM to be fully ready
+    setTimeout(() => {
+      try {
+        // Clear any existing map
+        if (mapContainer._leaflet_id) {
+          console.log('Clearing existing map from previewMap');
+          mapContainer.innerHTML = '';
+          delete mapContainer._leaflet_id;
+        }
+        
+        // Set fixed dimensions
+        mapContainer.style.height = '400px';
+        mapContainer.style.width = '100%';
+        mapContainer.style.borderRadius = '12px';
+        mapContainer.style.overflow = 'hidden';
+        
+        // Create new map manager
+        const previewMap = new MapManager('previewMap', {
+          center: APP_CONFIG.MAP_CONFIG.defaultCenter,
+          zoom: 13
+        });
+        
+        const map = previewMap.initialize();
+        
+        if (map) {
+          // Add sample marker
+          previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
+            popup: 'Johannesburg CBD',
+            icon: previewMap.getDefaultIcon()
+          });
+          
+          // Add sample driver markers
+          const sampleDrivers = [
+            { id: 'driver1', lat: -26.190, lng: 28.030, status: 'online' },
+            { id: 'driver2', lat: -26.200, lng: 28.040, status: 'busy' },
+            { id: 'driver3', lat: -26.180, lng: 28.020, status: 'online' }
+          ];
+          
+          sampleDrivers.forEach(driver => {
+            previewMap.addMarker(driver.id, [driver.lat, driver.lng], {
+              icon: previewMap.getDriverIcon(driver.status),
+              popup: `Driver ${driver.id} - ${driver.status}`
+            });
+          });
+          
+          // Fit map to show all markers
+          setTimeout(() => {
+            const allMarkers = [
+              previewMap.markers.get('center'),
+              ...sampleDrivers.map(d => previewMap.markers.get(d.id))
+            ].filter(m => m);
+            
+            if (allMarkers.length > 0) {
+              previewMap.fitBounds(allMarkers);
+            }
+          }, 500);
+          
+          console.log('✅ Home page map initialized successfully');
+        }
+      } catch (error) {
+        console.error('Failed to initialize home page map:', error);
+      }
+    }, 100);
   }
 }
 

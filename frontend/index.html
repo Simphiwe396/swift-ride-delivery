@@ -30,26 +30,19 @@
     
     <!-- Map Preview CSS -->
     <style>
-        #previewMap {
-            height: 400px;
-            width: 100%;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .map-preview {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Fix for map tiles */
-        .leaflet-container {
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .leaflet-tile-pane {
-            filter: hue-rotate(10deg) saturate(1.2);
-        }
+    /* Ensure map container has proper dimensions */
+    #previewMap {
+        height: 400px !important;
+        width: 100% !important;
+        min-height: 400px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Clear any existing map */
+    #previewMap.leaflet-container {
+        height: 400px !important;
+    }
     </style>
 </head>
 <body data-page="home">
