@@ -606,43 +606,64 @@ function hideModal(modalId) {
   }
 }
 
+// ===== FIX PAGE ACCESS =====
+function checkPageAccess() {
+    const page = document.body.dataset.page;
+    console.log('Checking access for page:', page, 'User:', AppState.user);
+    
+    // Public pages (no auth required)
+    if (page === 'home' || page === 'tracking') return true;
+    
+    // If no user, show login modal instead of redirecting
+    if (!AppState.user) {
+        console.log('No user, showing login modal');
+        showModal('loginModal');
+        return false;
+    }
+    
+    // Check user type matches page
+    const userType = AppState.user?.userType;
+    const pageType = page; // home, admin, driver, customer, tracking
+    
+    if (userType !== pageType && page !== 'tracking') {
+        console.log(`User type ${userType} cannot access ${pageType} page`);
+        showNotification(`Please login as ${pageType} to access this page`, 'error');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+        return false;
+    }
+    
+    return true;
+}
+
 // ===== PAGE-SPECIFIC INITIALIZATION =====
 function initializePageFeatures() {
-  const page = document.body.dataset.page;
-  
-  console.log('Initializing page:', page);
-  
-  switch(page) {
-    case 'home':
-      initHomePage();
-      break;
-    case 'admin':
-      initAdminPage();
-      break;
-    case 'driver':
-      if (!AppState.user || AppState.user.userType !== 'driver') {
-        showNotification('Access denied. Driver login required.', 'error');
-        setTimeout(() => {
-          window.location.href = 'index.html';
-        }, 2000);
+    const page = document.body.dataset.page;
+    console.log('Initializing page:', page);
+    
+    // Check if user can access this page
+    if (!checkPageAccess()) {
         return;
-      }
-      initDriverPage();
-      break;
-    case 'customer':
-      if (!AppState.user || AppState.user.userType !== 'customer') {
-        showNotification('Access denied. Customer login required.', 'error');
-        setTimeout(() => {
-          window.location.href = 'index.html';
-        }, 2000);
-        return;
-      }
-      initCustomerPage();
-      break;
-    case 'tracking':
-      initTrackingPage();
-      break;
-  }
+    }
+    
+    switch(page) {
+        case 'home':
+            initHomePage();
+            break;
+        case 'admin':
+            initAdminPage();
+            break;
+        case 'driver':
+            initDriverPage();
+            break;
+        case 'customer':
+            initCustomerPage();
+            break;
+        case 'tracking':
+            initTrackingPage();
+            break;
+    }
 }
 
 // ===== PAGE-SPECIFIC INITIALIZATION =====
@@ -2779,14 +2800,21 @@ window.closeChat = closeChat;
 window.sendChatMessage = sendChatMessage;
 
 // ===== SIMPLE TRACK DRIVER FUNCTION =====
+// ===== TRACK BUTTON FIX =====
 window.trackDriver = (driverId) => {
-    console.log('Tracking driver:', driverId);
+    console.log('🚨 TRACK BUTTON CLICKED! Driver ID:', driverId);
     
-    // Store in localStorage
-    localStorage.setItem('trackingDriverId', driverId);
+    // Save driver ID
+    localStorage.setItem('trackDriverId', driverId);
+    
+    // Show debug alert
+    alert(`Tracking driver: ${driverId}\nOpening tracking page...`);
     
     // Open tracking page
-    window.location.href = `tracking.html?driverId=${driverId}`;
+    window.location.href = `tracking.html?driver=${driverId}`;
+    
+    // Prevent any other actions
+    return false;
 };
 
 window.messageDriver = (driverId) => {
@@ -2990,3 +3018,24 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// ===== DEBUG MODE =====
+console.log('=== DEBUG MODE ENABLED ===');
+console.log('Current page:', document.body.dataset.page);
+console.log('AppState.user:', AppState.user);
+console.log('LocalStorage user:', localStorage.getItem('user'));
+console.log('LocalStorage token:', localStorage.getItem('token'));
+
+// Log all page loads
+window.addEventListener('load', () => {
+    console.log('📄 Page loaded:', window.location.href);
+    console.log('📝 Body data-page:', document.body.dataset.page);
+});
+
+// Log all redirects
+const originalRedirect = window.redirectTo;
+window.redirectTo = function(url) {
+    console.log('🔀 REDIRECTING TO:', url);
+    console.trace('Redirect stack trace');
+    return originalRedirect(url);
+};

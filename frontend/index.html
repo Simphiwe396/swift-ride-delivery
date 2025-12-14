@@ -78,22 +78,25 @@
                     <p>Track your packages in real-time with our premium delivery service</p>
                     
                     <!-- User Type Selection -->
-                    <div class="user-type-selector">
-                        <div class="user-card" onclick="redirectTo('customer')">
-                            <i class="fas fa-shopping-bag"></i>
-                            <h3>Customer</h3>
-                            <p>Send packages</p>
-                        </div>
-                        <div class="user-card" onclick="redirectTo('driver')">
-                            <i class="fas fa-motorcycle"></i>
-                            <h3>Driver</h3>
-                            <p>Earn money</p>
-                        </div>
-                        <div class="user-card" onclick="redirectTo('admin')">
-                            <i class="fas fa-chart-line"></i>
-                            <h3>Business</h3>
-                            <p>Manage deliveries</p>
-                        </div>
+<!-- User Type Selection -->
+<div class="user-type-selector">
+    <div class="user-card" onclick="window.location.href='customer.html'">
+        <i class="fas fa-shopping-bag"></i>
+        <h3>Customer</h3>
+        <p>Send packages</p>
+    </div>
+    <div class="user-card" onclick="window.location.href='driver.html'">
+        <i class="fas fa-motorcycle"></i>
+        <h3>Driver</h3>
+        <p>Earn money</p>
+    </div>
+    <div class="user-card" onclick="window.location.href='admin.html'">
+        <i class="fas fa-chart-line"></i>
+        <h3>Business</h3>
+        <p>Manage deliveries</p>
+    </div>
+</div>
+
                     </div>
                 </div>
                 
@@ -148,6 +151,36 @@
             <i class="fas fa-chart-line"></i> View All Trackings
         </button>
     </div>
+
+<!-- TEST BUTTONS (Add somewhere visible) -->
+<div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+    <strong>🛠️ DEBUG BUTTONS</strong><br>
+    <button onclick="testLogin('customer')" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Customer</button><br>
+    <button onclick="testLogin('driver')" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Driver</button><br>
+    <button onclick="testLogin('admin')" style="background: #9C27B0; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Admin</button><br>
+    <button onclick="logout()" style="background: #F44336; color: white; border: none; padding: 5px 10px; margin: 2px;">Logout</button>
+</div>
+
+<script>
+    function testLogin(userType) {
+        const testUser = {
+            _id: 'test123',
+            name: 'Test ' + userType,
+            email: 'test@example.com',
+            userType: userType
+        };
+        
+        localStorage.setItem('token', 'test-token-123');
+        localStorage.setItem('user', JSON.stringify(testUser));
+        
+        AppState.token = 'test-token-123';
+        AppState.user = testUser;
+        
+        alert('Logged in as ' + userType + '!\nRedirecting to ' + userType + '.html');
+        window.location.href = userType + '.html';
+    }
+</script>
+
 </section>
             
             <!-- CTA Section -->
@@ -172,11 +205,7 @@
                     <h4>SwiftRide</h4>
                     <p>Premium delivery service for businesses and individuals</p>
                 </div>
-                <div class="footer-section">
-                    <h4>Contact</h4>
-                    <p><i class="fas fa-phone"></i> +27 11 123 4567</p>
-                    <p><i class="fas fa-envelope"></i> support@swiftride.co.za</p>
-                </div>
+
                 <div class="footer-section">
                     <h4>Download</h4>
                     <button class="install-btn" onclick="installPWA()">
@@ -185,7 +214,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 SwiftRide Delivery. All rights reserved.</p>
+                <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
             </div>
         </footer>
     </div>
@@ -253,7 +282,39 @@
             });
         }
     </script>
+<script>
+    // Debug all buttons
+    document.addEventListener('click', function(e) {
+        const button = e.target.closest('button');
+        if (button) {
+            console.log('🔄 BUTTON CLICKED:', button.textContent, button.onclick);
+            
+            // Check if it's a redirect button
+            if (button.onclick && button.onclick.toString().includes('redirectTo')) {
+                console.log('📤 REDIRECT BUTTON DETECTED');
+                e.preventDefault();
+                
+                const match = button.onclick.toString().match(/redirectTo\('([^']+)'\)/);
+                if (match) {
+                    const page = match[1];
+                    console.log('🎯 Redirecting to:', page);
+                    setTimeout(() => {
+                        window.location.href = page + '.html';
+                    }, 100);
+                }
+            }
+        }
+    });
     
+    // Debug user type buttons
+    document.querySelectorAll('.user-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const page = this.getAttribute('onclick')?.match(/redirectTo\('([^']+)'\)/)?.[1];
+            console.log('👤 User type selected:', page);
+            localStorage.setItem('debug_page', page);
+        });
+    });
+</script>    
     <!-- Load app.js after everything is ready -->
     <script src="./app.js" defer></script>
 </body>
