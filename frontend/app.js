@@ -21,6 +21,8 @@ function safeInitializeMap(containerId, options) {
   }
 }
 
+
+
 // Then in initHomePage(), use:
 // const previewMap = safeInitializeMap('previewMap', {...});
 
@@ -62,6 +64,21 @@ let AppState = {
   map: null,
   activeDrivers: new Map(),
   activeDeliveries: new Map()
+};
+
+// ===== EMERGENCY MAP FIX =====
+// Prevent Leaflet from initializing on containers that already have maps
+const originalMapInit = L.Map.prototype.initialize;
+L.Map.prototype.initialize = function(id, options) {
+    const container = typeof id === 'string' ? document.getElementById(id) : id;
+    
+    if (container && container._leaflet_id) {
+        console.error(`🚨 EMERGENCY STOP: Preventing Leaflet from initializing on container that already has map!`);
+        console.error(`🚨 Container: ${id}, Existing Leaflet ID: ${container._leaflet_id}`);
+        throw new Error(`Map container "${id}" is already initialized.`);
+    }
+    
+    return originalMapInit.call(this, id, options);
 };
 
 // ===== MAP INITIALIZATION HELPERS =====
@@ -264,70 +281,77 @@ initialize() {
         return null;
     }
     
-    // CRITICAL: Check if map already exists in this container
+    // DEBUG: Log container state
+    console.log(`🔍 Checking container ${this.containerId}:`, {
+        hasLeafletId: !!container._leaflet_id,
+        leafletId: container._leaflet_id,
+        innerHTML: container.innerHTML.length,
+        hasMapClass: container.classList.contains('leaflet-container')
+    });
+    
+    // CRITICAL FIX: If container already has Leaflet map, DO NOT initialize
     if (container._leaflet_id) {
-        console.log(`⚠️ Container ${this.containerId} already has a map (Leaflet ID: ${container._leaflet_id})`);
-        console.log('⚠️ Skipping initialization to prevent duplicate map');
+        console.warn(`🚫 SKIPPING: Container ${this.containerId} already has Leaflet map with ID: ${container._leaflet_id}`);
+        console.warn(`🚫 This is why you're getting "already initialized" error`);
         
-        // Try to get existing map instance if we need it
-        try {
-            if (L && L.map) {
-                const existingMap = L.map(this.containerId, { reuse: true });
-                if (existingMap) {
-                    this.map = existingMap;
-                    console.log(`✅ Using existing map for ${this.containerId}`);
-                    return this.map;
-                }
-            }
-        } catch (error) {
-            console.warn(`⚠️ Could not reuse existing map:`, error);
+        // Try to return existing map instance if we have it
+        if (this.map) {
+            console.log(`✅ Returning existing map instance for ${this.containerId}`);
+            return this.map;
         }
         
-        return null; // Return null to indicate no new map was created
+        // If we don't have the instance, return null to prevent error
+        return null;
     }
     
-    // Only proceed if no map exists yet
+    // Only proceed if container is clean
     try {
-        console.log(`🗺️ Creating new map in ${this.containerId}`);
+        console.log(`🗺️ Creating NEW map in ${this.containerId}`);
         
-        // Clear container and set dimensions
+        // CRITICAL: Clear container completely
         container.innerHTML = '';
-        container.style.height = '400px';
-        container.style.width = '100%';
-        container.style.borderRadius = '12px';
-        container.style.overflow = 'hidden';
-        container.style.position = 'relative';
+        
+        // Set container dimensions
+        container.style.cssText = `
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #f5f5f5;
+        `;
         
         // Initialize Leaflet map
-        this.map = L.map(this.containerId).setView(
-            this.options.center, 
-            this.options.zoom
-        );
+        this.map = L.map(this.containerId, {
+            center: this.options.center,
+            zoom: this.options.zoom,
+            zoomControl: true,
+            attributionControl: true,
+            preferCanvas: true // Better performance
+        });
         
-        // Add OpenStreetMap tiles (no API key needed)
+        // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom || 18,
             minZoom: APP_CONFIG.MAP_CONFIG.minZoom || 10
         }).addTo(this.map);
         
-        // Add scale control
-        L.control.scale().addTo(this.map);
-        
-        // Apply scrollWheelZoom option
+        // Disable scroll wheel zoom if specified
         if (this.options.scrollWheelZoom === false) {
             this.map.scrollWheelZoom.disable();
-        } else {
-            this.map.scrollWheelZoom.enable();
         }
         
-        // Mark this container as having a map
-        console.log(`✅ Map successfully created in ${this.containerId}`);
-        
+        console.log(`✅ SUCCESS: Map created in ${this.containerId} with Leaflet ID: ${container._leaflet_id}`);
         return this.map;
         
     } catch (error) {
-        console.error(`❌ Failed to create map in ${this.containerId}:`, error);
+        console.error(`❌ FATAL ERROR creating map in ${this.containerId}:`, error);
+        console.error(`❌ Container state:`, {
+            _leaflet_id: container._leaflet_id,
+            className: container.className,
+            parent: container.parentElement?.id
+        });
         return null;
     }
 }
@@ -811,93 +835,102 @@ function initializePageFeatures() {
 }
 
 function initHomePage() {
+    console.log('=== INIT HOME PAGE START ===');
     console.log('🏠 Initializing home page...');
     
-    // Check if we can initialize the preview map
-    if (!canInitializeMap('previewMap')) {
-        console.log('✅ previewMap already initialized or cannot be initialized, skipping...');
+    const container = document.getElementById('previewMap');
+    console.log('🔍 previewMap container check:', {
+        exists: !!container,
+        _leaflet_id: container?._leaflet_id,
+        className: container?.className,
+        innerHTML: container?.innerHTML?.length
+    });
+    
+    // Check if map already exists - more thorough check
+    if (container && container._leaflet_id) {
+        console.warn('🚫 SKIPPING: previewMap already has Leaflet map with ID:', container._leaflet_id);
+        console.log('=== INIT HOME PAGE END (skipped) ===');
         return;
     }
     
-    // Wait a bit to ensure DOM is fully ready
+    // Check our own tracking
+    if (mapInitializations.has('previewMap')) {
+        console.warn('🚫 SKIPPING: previewMap already initialized by our app');
+        console.log('=== INIT HOME PAGE END (skipped) ===');
+        return;
+    }
+    
+    console.log('✅ Proceeding with map initialization...');
+    
+    // Add a small delay to ensure DOM is ready
     setTimeout(() => {
         try {
-            console.log('🗺️ Setting up home page map...');
+            console.log('🗺️ Creating MapManager for previewMap...');
             
             const previewMap = new MapManager('previewMap', {
                 center: APP_CONFIG.MAP_CONFIG.defaultCenter,
                 zoom: 13,
-                scrollWheelZoom: false,
-                dragging: true
+                scrollWheelZoom: false
             });
             
+            console.log('🗺️ Calling initialize()...');
             const map = previewMap.initialize();
             
             if (map) {
                 // Mark as initialized
-                markMapAsInitialized('previewMap');
+                mapInitializations.add('previewMap');
+                console.log('✅ MapManager.initialize() returned map instance');
                 
-                console.log('✅ Home page map created successfully');
-                
-                // Add sample marker for Johannesburg CBD
-                previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
-                    popup: 'Johannesburg CBD',
-                    icon: previewMap.getDefaultIcon()
-                });
-                
-                // Add sample driver markers
-                const sampleDrivers = [
-                    { id: 'driver1', lat: -26.190, lng: 28.030, status: 'online' },
-                    { id: 'driver2', lat: -26.200, lng: 28.040, status: 'busy' },
-                    { id: 'driver3', lat: -26.180, lng: 28.020, status: 'online' }
-                ];
-                
-                sampleDrivers.forEach(driver => {
-                    previewMap.addMarker(driver.id, [driver.lat, driver.lng], {
-                        icon: previewMap.getDriverIcon(driver.status),
-                        popup: `Driver ${driver.id} - ${driver.status}`
-                    });
-                });
-                
-                // Fit map to show all markers after a short delay
+                // Add markers after short delay
                 setTimeout(() => {
-                    const allMarkers = [
-                        previewMap.markers.get('center'),
-                        previewMap.markers.get('driver1'),
-                        previewMap.markers.get('driver2'),
-                        previewMap.markers.get('driver3')
-                    ].filter(marker => marker !== undefined);
-                    
-                    if (allMarkers.length > 0) {
-                        previewMap.fitBounds(allMarkers);
+                    try {
+                        // Add center marker
+                        previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
+                            popup: 'Johannesburg CBD'
+                        });
+                        
+                        // Add sample drivers
+                        const sampleDrivers = [
+                            { id: 'driver1', lat: -26.190, lng: 28.030, status: 'online' },
+                            { id: 'driver2', lat: -26.200, lng: 28.040, status: 'busy' },
+                            { id: 'driver3', lat: -26.180, lng: 28.020, status: 'online' }
+                        ];
+                        
+                        sampleDrivers.forEach(driver => {
+                            previewMap.addMarker(driver.id, [driver.lat, driver.lng], {
+                                icon: previewMap.getDriverIcon(driver.status),
+                                popup: `Driver ${driver.id} - ${driver.status}`
+                            });
+                        });
+                        
+                        console.log('✅ Markers added successfully');
+                    } catch (markerError) {
+                        console.error('❌ Error adding markers:', markerError);
                     }
-                }, 100);
+                }, 300);
                 
-                console.log('✅ Home page map fully initialized with markers');
             } else {
-                console.warn('⚠️ Could not create home page map (might be already initialized)');
+                console.warn('⚠️ MapManager.initialize() returned null (might already exist)');
             }
             
         } catch (error) {
-            console.error('❌ Home page map error:', error);
-            // Don't crash the page if map fails
-            showNotification('Map initialization failed, but you can still use the app', 'warning');
+            console.error('❌ CRITICAL ERROR in initHomePage:', error);
+            console.error('Error stack:', error.stack);
         }
-    }, 800); // Increased delay to ensure everything is ready
+        
+        console.log('=== INIT HOME PAGE END ===');
+    }, 1000); // 1 second delay
     
-    // Load tracking history after map is set up
+    // Load tracking history separately
     setTimeout(() => {
         if (typeof loadTrackingHistory === 'function') {
             try {
                 loadTrackingHistory();
-                console.log('✅ Tracking history loaded');
             } catch (error) {
-                console.error('❌ Failed to load tracking history:', error);
+                console.error('Failed to load tracking history:', error);
             }
-        } else {
-            console.log('⚠️ loadTrackingHistory function not found');
         }
-    }, 1500);
+    }, 2000);
 }
 
 // ===== TRACKING HISTORY FUNCTIONS =====
