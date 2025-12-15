@@ -1,3 +1,29 @@
+// ===== MAP INITIALIZATION FIX =====
+// Prevent multiple map initializations
+let mapsInitialized = new Set();
+
+function safeInitializeMap(containerId, options) {
+  if (mapsInitialized.has(containerId)) {
+    console.log(`Map ${containerId} already initialized, skipping`);
+    return null;
+  }
+  
+  try {
+    const mapManager = new MapManager(containerId, options);
+    const map = mapManager.initialize();
+    if (map) {
+      mapsInitialized.add(containerId);
+    }
+    return mapManager;
+  } catch (error) {
+    console.error(`Failed to initialize map ${containerId}:`, error);
+    return null;
+  }
+}
+
+// Then in initHomePage(), use:
+// const previewMap = safeInitializeMap('previewMap', {...});
+
 // ===== APPLICATION CONFIGURATION =====
 const APP_CONFIG = {
   // API Endpoints
