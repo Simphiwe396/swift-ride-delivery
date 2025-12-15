@@ -716,6 +716,9 @@ function hideModal(modalId) {
   }
 }
 
+// ===== GLOBAL FLAGS =====
+let homePageInitialized = false;
+
 // ===== FIX PAGE ACCESS =====
 function checkPageAccess() {
     const page = document.body.dataset.page;
@@ -835,102 +838,53 @@ function initializePageFeatures() {
 }
 
 function initHomePage() {
-    console.log('=== INIT HOME PAGE START ===');
     console.log('🏠 Initializing home page...');
     
-    const container = document.getElementById('previewMap');
-    console.log('🔍 previewMap container check:', {
-        exists: !!container,
-        _leaflet_id: container?._leaflet_id,
-        className: container?.className,
-        innerHTML: container?.innerHTML?.length
-    });
-    
-    // Check if map already exists - more thorough check
-    if (container && container._leaflet_id) {
-        console.warn('🚫 SKIPPING: previewMap already has Leaflet map with ID:', container._leaflet_id);
-        console.log('=== INIT HOME PAGE END (skipped) ===');
+    // Prevent double initialization
+    if (homePageInitialized) {
+        console.log('✅ Home page already initialized, skipping');
         return;
     }
     
-    // Check our own tracking
-    if (mapInitializations.has('previewMap')) {
-        console.warn('🚫 SKIPPING: previewMap already initialized by our app');
-        console.log('=== INIT HOME PAGE END (skipped) ===');
-        return;
-    }
+    homePageInitialized = true;
     
-    console.log('✅ Proceeding with map initialization...');
-    
-    // Add a small delay to ensure DOM is ready
+    // Wait for everything to be ready
     setTimeout(() => {
+        const container = document.getElementById('previewMap');
+        console.log('🔍 Map container check:', {
+            exists: !!container,
+            leafletId: container?._leaflet_id
+        });
+        
+        // If container already has map, skip
+        if (container && container._leaflet_id) {
+            console.warn('🚫 Map already exists, skipping initialization');
+            return;
+        }
+        
         try {
-            console.log('🗺️ Creating MapManager for previewMap...');
-            
+            console.log('🗺️ Creating map...');
             const previewMap = new MapManager('previewMap', {
                 center: APP_CONFIG.MAP_CONFIG.defaultCenter,
                 zoom: 13,
                 scrollWheelZoom: false
             });
             
-            console.log('🗺️ Calling initialize()...');
             const map = previewMap.initialize();
             
             if (map) {
-                // Mark as initialized
-                mapInitializations.add('previewMap');
-                console.log('✅ MapManager.initialize() returned map instance');
-                
-                // Add markers after short delay
-                setTimeout(() => {
-                    try {
-                        // Add center marker
-                        previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
-                            popup: 'Johannesburg CBD'
-                        });
-                        
-                        // Add sample drivers
-                        const sampleDrivers = [
-                            { id: 'driver1', lat: -26.190, lng: 28.030, status: 'online' },
-                            { id: 'driver2', lat: -26.200, lng: 28.040, status: 'busy' },
-                            { id: 'driver3', lat: -26.180, lng: 28.020, status: 'online' }
-                        ];
-                        
-                        sampleDrivers.forEach(driver => {
-                            previewMap.addMarker(driver.id, [driver.lat, driver.lng], {
-                                icon: previewMap.getDriverIcon(driver.status),
-                                popup: `Driver ${driver.id} - ${driver.status}`
-                            });
-                        });
-                        
-                        console.log('✅ Markers added successfully');
-                    } catch (markerError) {
-                        console.error('❌ Error adding markers:', markerError);
-                    }
-                }, 300);
-                
-            } else {
-                console.warn('⚠️ MapManager.initialize() returned null (might already exist)');
+                console.log('✅ Map created successfully');
+                // Add your markers here...
             }
-            
         } catch (error) {
-            console.error('❌ CRITICAL ERROR in initHomePage:', error);
-            console.error('Error stack:', error.stack);
+            console.error('❌ Map error (non-critical):', error);
         }
         
-        console.log('=== INIT HOME PAGE END ===');
-    }, 1000); // 1 second delay
-    
-    // Load tracking history separately
-    setTimeout(() => {
+        // Load tracking history
         if (typeof loadTrackingHistory === 'function') {
-            try {
-                loadTrackingHistory();
-            } catch (error) {
-                console.error('Failed to load tracking history:', error);
-            }
+            loadTrackingHistory();
         }
-    }, 2000);
+    }, 1000);
 }
 
 // ===== TRACKING HISTORY FUNCTIONS =====
