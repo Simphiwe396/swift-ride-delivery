@@ -1,45 +1,15 @@
 services:
-  # Backend API Service (Node.js)
   - type: web
-    name: swift-ride-api
+    name: swift-ride-backend
     env: node
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && node server.js
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGODB_URI
+      - key: mongodb+srv://ngozobolwanengolobane_db_user:2022gogo@cluster0.2xj7xle.mongodb.net/delivery_app?retryWrites=true&w=majority
         sync: false
-      - key: MAPBOX_TOKEN
-        sync: false
-      - key: JWT_SECRET
+      - key: 2022gogo
         generateValue: true
-      - key: PORT
-        value: 10000
+    healthCheckPath: /api/health
     autoDeploy: true
-
-  # Frontend PWA Service (Static)
-  - type: web
-    name: swift-ride-pwa
-    env: static
-    buildCommand: |
-      echo "Building PWA frontend..."
-      # No build needed for static HTML
-    staticPublishPath: ./frontend
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000
-    envVars:
-      - key: REACT_APP_API_URL
-        fromService:
-          name: swift-ride-api
-          type: web
-          property: host

@@ -3,41 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Dashboard - SwiftRide Delivery</title>
+    <title>Driver Dashboard - SwiftRide</title>
     
     <!-- PWA Configuration -->
-    <meta name="application-name" content="SwiftRide Driver">
+    <meta name="application-name" content="SwiftRide">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1A1D29">
-
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6C63FF">
+    
+    <!-- Icons -->
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
     <link rel="manifest" href="./site.webmanifest">
-    
-    <!-- Icons & Fonts -->
-    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
-    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
+
+    <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Add to <head> -->
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./styles.css">
     
     <style>
         .driver-dashboard {
             min-height: 100vh;
-            background: var(--light);
+            background: #F8F9FF;
         }
         
         .driver-header {
-            background: var(--gradient);
+            background: linear-gradient(135deg, #6C63FF, #4A43C8);
             color: white;
-            padding: 1.5rem;
+            padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -46,243 +46,159 @@
         .driver-info {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 15px;
         }
         
-        .driver-avatar-large {
+        .driver-avatar-lg {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255,255,255,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
-            font-weight: bold;
+            font-weight: 600;
         }
         
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.15);
+        .driver-status-badge {
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.9rem;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
+            font-weight: 600;
         }
         
         .status-online { background: #4CAF50; }
         .status-offline { background: #9E9E9E; }
         .status-busy { background: #FF9800; }
         
-        .status-toggle {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
+        .driver-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
-        .status-btn {
-            padding: 0.8rem 1.5rem;
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #6C63FF;
+            margin: 10px 0;
+        }
+        
+        .map-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        #driverMap {
+            height: 400px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .map-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
             border: none;
-            border-radius: var(--radius-md);
             font-weight: 600;
             cursor: pointer;
-            transition: var(--transition-fast);
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
-        .status-btn.online {
+        .btn-primary {
+            background: #6C63FF;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #E8EAF2;
+            color: #333;
+        }
+        
+        .btn-success {
             background: #4CAF50;
             color: white;
         }
         
-        .status-btn.offline {
-            background: #9E9E9E;
-            color: white;
-        }
-        
-        .status-btn.busy {
-            background: #FF9800;
-            color: white;
-        }
-        
-        .status-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        
-        .driver-content {
-            padding: 1.5rem;
-        }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .earnings-card {
+        .deliveries-section {
             background: white;
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
-        .earnings-header {
+        .delivery-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            padding: 15px;
+            border-bottom: 1px solid #E8EAF2;
         }
         
-        .earnings-amount {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        
-        .earnings-breakdown {
-            margin-top: 1rem;
-        }
-        
-        .breakdown-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--gray-light);
-        }
-        
-        .breakdown-item:last-child {
+        .delivery-item:last-child {
             border-bottom: none;
-            font-weight: 600;
         }
         
-        .current-trip-card {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
-            margin-bottom: 1.5rem;
+        .delivery-info h4 {
+            margin: 0 0 5px 0;
         }
         
-        .trip-actions {
+        .delivery-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .delivery-actions {
             display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
+            gap: 10px;
         }
         
-        .delivery-steps {
-            margin-top: 1.5rem;
-        }
-        
-        .step {
+        .status-controls {
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: var(--light);
-            border-radius: var(--radius-md);
-            margin-bottom: 0.5rem;
-            cursor: pointer;
-            transition: var(--transition-fast);
-        }
-        
-        .step:hover {
-            background: var(--primary-light);
-        }
-        
-        .step.active {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .step-number {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: white;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
-        
-        .step.active .step-number {
-            background: white;
-            color: var(--primary);
-        }
-        
-        .available-deliveries {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
-        }
-        
-        .delivery-card {
-            background: var(--light);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            cursor: pointer;
-            transition: var(--transition-fast);
-        }
-        
-        .delivery-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
-        }
-        
-        .delivery-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        
-        .delivery-price {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        
-        .delivery-details p {
-            margin: 0.3rem 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--gray);
+            gap: 10px;
         }
         
         .empty-state {
             text-align: center;
-            padding: 3rem;
-            color: var(--gray);
+            padding: 40px;
+            color: #666;
         }
         
         .empty-state i {
             font-size: 3rem;
-            margin-bottom: 1rem;
+            margin-bottom: 15px;
             opacity: 0.5;
         }
         
-        .navigation-controls {
+        .navigation-buttons {
             position: fixed;
             bottom: 20px;
             right: 20px;
@@ -298,16 +214,17 @@
             border-radius: 50%;
             background: white;
             border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow-lg);
             cursor: pointer;
-            transition: var(--transition-fast);
+            font-size: 1.2rem;
+            color: #6C63FF;
         }
         
         .nav-btn:hover {
-            background: var(--primary);
+            background: #6C63FF;
             color: white;
             transform: scale(1.1);
         }
@@ -326,273 +243,340 @@
         <!-- Header -->
         <header class="driver-header">
             <div class="driver-info">
-                <div class="driver-avatar-large" id="driverAvatar">D</div>
+                <div class="driver-avatar-lg" id="driverAvatar">D</div>
                 <div>
                     <h2 id="driverName">Driver Name</h2>
-                    <div class="status-indicator">
-                        <div class="status-dot status-offline" id="statusDot"></div>
-                        <span id="driverStatus">Offline</span>
+                    <div class="driver-status-badge status-offline" id="driverStatusBadge">
+                        Offline
                     </div>
                 </div>
             </div>
             
-            <div>
-                <div class="status-toggle">
-                    <button class="status-btn online" onclick="goOnline()">
-                        <i class="fas fa-bolt"></i> Go Online
-                    </button>
-                    <button class="status-btn offline" onclick="goOffline()">
-                        <i class="fas fa-power-off"></i> Go Offline
-                    </button>
-                    <button class="status-btn busy" onclick="goBusy()">
-                        <i class="fas fa-clock"></i> On Break
-                    </button>
-                </div>
+            <div class="status-controls">
+                <button class="btn btn-success" id="goOnlineBtn">
+                    <i class="fas fa-power-off"></i> Go Online
+                </button>
+                <button class="btn btn-secondary" id="goOfflineBtn">
+                    <i class="fas fa-power-off"></i> Go Offline
+                </button>
             </div>
         </header>
         
         <!-- Main Content -->
         <main class="driver-content">
-            <div class="dashboard-grid">
-                <!-- Left Column: Map & Current Trip -->
-                <div>
-                    <!-- Live Map -->
-                    <div class="map-container" style="margin-bottom: 1.5rem;">
-                        <div id="driverMap" style="height: 400px;"></div>
-                        <div class="map-controls">
-                            <button class="map-btn" onclick="centerOnMe()">
-                                <i class="fas fa-location-arrow"></i>
-                            </button>
-                            <button class="map-btn" onclick="toggleTraffic()">
-                                <i class="fas fa-traffic-light"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Current Trip -->
-                    <div id="currentTrip" class="current-trip-card" style="display: none;">
-                        <!-- Filled by JavaScript -->
-                    </div>
-                    
-                    <!-- Delivery Steps -->
-                    <div id="deliverySteps" class="delivery-steps" style="display: none;">
-                        <h3>Delivery Progress</h3>
-                        <div class="step active" onclick="navigateToPickup()">
-                            <div class="step-number">1</div>
-                            <div>
-                                <strong>Go to Pickup</strong>
-                                <small id="pickupAddress">Loading...</small>
-                            </div>
-                            <div style="margin-left: auto;">
-                                <i class="fas fa-directions"></i>
-                            </div>
-                        </div>
-                        <div class="step" onclick="confirmPickup()">
-                            <div class="step-number">2</div>
-                            <div>
-                                <strong>Confirm Pickup</strong>
-                                <small>Tap when package collected</small>
-                            </div>
-                        </div>
-                        <div class="step" onclick="navigateToDelivery()">
-                            <div class="step-number">3</div>
-                            <div>
-                                <strong>Deliver Package</strong>
-                                <small id="deliveryAddress">Loading...</small>
-                            </div>
-                            <div style="margin-left: auto;">
-                                <i class="fas fa-directions"></i>
-                            </div>
-                        </div>
-                        <div class="step" onclick="completeDelivery()">
-                            <div class="step-number">4</div>
-                            <div>
-                                <strong>Complete Delivery</strong>
-                                <small>Take photo & get signature</small>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-box">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <div class="stat-value" id="todayEarnings">R 0.00</div>
+                    <p>Today's Earnings</p>
                 </div>
-                
-                <!-- Right Column: Earnings & Available Deliveries -->
-                <div>
-                    <!-- Earnings Card -->
-                    <div class="earnings-card">
-                        <div class="earnings-header">
-                            <h3>Today's Earnings</h3>
-                            <button class="btn btn-secondary" onclick="showEarningsDetails()">
-                                <i class="fas fa-history"></i> History
-                            </button>
-                        </div>
-                        <div class="earnings-amount" id="todayEarnings">R 0.00</div>
-                        <p style="color: var(--gray); margin-top: 0.5rem;">Total trips: <span id="todayTrips">0</span></p>
-                        
-                        <div class="earnings-breakdown">
-                            <div class="breakdown-item">
-                                <span>Completed Trips</span>
-                                <span id="completedTrips">0</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Hourly Rate</span>
-                                <span id="hourlyRate">R 0.00</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Average Trip</span>
-                                <span id="avgTripEarnings">R 0.00</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Total Distance</span>
-                                <span id="totalDistance">0 km</span>
-                            </div>
-                        </div>
-                        
-                        <div class="trip-actions" style="margin-top: 1.5rem;">
-                            <button class="btn btn-primary" onclick="cashOut()" style="flex: 1;">
-                                <i class="fas fa-money-bill-wave"></i> Cash Out
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Available Deliveries -->
-                    <div class="available-deliveries" style="margin-top: 1.5rem;">
-                        <h3>Available Deliveries</h3>
-                        <div id="availableDeliveriesList">
-                            <!-- Filled by JavaScript -->
-                        </div>
-                    </div>
+                <div class="stat-box">
+                    <i class="fas fa-box"></i>
+                    <div class="stat-value" id="completedTrips">0</div>
+                    <p>Completed Trips</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-value" id="avgRating">5.0</div>
+                    <p>Your Rating</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-road"></i>
+                    <div class="stat-value" id="totalDistance">0 km</div>
+                    <p>Distance Today</p>
                 </div>
             </div>
             
-            <!-- Trip History -->
-            <div class="earnings-card">
-                <div class="earnings-header">
-                    <h3>Recent Trips</h3>
-                    <button class="btn btn-secondary" onclick="showAllTrips()">
-                        View All
+            <!-- Map Section -->
+            <div class="map-section">
+                <h2>Your Location</h2>
+                <div id="driverMap"></div>
+                <div class="map-buttons">
+                    <button class="btn btn-primary" id="centerOnMeBtn">
+                        <i class="fas fa-location-arrow"></i> Center on Me
+                    </button>
+                    <button class="btn btn-secondary" id="findDeliveriesBtn">
+                        <i class="fas fa-search"></i> Find Deliveries
                     </button>
                 </div>
-                <div id="recentTrips">
-                    <!-- Filled by JavaScript -->
+            </div>
+            
+            <!-- Deliveries Section -->
+            <div class="deliveries-section">
+                <h2>Available Deliveries</h2>
+                <div id="driverDeliveriesList">
+                    <!-- Deliveries will be loaded here -->
+                    <div class="empty-state">
+                        <i class="fas fa-box"></i>
+                        <p>No deliveries available</p>
+                        <small>Go online to receive deliveries</small>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
     
-    <!-- Navigation Controls -->
-    <div class="navigation-controls">
-        <button class="nav-btn" onclick="openNavigation()" title="Open Navigation">
-            <i class="fas fa-directions"></i>
-        </button>
-        <button class="nav-btn" onclick="toggleLocationSharing()" title="Toggle Location">
+    <!-- Navigation Buttons -->
+    <div class="navigation-buttons">
+        <button class="nav-btn" onclick="window.location.href='tracking.html'" title="Track">
             <i class="fas fa-map-marker-alt"></i>
         </button>
-        <button class="nav-btn" onclick="openChatWithSupport()" title="Support Chat">
-            <i class="fas fa-headset"></i>
+        <button class="nav-btn" onclick="window.location.href='index.html'" title="Home">
+            <i class="fas fa-home"></i>
         </button>
         <button class="nav-btn" onclick="logout()" title="Logout">
             <i class="fas fa-sign-out-alt"></i>
         </button>
     </div>
     
-    <!-- Modals -->
-    <!-- Delivery Proof Modal -->
-    <div class="modal" id="deliveryProofModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Complete Delivery</h3>
-                <button class="close-modal" onclick="hideModal('deliveryProofModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="deliveryProofForm" onsubmit="submitDeliveryProof(event)">
-                    <input type="hidden" id="proofTripId">
-                    
-                    <div class="form-group">
-                        <label>Take Photo of Delivered Package</label>
-                        <div class="photo-upload" onclick="takePhoto()">
-                            <i class="fas fa-camera"></i>
-                            <p>Tap to take photo</p>
-                            <img id="proofPhotoPreview" style="display: none; max-width: 100%; border-radius: var(--radius-md); margin-top: 1rem;">
-                        </div>
-                        <input type="file" id="proofPhoto" accept="image/*" capture="environment" hidden 
-                               onchange="previewPhoto(event)">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Recipient Name</label>
-                        <input type="text" id="recipientName" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Recipient Signature</label>
-                        <div class="signature-pad">
-                            <canvas id="signatureCanvas" width="400" height="200" 
-                                    style="border: 1px solid var(--gray-light); border-radius: var(--radius-md);"></canvas>
-                            <button type="button" class="btn btn-secondary" onclick="clearSignature()" 
-                                    style="margin-top: 0.5rem;">
-                                <i class="fas fa-undo"></i> Clear
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Additional Notes</label>
-                        <textarea id="deliveryNotes" class="form-control" rows="3" placeholder="Any special notes..."></textarea>
-                    </div>
-                    
-                    <div class="btn-group">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-check"></i> Complete Delivery
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="hideModal('deliveryProofModal')">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Earnings Details Modal -->
-    <div class="modal" id="earningsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Earnings History</h3>
-                <button class="close-modal" onclick="hideModal('earningsModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="earningsHistory">
-                    <!-- Filled by JavaScript -->
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Support Chat Modal -->
-    <div class="modal" id="supportChatModal">
-        <div class="modal-content" style="height: 80vh;">
-            <div class="modal-header">
-                <h3>Support Chat</h3>
-                <button class="close-modal" onclick="hideModal('supportChatModal')">&times;</button>
-            </div>
-            <div class="modal-body" style="height: calc(100% - 70px); display: flex; flex-direction: column;">
-                <div id="supportChatMessages" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--light); border-radius: var(--radius-md);">
-                    <!-- Chat messages will appear here -->
-                </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <input type="text" id="supportMessageInput" class="form-control" placeholder="Type your message..." style="flex: 1;">
-                    <button class="btn btn-primary" onclick="sendSupportMessage()">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    <script src="app.js"></script>
-    <script src="driver.js"></script>
+    <script src="./app.js"></script>
     
+    <!-- Driver Page Script -->
+    <script>
+        let driverMap = null;
+        let driverMarker = null;
+        
+        // Wait for app.js to load
+        setTimeout(() => {
+            initDriverPage();
+        }, 500);
+        
+        function initDriverPage() {
+            console.log('Driver page initializing');
+            
+            // Check if driver is logged in
+            if (!AppState.user || AppState.user.userType !== 'driver') {
+                showNotification('Please login as driver first', 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                return;
+            }
+            
+            // Update driver info
+            if (AppState.user) {
+                document.getElementById('driverName').textContent = AppState.user.name;
+                document.getElementById('driverAvatar').textContent = AppState.user.name.charAt(0);
+            }
+            
+            // Initialize map
+            initDriverMap();
+            
+            // Load driver data
+            loadDriverData();
+            
+            // Setup event listeners
+            setupDriverListeners();
+        }
+        
+        function initDriverMap() {
+            setTimeout(() => {
+                try {
+                    const mapContainer = document.getElementById('driverMap');
+                    if (!mapContainer) return;
+                    
+                    // Clear container
+                    mapContainer.innerHTML = '';
+                    mapContainer.style.height = '400px';
+                    mapContainer.style.width = '100%';
+                    
+                    // Create map centered on Johannesburg
+                    driverMap = L.map('driverMap').setView([-26.195246, 28.034088], 14);
+                    
+                    // Add tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap'
+                    }).addTo(driverMap);
+                    
+                    // Add driver marker
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(position => {
+                            const { latitude, longitude } = position.coords;
+                            
+                            driverMarker = L.marker([latitude, longitude]).addTo(driverMap);
+                            driverMarker.bindPopup(`
+                                <strong>Your Location</strong><br>
+                                ${AppState.user?.name || 'Driver'}
+                            `);
+                            
+                            // Center map on driver
+                            driverMap.setView([latitude, longitude], 14);
+                        });
+                    } else {
+                        // Default marker
+                        driverMarker = L.marker([-26.195246, 28.034088]).addTo(driverMap);
+                        driverMarker.bindPopup('<strong>Default Location</strong>');
+                    }
+                    
+                    console.log('Driver map initialized');
+                    
+                } catch (error) {
+                    console.error('Failed to initialize driver map:', error);
+                    
+                    // Fallback if map fails
+                    const mapContainer = document.getElementById('driverMap');
+                    mapContainer.innerHTML = `
+                        <div style="height:400px;background:linear-gradient(135deg,#6C63FF,#4A43C8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;text-align:center;">
+                            <div>
+                                <i class="fas fa-map-marked-alt" style="font-size:3rem;"></i>
+                                <h3>Map View</h3>
+                                <p>Your location will be shown here</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 1000);
+        }
+        
+        async function loadDriverData() {
+            try {
+                // Update stats with sample data
+                document.getElementById('todayEarnings').textContent = 'R 450.00';
+                document.getElementById('completedTrips').textContent = '8';
+                document.getElementById('avgRating').textContent = '4.9';
+                document.getElementById('totalDistance').textContent = '42 km';
+                
+                // Load sample deliveries
+                const deliveries = [
+                    { 
+                        id: '1', 
+                        from: 'Rosebank Mall', 
+                        to: 'Sandton City', 
+                        price: 'R 75.00',
+                        distance: '8 km'
+                    },
+                    { 
+                        id: '2', 
+                        from: 'Melville', 
+                        to: 'Randburg', 
+                        price: 'R 45.00',
+                        distance: '5 km'
+                    },
+                    { 
+                        id: '3', 
+                        from: 'Johannesburg CBD', 
+                        to: 'Midrand', 
+                        price: 'R 120.00',
+                        distance: '15 km'
+                    }
+                ];
+                
+                renderDeliveriesList(deliveries);
+                
+            } catch (error) {
+                console.error('Failed to load driver data:', error);
+            }
+        }
+        
+        function renderDeliveriesList(deliveries) {
+            const container = document.getElementById('driverDeliveriesList');
+            if (!container) return;
+            
+            if (!deliveries || deliveries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-box"></i>
+                        <p>No deliveries available</p>
+                        <small>Go online to receive deliveries</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = deliveries.map(delivery => `
+                <div class="delivery-item">
+                    <div class="delivery-info">
+                        <h4>${delivery.from} → ${delivery.to}</h4>
+                        <p>${delivery.distance} • ${delivery.price}</p>
+                    </div>
+                    <div class="delivery-actions">
+                        <button class="btn btn-primary" onclick="acceptDelivery('${delivery.id}')">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewDelivery('${delivery.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function setupDriverListeners() {
+            // Online button
+            const onlineBtn = document.getElementById('goOnlineBtn');
+            if (onlineBtn) {
+                onlineBtn.addEventListener('click', () => {
+                    document.getElementById('driverStatusBadge').className = 'driver-status-badge status-online';
+                    document.getElementById('driverStatusBadge').textContent = 'Online';
+                    showNotification('You are now online', 'success');
+                    
+                    // Update status
+                    if (driverMarker) {
+                        driverMarker.setIcon(
+                            L.divIcon({
+                                className: 'driver-marker',
+                                html: '<div style="background:#4CAF50;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.3);"></div>'
+                            })
+                        );
+                    }
+                });
+            }
+            
+            // Offline button
+            const offlineBtn = document.getElementById('goOfflineBtn');
+            if (offlineBtn) {
+                offlineBtn.addEventListener('click', () => {
+                    document.getElementById('driverStatusBadge').className = 'driver-status-badge status-offline';
+                    document.getElementById('driverStatusBadge').textContent = 'Offline';
+                    showNotification('You are now offline', 'info');
+                    
+                    // Update status
+                    if (driverMarker) {
+                        driverMarker.setIcon(
+                            L.divIcon({
+                                className: 'driver-marker',
+                                html: '<div style="background:#9E9E9E;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.3);"></div>'
+                            })
+                        );
+                    }
+                });
+            }
+            
+            // Center on me button
+            const centerBtn = document.getElementById('centerOnMeBtn');
+            if (centerBtn) {
+                centerBtn.addEventListener('click', () => {
+                    if (navigator.geolocation && driverMap) {
+                        navigator.geolocation.getCurrentPosition(position => {
+                            const { latitude, longitude } = position.coords;
+                            driverMap.setView([latitude, longitude], 14);
+                            showNotification('Map centered on your location', 'success');
+                        });
+                    }
+                });
+            }
+            
+            // Find deliveries button
+            const findBtn = document.getElementById('findDeliveriesBtn');
+            if (findBtn) {
+                findBtn.addEventListener('click', () => {
+                    showNotification('Searching for deliveries...', 'info');
+                    loadDriverData(); // Reload data
+                });
+            }
+        }
+        
+        function acceptDelivery(deliveryId) {
+            showNotification(`Delivery ${deliveryId} accepted!`, 'success');
+        }
+        
+        function viewDelivery(deliveryId) {
+            showNotification(`Viewing delivery ${deliveryId}`, 'info');
+        }
+    </script>
 </body>
 </html>
