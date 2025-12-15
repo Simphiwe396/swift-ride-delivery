@@ -218,63 +218,68 @@ class MapManager {
     }
   }
   
-  initialize() {
-    const container = document.getElementById(this.containerId);
+initialize() {
+  const container = document.getElementById(this.containerId);
+  
+  if (!container) {
+    console.error(`❌ Map container ${this.containerId} not found!`);
+    return null;
+  }
+  
+  // CRITICAL FIX: Check if Leaflet already initialized this container
+  if (container._leaflet_id) {
+    console.log(`✅ Container ${this.containerId} already has Leaflet map (ID: ${container._leaflet_id})`);
     
-    if (!container) {
-      console.error(`Map container ${this.containerId} not found!`);
-      return null;
+    // Try to get the existing map instance
+    try {
+      this.map = L.map(this.containerId, { 
+        reuse: true,
+        zoomControl: false,  // Prevent duplicate controls
+        attributionControl: false
+      });
+      console.log(`✅ Successfully reused existing map for ${this.containerId}`);
+      return this.map;
+    } catch (error) {
+      console.warn(`⚠️ Could not reuse map, creating new one:`, error);
+      // Continue to create new map
     }
+  }
+  
+  // Only create new map if doesn't exist
+  try {
+    console.log(`🗺️ Creating new map in ${this.containerId}`);
     
-    // If map already exists, don't create a new one
-    if (container._leaflet_id && window.L) {
-      // Try to get existing map
-      const existingMap = L.DomUtil.get(this.containerId)._leaflet_id;
-      if (existingMap) {
-        console.log(`Reusing existing map for ${this.containerId}`);
-        this.map = L.map(this.containerId, { reuse: true });
-        return this.map;
-      }
-    }
-    
-    // Clear container content first
+    // Clear any existing content
     container.innerHTML = '';
     
-    // Set fixed height for map container
-    container.style.height = '100%';
+    // Set container dimensions explicitly
+    container.style.height = '400px';
     container.style.width = '100%';
-    container.style.position = 'relative';
+    container.style.borderRadius = '12px';
+    container.style.overflow = 'hidden';
     
-    if (!this.map) {
-      try {
-        // Initialize Leaflet map
-        this.map = L.map(this.containerId, {
-          center: this.options.center,
-          zoom: this.options.zoom,
-          zoomControl: true,
-          attributionControl: true
-        });
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom,
-          minZoom: APP_CONFIG.MAP_CONFIG.minZoom
-        }).addTo(this.map);
-        
-        // Add scale control
-        L.control.scale().addTo(this.map);
-        
-        console.log(`🗺️ Map initialized in ${this.containerId}`);
-        
-      } catch (error) {
-        console.error(`Failed to initialize map in ${this.containerId}:`, error);
-        return null;
-      }
-    }
+    // Initialize map
+    this.map = L.map(this.containerId, {
+      center: this.options.center,
+      zoom: this.options.zoom,
+      zoomControl: true,
+      attributionControl: true
+    });
     
+    // Add tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom || 18
+    }).addTo(this.map);
+    
+    console.log(`✅ Map successfully created in ${this.containerId}`);
     return this.map;
+    
+  } catch (error) {
+    console.error(`❌ Failed to create map in ${this.containerId}:`, error);
+    return null;
   }
+}
   
   addMarker(id, latlng, options = {}) {
     if (!this.map) return null;
@@ -639,31 +644,40 @@ function checkPageAccess() {
 
 // ===== PAGE-SPECIFIC INITIALIZATION =====
 function initializePageFeatures() {
-    const page = document.body.dataset.page;
-    console.log('Initializing page:', page);
-    
-    // Check if user can access this page
-    if (!checkPageAccess()) {
-        return;
-    }
-    
+  const page = document.body.dataset.page;
+  console.log(`Initializing ${page} page...`);
+  
+  // FORCE DELAY to prevent race conditions
+  setTimeout(() => {
     switch(page) {
-        case 'home':
-            initHomePage();
-            break;
-        case 'admin':
-            initAdminPage();
-            break;
-        case 'driver':
-            initDriverPage();
-            break;
-        case 'customer':
-            initCustomerPage();
-            break;
-        case 'tracking':
-            initTrackingPage();
-            break;
+      case 'home':
+        initHomePage();
+        break;
+      case 'admin':
+        if (AppState.user?.userType === 'admin') {
+          initAdminPage();
+        } else {
+          console.log('Not admin, redirecting to home');
+          setTimeout(() => window.location.href = 'index.html', 100);
+        }
+        break;
+      case 'driver':
+        if (AppState.user?.userType === 'driver') {
+          initDriverPage();
+        } else {
+          console.log('Not driver, redirecting to home');
+          setTimeout(() => window.location.href = 'index.html', 100);
+        }
+        break;
+      case 'customer':
+        // Allow customer page for everyone (for testing)
+        initCustomerPage();
+        break;
+      case 'tracking':
+        initTrackingPage();
+        break;
     }
+  }, 300); // 300ms delay to ensure everything loaded
 }
 
 // ===== PAGE-SPECIFIC INITIALIZATION =====
@@ -716,30 +730,35 @@ function initializePageFeatures() {
 }
 
 function initHomePage() {
-  console.log('Initializing home page...');
+  console.log('🏠 Initializing home page...');
   
-  // Initialize preview map - ONLY if it doesn't exist
+  // Initialize preview map - Add delay and check
   const previewMapDiv = document.getElementById('previewMap');
-  if (previewMapDiv && !previewMapDiv._leaflet_id) {
-    // Wait a bit for DOM to be ready
+  if (previewMapDiv) {
+    
+    // Wait 500ms to ensure DOM is ready
     setTimeout(() => {
+      // Double-check if map already exists
+      if (previewMapDiv._leaflet_id) {
+        console.log('✅ Map already initialized on home page, skipping');
+        return;
+      }
+      
       try {
         const previewMap = new MapManager('previewMap', {
           center: APP_CONFIG.MAP_CONFIG.defaultCenter,
           zoom: 13,
-          scrollWheelZoom: false, // Prevent zoom on scroll
-          dragging: true
+          scrollWheelZoom: false
         });
         
         const map = previewMap.initialize();
         
         if (map) {
-          // Add sample marker
+          // Add sample markers only if map created
           previewMap.addMarker('center', APP_CONFIG.MAP_CONFIG.defaultCenter, {
             popup: 'Johannesburg CBD'
           });
           
-          // Add sample driver markers
           const sampleDrivers = [
             { id: 'driver1', lat: -26.190, lng: 28.030, status: 'online' },
             { id: 'driver2', lat: -26.200, lng: 28.040, status: 'busy' },
@@ -752,12 +771,21 @@ function initHomePage() {
               popup: `Driver ${driver.id} - ${driver.status}`
             });
           });
+          
+          console.log('✅ Home page map initialized successfully');
         }
       } catch (error) {
-        console.error('Home page map error:', error);
+        console.error('❌ Home page map error (non-critical):', error);
       }
-    }, 1000);
+    }, 500); // Increased delay to 500ms
   }
+  
+  // Load tracking history
+  setTimeout(() => {
+    if (typeof loadTrackingHistory === 'function') {
+      loadTrackingHistory();
+    }
+  }, 1000);
 }
 
 // ===== TRACKING HISTORY FUNCTIONS =====
@@ -2803,6 +2831,7 @@ window.sendChatMessage = sendChatMessage;
 // ===== TRACK BUTTON FIX =====
 window.trackDriver = (driverId) => {
     console.log('🚨 TRACK BUTTON CLICKED! Driver ID:', driverId);
+    alert(`Would track driver: ${driverId}`);
     
     // Save driver ID
     localStorage.setItem('trackDriverId', driverId);
@@ -2941,38 +2970,48 @@ window.installPWA = async () => {
     deferredPrompt = null;
 };
 
-// Export the main initialization function
-window.initSwiftRideApp = () => {
-  console.log('SwiftRide App starting...')
-  
-  // Check if user is authenticated
-  const token = localStorage.getItem('token');
-  const user = localStorage.getItem('user');
-  
-  if (token && user) {
-    try {
-      AppState.token = token;
-      AppState.user = JSON.parse(user);
-      
-      // Connect to WebSocket
-      connectWebSocket();
-      
-      // Update UI
-      updateUIForLoggedInUser();
-      
-    } catch (error) {
-      console.error('Failed to restore session:', error);
-      logout();
-    }
-  }
-};
-
 // Auto-initialize if this is the main app.js
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', window.initSwiftRideApp);
 } else {
   window.initSwiftRideApp();
 }
+
+// ===== TEST USERS (REMOVE IN PRODUCTION) =====
+function createTestUser(type) {
+  return {
+    _id: `test_${type}_123`,
+    name: `Test ${type}`,
+    email: `test@${type}.com`,
+    userType: type,
+    phone: '1234567890'
+  };
+}
+
+// Quick test login buttons (add to index.html temporarily)
+window.loginAsAdmin = () => {
+  AppState.user = createTestUser('admin');
+  AppState.token = 'test_token_admin';
+  localStorage.setItem('user', JSON.stringify(AppState.user));
+  localStorage.setItem('token', AppState.token);
+  window.location.href = 'admin.html';
+};
+
+window.loginAsDriver = () => {
+  AppState.user = createTestUser('driver');
+  AppState.token = 'test_token_driver';
+  localStorage.setItem('user', JSON.stringify(AppState.user));
+  localStorage.setItem('token', AppState.token);
+  window.location.href = 'driver.html';
+};
+
+window.loginAsCustomer = () => {
+  AppState.user = createTestUser('customer');
+  AppState.token = 'test_token_customer';
+  localStorage.setItem('user', JSON.stringify(AppState.user));
+  localStorage.setItem('token', AppState.token);
+  window.location.href = 'customer.html';
+};
 
 // ===== FIX TRACK BUTTON =====
 // Ensure trackDriver is available globally and works
