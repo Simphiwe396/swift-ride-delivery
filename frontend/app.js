@@ -253,240 +253,123 @@ class API {
 class MapManager {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
-        this.map = null; // Will hold the Leaflet map instance
-        this.markers = new Map(); // Will hold marker references
+        this.map = null;
+        this.markers = new Map();
         this.options = {
             center: APP_CONFIG.MAP_CONFIG.defaultCenter,
             zoom: APP_CONFIG.MAP_CONFIG.defaultZoom,
-            scrollWheelZoom: true, // Default to true
             ...options
         };
         
-        console.log(`📌 MapManager created for ${containerId}`);
-    }
-  
-  _checkExistingMap() {
-    // Check if container exists and already has a map
-    const container = document.getElementById(this.containerId);
-    if (container && container._leaflet_id) {
-      console.log(`Map container ${this.containerId} already has a map. Will reuse it.`);
-    }
-  }
-  
-initialize() {
-    const container = document.getElementById(this.containerId);
-    
-    if (!container) {
-        console.error(`❌ Map container ${this.containerId} not found!`);
-        return null;
+        // Create a unique ID for this map instance
+        this.instanceId = `map_${containerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log(`📌 MapManager created: ${this.instanceId} for ${containerId}`);
     }
     
-    // DEBUG: Log container state
-    console.log(`🔍 Checking container ${this.containerId}:`, {
-        hasLeafletId: !!container._leaflet_id,
-        leafletId: container._leaflet_id,
-        innerHTML: container.innerHTML.length,
-        hasMapClass: container.classList.contains('leaflet-container')
-    });
-    
-    // CRITICAL FIX: If container already has Leaflet map, DO NOT initialize
-    if (container._leaflet_id) {
-        console.warn(`🚫 SKIPPING: Container ${this.containerId} already has Leaflet map with ID: ${container._leaflet_id}`);
-        console.warn(`🚫 This is why you're getting "already initialized" error`);
+    initialize() {
+        console.log(`🗺️ Initializing map: ${this.instanceId}`);
         
-        // Try to return existing map instance if we have it
-        if (this.map) {
-            console.log(`✅ Returning existing map instance for ${this.containerId}`);
-            return this.map;
+        const container = document.getElementById(this.containerId);
+        if (!container) {
+            console.error(`❌ Container ${this.containerId} not found`);
+            return null;
         }
         
-        // If we don't have the instance, return null to prevent error
-        return null;
-    }
-    
-    // Only proceed if container is clean
-    try {
-        console.log(`🗺️ Creating NEW map in ${this.containerId}`);
-        
-        // CRITICAL: Clear container completely
-        container.innerHTML = '';
-        
-        // Set container dimensions
-        container.style.cssText = `
+        // NUCLEAR OPTION: Always create fresh container
+        const parent = container.parentElement;
+        const newContainer = document.createElement('div');
+        newContainer.id = this.containerId;
+        newContainer.style.cssText = `
             height: 400px;
             width: 100%;
             border-radius: 12px;
             overflow: hidden;
             position: relative;
-            background: #f5f5f5;
         `;
         
-        // Initialize Leaflet map
-        this.map = L.map(this.containerId, {
-            center: this.options.center,
-            zoom: this.options.zoom,
-            zoomControl: true,
-            attributionControl: true,
-            preferCanvas: true // Better performance
-        });
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: APP_CONFIG.MAP_CONFIG.maxZoom || 18,
-            minZoom: APP_CONFIG.MAP_CONFIG.minZoom || 10
-        }).addTo(this.map);
-        
-        // Disable scroll wheel zoom if specified
-        if (this.options.scrollWheelZoom === false) {
-            this.map.scrollWheelZoom.disable();
+        // Replace old container with new one
+        if (parent) {
+            parent.replaceChild(newContainer, container);
         }
         
-        console.log(`✅ SUCCESS: Map created in ${this.containerId} with Leaflet ID: ${container._leaflet_id}`);
-        return this.map;
-        
-    } catch (error) {
-        console.error(`❌ FATAL ERROR creating map in ${this.containerId}:`, error);
-        console.error(`❌ Container state:`, {
-            _leaflet_id: container._leaflet_id,
-            className: container.className,
-            parent: container.parentElement?.id
-        });
-        return null;
-    }
-}
-
-destroy() {
-    if (this.map) {
         try {
-            // Remove all layers
-            this.map.eachLayer(layer => {
-                this.map.removeLayer(layer);
-            });
+            // Create new map
+            this.map = L.map(this.containerId).setView(
+                this.options.center,
+                this.options.zoom
+            );
             
-            // Remove the map
+            // Add tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 18
+            }).addTo(this.map);
+            
+            console.log(`✅ Map ${this.instanceId} created successfully`);
+            return this.map;
+            
+        } catch (error) {
+            console.error(`❌ Failed to create map ${this.instanceId}:`, error);
+            
+            // Fallback: Show static map
+            newContainer.innerHTML = `
+                <div style="height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5; color: #666;">
+                    <div style="text-align: center;">
+                        <i class="fas fa-map" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>Map temporarily unavailable</p>
+                    </div>
+                </div>
+            `;
+            return null;
+        }
+    }
+    
+    addMarker(id, latlng, options = {}) {
+        if (!this.map) return null;
+        
+        const marker = L.marker(latlng, options);
+        marker.addTo(this.map);
+        this.markers.set(id, marker);
+        return marker;
+    }
+    
+    updateMarker(id, latlng) {
+        const marker = this.markers.get(id);
+        if (marker) {
+            marker.setLatLng(latlng);
+            return true;
+        }
+        return false;
+    }
+    
+    removeMarker(id) {
+        const marker = this.markers.get(id);
+        if (marker && this.map) {
+            this.map.removeLayer(marker);
+            this.markers.delete(id);
+        }
+    }
+    
+    centerMap(latlng, zoom = 14) {
+        if (this.map) {
+            this.map.setView(latlng, zoom);
+        }
+    }
+    
+    fitBounds(markers) {
+        if (markers.length > 0 && this.map) {
+            const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+            this.map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }
+    
+    destroy() {
+        if (this.map) {
             this.map.remove();
             this.map = null;
-            
-            // Clear markers reference
-            this.markers.clear();
-            
-            // Clear container
-            const container = document.getElementById(this.containerId);
-            if (container) {
-                container.innerHTML = '';
-                container.style.height = '';
-                container.style.width = '';
-            }
-            
-            console.log(`🗑️ Map destroyed for ${this.containerId}`);
-        } catch (error) {
-            console.error(`❌ Failed to destroy map:`, error);
         }
+        this.markers.clear();
     }
-}
-  
-  addMarker(id, latlng, options = {}) {
-    if (!this.map) return null;
-    
-    const defaultOptions = {
-      title: 'Location',
-      draggable: false,
-      icon: this.getDefaultIcon()
-    };
-    
-    const marker = L.marker(latlng, { ...defaultOptions, ...options });
-    marker.addTo(this.map);
-    
-    if (options.popup) {
-      marker.bindPopup(options.popup);
-    }
-    
-    this.markers.set(id, marker);
-    return marker;
-  }
-  
-  updateMarker(id, latlng) {
-    const marker = this.markers.get(id);
-    if (marker && this.map) {
-      marker.setLatLng(latlng);
-      return true;
-    }
-    return false;
-  }
-  
-  removeMarker(id) {
-    const marker = this.markers.get(id);
-    if (marker && this.map) {
-      this.map.removeLayer(marker);
-      this.markers.delete(id);
-    }
-  }
-  
-  addRoute(waypoints, options = {}) {
-    if (!this.map) return null;
-    
-    const defaultOptions = {
-      color: '#6C63FF',
-      weight: 4,
-      opacity: 0.7,
-      dashArray: '10, 10'
-    };
-    
-    const polyline = L.polyline(waypoints, { ...defaultOptions, ...options });
-    polyline.addTo(this.map);
-    return polyline;
-  }
-  
-  getDefaultIcon() {
-    return L.divIcon({
-      html: '<div style="background: #6C63FF; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 0 10px rgba(108, 99, 255, 0.7);"><i class="fas fa-map-marker-alt"></i></div>',
-      iconSize: [30, 30],
-      className: 'pulse'
-    });
-  }
-  
-  getDriverIcon(status) {
-    const colors = {
-      online: '#4CAF50',
-      busy: '#FF9800',
-      offline: '#9E9E9E'
-    };
-    
-    return L.divIcon({
-      html: `<div style="background: ${colors[status] || colors.offline}; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 0 15px ${colors[status] || colors.offline}80;"><i class="fas fa-motorcycle"></i></div>`,
-      iconSize: [40, 40],
-      className: 'pulse'
-    });
-  }
-  
-  centerMap(latlng, zoom = 14) {
-    if (this.map) {
-      this.map.setView(latlng, zoom);
-    }
-  }
-  
-  fitBounds(markers) {
-    if (markers.length > 0 && this.map) {
-      const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
-      this.map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }
-  
-  // Add this method to properly destroy the map
-  destroy() {
-    if (this.map) {
-      this.map.remove();
-      this.map = null;
-      this.markers.clear();
-      
-      // Clear the container
-      const container = document.getElementById(this.containerId);
-      if (container) {
-        container.innerHTML = '';
-      }
-    }
-  }
 }
 
 // ===== WEBSOCKET FUNCTIONS =====
@@ -838,53 +721,60 @@ function initializePageFeatures() {
 }
 
 function initHomePage() {
-    console.log('🏠 Initializing home page...');
+    console.log('🏠 initHomePage - SIMPLE VERSION');
     
-    // Prevent double initialization
-    if (homePageInitialized) {
-        console.log('✅ Home page already initialized, skipping');
-        return;
-    }
-    
-    homePageInitialized = true;
-    
-    // Wait for everything to be ready
+    // Create map with 2 second delay
     setTimeout(() => {
-        const container = document.getElementById('previewMap');
-        console.log('🔍 Map container check:', {
-            exists: !!container,
-            leafletId: container?._leaflet_id
-        });
-        
-        // If container already has map, skip
-        if (container && container._leaflet_id) {
-            console.warn('🚫 Map already exists, skipping initialization');
-            return;
-        }
+        console.log('🗺️ Creating home page map...');
         
         try {
-            console.log('🗺️ Creating map...');
-            const previewMap = new MapManager('previewMap', {
-                center: APP_CONFIG.MAP_CONFIG.defaultCenter,
-                zoom: 13,
-                scrollWheelZoom: false
-            });
-            
-            const map = previewMap.initialize();
-            
-            if (map) {
-                console.log('✅ Map created successfully');
-                // Add your markers here...
+            const mapContainer = document.getElementById('previewMap');
+            if (!mapContainer) {
+                console.log('No previewMap container found');
+                return;
             }
+            
+            // Clear container
+            mapContainer.innerHTML = '';
+            mapContainer.style.height = '400px';
+            mapContainer.style.width = '100%';
+            
+            // Create map
+            const map = L.map('previewMap').setView([-26.195246, 28.034088], 13);
+            
+            // Add tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            
+            // Add simple markers
+            L.marker([-26.195246, 28.034088])
+                .addTo(map)
+                .bindPopup('Johannesburg CBD')
+                .openPopup();
+                
+            L.marker([-26.190, 28.030])
+                .addTo(map)
+                .bindPopup('Driver 1 - Online');
+                
+            L.marker([-26.200, 28.040])
+                .addTo(map)
+                .bindPopup('Driver 2 - Busy');
+                
+            console.log('✅ Home page map created successfully');
+            
         } catch (error) {
-            console.error('❌ Map error (non-critical):', error);
+            console.error('Map error:', error);
+            // Don't show error to user
         }
-        
-        // Load tracking history
+    }, 2000);
+    
+    // Load tracking history
+    setTimeout(() => {
         if (typeof loadTrackingHistory === 'function') {
             loadTrackingHistory();
         }
-    }, 1000);
+    }, 2500);
 }
 
 // ===== TRACKING HISTORY FUNCTIONS =====
