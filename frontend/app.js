@@ -1,10 +1,6 @@
-// ===== SWIFTRIDE APP.JS - WORKING VERSION =====
+// ===== SWIFTRIDE WORKING APP.JS =====
 const APP_CONFIG = {
-    API_BASE_URL: 'https://swiftride-backend-jcyl.onrender.com/api',
-    MAP_CONFIG: {
-        defaultCenter: [-26.195246, 28.034088],
-        defaultZoom: 14
-    }
+    API_BASE_URL: 'https://swiftride-backend-jcyl.onrender.com/api'
 };
 
 let AppState = { user: null, token: null };
@@ -16,12 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-// ===== FIXED FUNCTIONS =====
-window.trackDriver = function(driverId) {
-    console.log('Tracking driver:', driverId);
-    localStorage.setItem('trackDriverId', driverId);
-    window.location.href = 'tracking.html?driver=' + driverId;
-    return false;
+// ===== REQUIRED FUNCTIONS =====
+window.trackDriver = function(id) {
+    console.log('Tracking:', id);
+    localStorage.setItem('trackId', id);
+    window.location.href = 'tracking.html?driver=' + id;
 };
 
 window.logout = function() {
@@ -29,37 +24,72 @@ window.logout = function() {
     window.location.href = 'index.html';
 };
 
+// ADD THESE MISSING FUNCTIONS:
+window.showModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'block';
+};
+
+window.hideModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+};
+
+window.showNotification = function(msg, type = 'info') {
+    console.log(type + ':', msg);
+    alert(type.toUpperCase() + ': ' + msg); // Simple alert for now
+};
+
 window.redirectTo = function(page) {
     window.location.href = page + '.html';
 };
 
-window.showNotification = function(msg, type) {
-    console.log(type + ':', msg);
+// ===== PAGE FUNCTIONS =====
+window.showNewDelivery = function() {
+    showModal('newDeliveryModal');
 };
 
-// ===== TEST LOGINS =====
+window.showTrackDelivery = function() {
+    showModal('trackModal');
+};
+
+window.showPayment = function() {
+    showModal('paymentModal');
+};
+
+window.showSettings = function() {
+    showModal('settingsModal');
+};
+
+window.showNotifications = function() {
+    showModal('notificationsModal');
+};
+
+window.showHistory = function() {
+    showModal('historyModal');
+};
+
+// ===== TEST LOGIN BUTTONS =====
 window.loginAsAdmin = function() {
-    localStorage.setItem('user', JSON.stringify({
-        _id: 'admin1',
-        name: 'Admin User',
-        email: 'admin@test.com',
-        userType: 'admin',
-        phone: '0111234567'
-    }));
-    localStorage.setItem('token', 'test_admin_token');
+    const user = {_id:'admin1', name:'Admin', userType:'admin'};
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('token', 'test');
     window.location.href = 'admin.html';
 };
 
 window.loginAsDriver = function() {
-    localStorage.setItem('user', JSON.stringify({
-        _id: 'driver1',
-        name: 'John Driver',
-        email: 'driver@test.com',
-        userType: 'driver',
-        phone: '0821234567'
-    }));
-    localStorage.setItem('token', 'test_driver_token');
+    const user = {_id:'driver1', name:'Driver', userType:'driver'};
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('token', 'test');
     window.location.href = 'driver.html';
 };
 
-window.loginAsCustomer = window.loginAsDriver;
+window.loginAsCustomer = function() {
+    const user = {_id:'customer1', name:'Customer', userType:'customer'};
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('token', 'test');
+    window.location.href = 'customer.html';
+};
+
+// ===== DEBUG =====
+console.log('✅ app.js loaded with all functions');
