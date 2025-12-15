@@ -64,25 +64,6 @@ let AppState = {
   activeDeliveries: new Map()
 };
 
-// ===== INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 SwiftRide App Initializing...');
-  
-  // Hide loading screen
-  setTimeout(() => {
-    document.getElementById('loadingScreen')?.classList.add('hidden');
-  }, 1500);
-  
-  // Check authentication
-  await checkAuth();
-  
-  // Initialize features based on page
-  initializePageFeatures();
-  
-  // Setup event listeners
-  setupEventListeners();
-});
-
 // ===== AUTHENTICATION FUNCTIONS =====
 async function checkAuth() {
   const token = localStorage.getItem('token');
@@ -2995,13 +2976,6 @@ window.installPWA = async () => {
     
     deferredPrompt = null;
 };
-
-// Auto-initialize if this is the main app.js
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', window.initSwiftRideApp);
-} else {
-  window.initSwiftRideApp();
-}
 
 // ===== TEST USERS (REMOVE IN PRODUCTION) =====
 function createTestUser(type) {
