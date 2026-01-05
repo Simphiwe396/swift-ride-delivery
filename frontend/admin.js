@@ -1,3 +1,34 @@
+// ===== ADMIN PAGE SECURITY CHECK =====
+(function() {
+    // Check if user is logged in as admin
+    const user = localStorage.getItem('swiftride_user');
+    const isAdmin = localStorage.getItem('is_admin');
+    
+    if (!user || !isAdmin) {
+        // Not authorized - redirect to login
+        alert('Access denied. Please login as admin first.');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Parse user data
+    try {
+        const userData = JSON.parse(user);
+        if (userData.userType !== 'admin') {
+            alert('Admin access required.');
+            window.location.href = 'login.html';
+            return;
+        }
+    } catch (e) {
+        alert('Invalid session. Please login again.');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // User is authorized - continue loading page
+    console.log('Admin user authenticated');
+})();
+
 // ===== ADMIN PAGE SPECIFIC FUNCTIONS =====
 
 // Wait for app.js to load
@@ -6,16 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Wait for app.js to initialize
     setTimeout(async () => {
-        // Check if we have an admin logged in
-        if (!AppState.user || AppState.user.userType !== 'admin') {
-            console.log('Not logged in as admin, redirecting...');
-            showNotification('Admin access required', 'error');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
-            return;
-        }
-        
         // Initialize admin page
         initAdminPage();
     }, 500);
@@ -87,40 +108,45 @@ function initAdminMap() {
 
 async function loadDriversForMap() {
     try {
-        // Mock drivers data
-        const drivers = [
-            {
-                _id: 'driver1',
-                name: 'John Driver',
-                status: 'online',
-                currentLocation: { lat: -26.195246, lng: 28.034088 },
-                vehicle: { type: 'motorcycle', model: 'Honda 125' }
-            },
-            {
-                _id: 'driver2',
-                name: 'Mike Rider',
-                status: 'busy',
-                currentLocation: { lat: -26.185246, lng: 28.044088 },
-                vehicle: { type: 'car', model: 'Toyota Corolla' }
-            },
-            {
-                _id: 'driver3',
-                name: 'Sarah Courier',
-                status: 'online',
-                currentLocation: { lat: -26.205246, lng: 28.024088 },
-                vehicle: { type: 'motorcycle', model: 'Yamaha 150' }
-            }
-        ];
+        // Get drivers from localStorage or use mock data
+        let drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+        
+        if (drivers.length === 0) {
+            // Mock drivers data for demo
+            drivers = [
+                {
+                    id: 'driver1',
+                    name: 'John Driver',
+                    status: 'online',
+                    currentLocation: { lat: -26.195246, lng: 28.034088 },
+                    vehicle: { type: 'motorcycle', model: 'Honda 125' }
+                },
+                {
+                    id: 'driver2',
+                    name: 'Mike Rider',
+                    status: 'busy',
+                    currentLocation: { lat: -26.185246, lng: 28.044088 },
+                    vehicle: { type: 'car', model: 'Toyota Corolla' }
+                },
+                {
+                    id: 'driver3',
+                    name: 'Sarah Courier',
+                    status: 'online',
+                    currentLocation: { lat: -26.205246, lng: 28.024088 },
+                    vehicle: { type: 'motorcycle', model: 'Yamaha 150' }
+                }
+            ];
+        }
         
         drivers.forEach(driver => {
             if (driver.currentLocation) {
                 AppState.mapManager.addMarker(
-                    `driver_${driver._id}`,
+                    `driver_${driver.id}`,
                     [driver.currentLocation.lat, driver.currentLocation.lng],
                     {
                         icon: AppState.mapManager.getDriverIcon(driver.status),
                         popup: `<strong>${driver.name}</strong><br>Status: ${driver.status}<br>Vehicle: ${driver.vehicle?.type || 'N/A'}<br>
-                               <button class="track-btn" onclick="trackDriver('${driver._id}')" style="margin-top: 5px; padding: 5px 10px; background: #6C63FF; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                               <button class="track-btn" onclick="trackDriver('${driver.id}')" style="margin-top: 5px; padding: 5px 10px; background: #6C63FF; color: white; border: none; border-radius: 5px; cursor: pointer;">
                                    <i class="fas fa-map-marker-alt"></i> Track
                                </button>`
                     }
@@ -167,8 +193,12 @@ function updateAdminStats() {
     const todayRevenue = document.getElementById('todayRevenue');
     const completionRate = document.getElementById('completionRate');
     
-    if (totalDrivers) totalDrivers.textContent = '12';
-    if (activeDeliveries) activeDeliveries.textContent = '8';
+    // Get data from localStorage
+    const drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+    const onlineDrivers = drivers.filter(d => d.status === 'online').length;
+    
+    if (totalDrivers) totalDrivers.textContent = drivers.length;
+    if (activeDeliveries) activeDeliveries.textContent = onlineDrivers;
     if (todayRevenue) todayRevenue.textContent = 'R 2,450.00';
     if (completionRate) completionRate.textContent = '94%';
 }
@@ -177,12 +207,20 @@ function loadActiveDrivers() {
     const container = document.getElementById('activeDriversList');
     if (!container) return;
     
-    const drivers = [
-        { id: '1', name: 'John D', status: 'online', vehicle: 'Motorcycle', rating: 4.8, phone: '082 123 4567' },
-        { id: '2', name: 'Mike R', status: 'busy', vehicle: 'Car', rating: 4.6, phone: '083 987 6543' },
-        { id: '3', name: 'Sarah C', status: 'online', vehicle: 'Motorcycle', rating: 4.9, phone: '084 555 1212' },
-        { id: '4', name: 'David T', status: 'offline', vehicle: 'Van', rating: 4.7, phone: '081 777 8888' }
-    ];
+    const drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+    
+    if (drivers.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-motorcycle"></i>
+                <p>No drivers added yet</p>
+                <button class="btn btn-primary" onclick="showModal('addDriverModal')">
+                    Add First Driver
+                </button>
+            </div>
+        `;
+        return;
+    }
     
     container.innerHTML = drivers.map(driver => `
         <div class="driver-card" style="background: white; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
@@ -192,9 +230,9 @@ function loadActiveDrivers() {
                 </div>
                 <div>
                     <h4 style="margin: 0;">${driver.name}</h4>
-                    <p style="margin: 5px 0; color: #666; font-size: 14px;">${driver.vehicle} • ${driver.phone}</p>
+                    <p style="margin: 5px 0; color: #666; font-size: 14px;">${driver.vehicle?.type || 'No vehicle'} • ${driver.phone || 'No phone'}</p>
                     <span class="driver-status" style="background: ${driver.status === 'online' ? '#4CAF50' : driver.status === 'busy' ? '#FF9800' : '#9E9E9E'}; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">
-                        ${driver.status}
+                        ${driver.status || 'offline'}
                     </span>
                 </div>
             </div>
@@ -235,24 +273,35 @@ function loadDriversTable() {
     const container = document.getElementById('driversTable');
     if (!container) return;
     
-    const drivers = [
-        { id: 'DRV001', name: 'John Driver', contact: 'john@example.com', vehicle: 'Motorcycle', status: 'Online', rating: 4.8 },
-        { id: 'DRV002', name: 'Mike Rider', contact: 'mike@example.com', vehicle: 'Car', status: 'Busy', rating: 4.6 },
-        { id: 'DRV003', name: 'Sarah Courier', contact: 'sarah@example.com', vehicle: 'Motorcycle', status: 'Online', rating: 4.9 }
-    ];
+    const drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+    
+    if (drivers.length === 0) {
+        container.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-motorcycle" style="font-size: 3rem; color: #E8EAF2; margin-bottom: 1rem; display: block;"></i>
+                    <p>No drivers added yet</p>
+                    <button class="btn btn-primary" onclick="showModal('addDriverModal')">
+                        Add First Driver
+                    </button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
     
     container.innerHTML = drivers.map(driver => `
         <tr>
-            <td>${driver.id}</td>
+            <td>${driver.id || 'DRV' + Date.now().toString().slice(-4)}</td>
             <td>${driver.name}</td>
-            <td>${driver.contact}</td>
-            <td>${driver.vehicle}</td>
+            <td>${driver.phone || 'N/A'}</td>
+            <td>${driver.vehicle?.type || 'N/A'}</td>
             <td>
-                <span class="status-badge" style="background: ${driver.status === 'Online' ? '#4CAF50' : '#FF9800'}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px;">
-                    ${driver.status}
+                <span class="status-badge" style="background: ${driver.status === 'online' ? '#4CAF50' : driver.status === 'busy' ? '#FF9800' : '#9E9E9E'}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px;">
+                    ${driver.status || 'offline'}
                 </span>
             </td>
-            <td>${driver.rating} ⭐</td>
+            <td>${driver.rating || '5.0'} ⭐</td>
             <td>
                 <div class="action-buttons">
                     <button class="action-btn view" onclick="viewDriver('${driver.id}')">
@@ -302,12 +351,315 @@ function loadDeliveriesTable() {
 
 function setupAdminListeners() {
     // Socket listeners for real-time updates
-    if (AppState.socket) {
-        AppState.socket.on('admin:driverUpdate', (data) => {
-            console.log('Driver update received:', data);
-            showNotification(`Driver ${data.name} location updated`, 'info');
+    if (typeof io !== 'undefined') {
+        try {
+            const socket = io('https://swiftride-backend-jcyl.onrender.com', {
+                transports: ['websocket', 'polling']
+            });
+            
+            socket.on('connect', () => {
+                console.log('✅ Socket connected for admin');
+            });
+            
+            socket.on('admin:driverUpdate', (data) => {
+                console.log('Driver update received:', data);
+                showNotification(`Driver ${data.name} location updated`, 'info');
+            });
+        } catch (error) {
+            console.log('Socket connection not available');
+        }
+    }
+}
+
+function setupSectionSwitching() {
+    const sections = {
+        'overview': document.getElementById('overviewSection'),
+        'drivers': document.getElementById('driversSection'),
+        'deliveries': document.getElementById('deliveriesSection'),
+        'tracking': document.getElementById('trackingSection'),
+        'customers': document.getElementById('customersSection'),
+        'reports': document.getElementById('reportsSection'),
+        'settings': document.getElementById('settingsSection')
+    };
+    
+    const links = document.querySelectorAll('.sidebar-link');
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = this.getAttribute('href').substring(1);
+            
+            // Update active link
+            links.forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update section title
+            const sectionTitle = document.getElementById('sectionTitle');
+            if (sectionTitle) {
+                const titleMap = {
+                    'overview': 'Admin Dashboard',
+                    'drivers': 'Driver Management',
+                    'deliveries': 'Delivery Management',
+                    'tracking': 'Live Tracking',
+                    'customers': 'Customer Management',
+                    'reports': 'Analytics & Reports',
+                    'settings': 'System Settings'
+                };
+                sectionTitle.textContent = titleMap[target] || 'Admin Dashboard';
+            }
+            
+            // Show target section, hide others
+            Object.values(sections).forEach(section => {
+                if (section) section.style.display = 'none';
+            });
+            
+            if (sections[target]) {
+                sections[target].style.display = 'block';
+                
+                // Load specific section data
+                switch(target) {
+                    case 'drivers':
+                        loadDriversTable();
+                        break;
+                    case 'deliveries':
+                        loadDeliveriesTable();
+                        break;
+                    case 'tracking':
+                        initTrackingMap();
+                        break;
+                }
+            }
         });
+    });
+}
+
+// Admin Actions
+function addDriver(event) {
+    event.preventDefault();
+    
+    const driver = {
+        id: 'drv_' + Date.now(),
+        name: document.getElementById('driverName').value,
+        phone: document.getElementById('driverPhone').value,
+        email: document.getElementById('driverEmail').value || '',
+        vehicleType: document.getElementById('vehicleType').value,
+        vehicleDetails: document.getElementById('vehicleDetails').value,
+        licensePlate: document.getElementById('licensePlate').value,
+        ratePerKm: parseInt(document.getElementById('driverRate').value),
+        status: 'offline',
+        rating: 5.0,
+        joinedDate: new Date().toISOString().split('T')[0],
+        currentLocation: {
+            lat: -26.195246 + (Math.random() * 0.02 - 0.01),
+            lng: 28.034088 + (Math.random() * 0.02 - 0.01)
+        }
+    };
+    
+    // Store in localStorage
+    let drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+    drivers.push(driver);
+    localStorage.setItem('swiftride_drivers', JSON.stringify(drivers));
+    
+    showNotification(`Driver ${driver.name} added successfully!`, 'success');
+    hideModal('addDriverModal');
+    
+    // Clear form
+    document.getElementById('addDriverForm').reset();
+    
+    // Refresh drivers list
+    loadDriversTable();
+    loadActiveDrivers();
+    updateAdminStats();
+}
+
+function viewDriver(driverId) {
+    const drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+    const driver = drivers.find(d => d.id === driverId);
+    
+    if (!driver) {
+        showNotification('Driver not found', 'error');
+        return;
+    }
+    
+    document.getElementById('driverDetailsContent').innerHTML = `
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+            <div class="driver-avatar" style="width: 80px; height: 80px; border-radius: 50%; background: #6C63FF; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold;">
+                ${driver.name.charAt(0)}
+            </div>
+            <div>
+                <h3 style="margin: 0 0 10px 0;">${driver.name}</h3>
+                <p style="color: #666; margin: 5px 0;">${driver.email}</p>
+                <p style="color: #666; margin: 5px 0;">${driver.phone}</p>
+            </div>
+        </div>
         
-        AppState.socket.on('driver:status', (data) => {
-            console.log('Driver status update:', data);
-            showNotification(`Driver ${data.name} is now ${
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div>
+                <strong>Vehicle Type</strong>
+                <p>${driver.vehicleType || 'Not specified'}</p>
+            </div>
+            <div>
+                <strong>License Plate</strong>
+                <p>${driver.licensePlate || 'Not specified'}</p>
+            </div>
+            <div>
+                <strong>Rate per km</strong>
+                <p>R ${driver.ratePerKm || 10}/km</p>
+            </div>
+            <div>
+                <strong>Status</strong>
+                <p>
+                    <span class="status-badge" style="background: ${driver.status === 'online' ? '#4CAF50' : driver.status === 'busy' ? '#FF9800' : '#9E9E9E'}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px;">
+                        ${driver.status || 'offline'}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <strong>Join Date</strong>
+                <p>${driver.joinedDate || 'Not specified'}</p>
+            </div>
+            <div>
+                <strong>Rating</strong>
+                <p>${driver.rating || '5.0'} ⭐</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="editDriver('${driver.id}')">
+                <i class="fas fa-edit"></i> Edit Driver
+            </button>
+            <button class="btn btn-secondary" onclick="sendMessageToDriver('${driver.id}')">
+                <i class="fas fa-envelope"></i> Send Message
+            </button>
+        </div>
+    `;
+    
+    showModal('driverDetailsModal');
+}
+
+function trackDriver(driverId) {
+    // Store driver ID for tracking
+    localStorage.setItem('trackingDriverId', driverId);
+    alert(`Tracking driver ${driverId}. This would open the tracking page.`);
+    // window.location.href = `tracking.html?driver=${driverId}`;
+}
+
+function viewDelivery(deliveryId) {
+    showNotification(`Viewing delivery ${deliveryId}`, 'info');
+}
+
+function filterDrivers() {
+    const filter = document.getElementById('driverStatusFilter').value;
+    showNotification(`Filtering drivers by: ${filter}`, 'info');
+}
+
+function filterDeliveries() {
+    const filter = document.getElementById('deliveryStatusFilter').value;
+    showNotification(`Filtering deliveries by: ${filter}`, 'info');
+}
+
+function exportDeliveries() {
+    showNotification('Exporting deliveries data...', 'info');
+}
+
+function refreshMap() {
+    if (AppState.mapManager) {
+        AppState.mapManager.destroy();
+        initAdminMap();
+        showNotification('Map refreshed', 'success');
+    }
+}
+
+function centerMap() {
+    if (AppState.mapManager) {
+        AppState.mapManager.centerMap(APP_CONFIG.MAP_CONFIG.defaultCenter, 12);
+        showNotification('Map centered', 'info');
+    }
+}
+
+function toggleSatellite() {
+    showNotification('Satellite view toggled', 'info');
+}
+
+function initTrackingMap() {
+    const mapElement = document.getElementById('trackingMap');
+    if (!mapElement) return;
+    
+    // Create new map for tracking
+    const trackingMap = L.map('trackingMap').setView(
+        APP_CONFIG.MAP_CONFIG.defaultCenter,
+        12
+    );
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(trackingMap);
+    
+    // Add drivers to tracking map
+    const drivers = JSON.parse(localStorage.getItem('swiftride_drivers') || '[]');
+    drivers.forEach(driver => {
+        if (driver.currentLocation) {
+            L.marker([driver.currentLocation.lat, driver.currentLocation.lng], {
+                icon: L.divIcon({
+                    html: `<div style="
+                        background: ${driver.status === 'online' ? '#4CAF50' : driver.status === 'busy' ? '#FF9800' : '#9E9E9E'};
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+                    "></div>`,
+                    iconSize: [20, 20]
+                })
+            })
+            .addTo(trackingMap)
+            .bindPopup(`<strong>${driver.name}</strong><br>Status: ${driver.status}`);
+        }
+    });
+}
+
+function refreshTracking() {
+    const mapElement = document.getElementById('trackingMap');
+    if (mapElement) {
+        mapElement.innerHTML = '';
+        initTrackingMap();
+        showNotification('Tracking map refreshed', 'success');
+    }
+}
+
+function centerAllDrivers() {
+    showNotification('Centering map on all drivers', 'info');
+}
+
+function toggleHeatmap() {
+    showNotification('Heatmap toggled', 'info');
+}
+
+function showNotifications() {
+    document.getElementById('notificationsList').innerHTML = `
+        <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
+            <strong>New driver registered</strong>
+            <p style="margin: 5px 0; color: #666;">John Driver just joined the platform</p>
+            <small style="color: #999;">Just now</small>
+        </div>
+        <div style="padding: 10px 0; border-bottom: 1px solid #eee;">
+            <strong>Delivery completed</strong>
+            <p style="margin: 5px 0; color: #666;">Trip #TRIP-1234 completed successfully</p>
+            <small style="color: #999;">30 minutes ago</small>
+        </div>
+        <div style="padding: 10px 0;">
+            <strong>Payment received</strong>
+            <p style="margin: 5px 0; color: #666;">R 120.00 received for delivery</p>
+            <small style="color: #999;">1 hour ago</small>
+        </div>
+    `;
+    showModal('notificationsModal');
+}
+
+// Initialize on load
+window.onload = function() {
+    // Check if we're on admin page
+    if (document.body.dataset.page === 'admin') {
+        setTimeout(initAdminPage, 100);
+    }
+};

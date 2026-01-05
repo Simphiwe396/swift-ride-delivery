@@ -786,11 +786,17 @@
             }
         }
         
+        // Redirect function for index.html
+        function redirectTo(page) {
+            window.location.href = page + '.html';
+        }
+        
         // Expose functions globally
         window.login = login;
         window.selectRate = selectRate;
         window.installPWA = installPWA;
         window.showNotification = showNotification;
+        window.redirectTo = redirectTo;
     </script>
 </body>
 </html>

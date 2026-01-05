@@ -1,7 +1,7 @@
 // SwiftRide Delivery App - Main JavaScript
 // Global configuration and state management
 
-// Check if APP_CONFIG already exists
+// Only define if not already defined
 if (typeof window.APP_CONFIG === 'undefined') {
     window.APP_CONFIG = {
         API_BASE_URL: 'https://swiftride-backend-jcyl.onrender.com/api',
@@ -9,7 +9,6 @@ if (typeof window.APP_CONFIG === 'undefined') {
     };
 }
 
-// Check if AppState already exists
 if (typeof window.AppState === 'undefined') {
     window.AppState = { 
         user: null, 
@@ -38,19 +37,16 @@ class MapManager {
         }
 
         try {
-            // Create map
             this.map = L.map(this.mapElementId).setView(
                 this.options.center || window.APP_CONFIG.MAP_CONFIG.defaultCenter,
                 this.options.zoom || window.APP_CONFIG.MAP_CONFIG.defaultZoom
             );
 
-            // Add tile layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(this.map);
 
-            // Enable scroll wheel zoom if specified
             if (this.options.scrollWheelZoom !== false) {
                 this.map.scrollWheelZoom.enable();
             }
@@ -87,22 +83,9 @@ class MapManager {
         }
     }
 
-    addPolyline(latlngs, options = {}) {
-        const polyline = L.polyline(latlngs, options).addTo(this.map);
-        this.polylines.push(polyline);
-        return polyline;
-    }
-
     centerMap(latlng, zoom) {
         if (this.map) {
             this.map.setView(latlng, zoom || this.map.getZoom());
-        }
-    }
-
-    fitBounds(markers) {
-        if (this.map && markers.length > 0) {
-            const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
-            this.map.fitBounds(bounds);
         }
     }
 
@@ -137,87 +120,13 @@ class MapManager {
     }
 }
 
-// API Client
-const API = {
-    async request(endpoint, options = {}) {
-        try {
-            const url = `${window.APP_CONFIG.API_BASE_URL}${endpoint}`;
-            const response = await fetch(url, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': window.AppState.token ? `Bearer ${window.AppState.token}` : ''
-                },
-                ...options
-            });
-            
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
-            }
-            
-            return response.json();
-        } catch (error) {
-            console.error('API request failed:', error);
-            throw error;
-        }
-    },
-
-    // Admin functions
-    async adminLogin(email, password) {
-        return this.request('/admin/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password })
-        });
-    },
-
-    async addDriver(driverData) {
-        return this.request('/admin/drivers', {
-            method: 'POST',
-            body: JSON.stringify(driverData)
-        });
-    },
-
-    async getAdminDrivers() {
-        return this.request('/admin/drivers');
-    },
-
-    // Public functions
-    async getTrips(userId) {
-        return this.request(`/trips?userId=${userId}`);
-    },
-
-    async getDrivers(status = null) {
-        const url = status ? `/drivers?status=${status}` : '/drivers';
-        return this.request(url);
-    },
-
-    async getDriver(id) {
-        return this.request(`/drivers/${id}`);
-    },
-
-    async updateDriverLocation(driverId, lat, lng) {
-        return this.request(`/drivers/${driverId}/location`, {
-            method: 'PUT',
-            body: JSON.stringify({ lat, lng })
-        });
-    },
-
-    async createTrip(tripData) {
-        return this.request('/trips', {
-            method: 'POST',
-            body: JSON.stringify(tripData)
-        });
-    },
-
-    async updateTripStatus(tripId, status) {
-        return this.request(`/trips/${tripId}/status`, {
-            method: 'PUT',
-            body: JSON.stringify({ status })
-        });
-    }
-};
-
-// Initialize app
+// Initialize app for dashboard pages only
 document.addEventListener('DOMContentLoaded', () => {
+    // Only run on dashboard pages (not index.html)
+    if (!document.body.dataset.page || document.body.dataset.page === 'home') {
+        return;
+    }
+    
     setTimeout(() => {
         const loading = document.getElementById('loadingScreen');
         if (loading) loading.style.display = 'none';
@@ -231,44 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.AppState.user = JSON.parse(user);
         console.log('User loaded:', window.AppState.user?.name);
     }
-
-    // Initialize socket connection
-    initSocket();
 });
 
-function initSocket() {
-    try {
-        // Socket.io is loaded from CDN
-        console.log('Socket.io ready for connection');
-    } catch (error) {
-        console.error('Failed to initialize socket:', error);
-    }
-}
-
-// SECURITY: Check if user is admin
-function isAdmin() {
-    const user = window.AppState.user;
-    const isAdminFlag = localStorage.getItem('is_admin');
-    return user && user.userType === 'admin' && isAdminFlag === 'true';
-}
-
-// SECURITY: Check if user is driver
-function isDriver() {
-    const user = window.AppState.user;
-    return user && user.userType === 'driver';
-}
-
-// SECURITY: Check if user is customer
-function isCustomer() {
-    const user = window.AppState.user;
-    return user && user.userType === 'customer';
-}
-
-// Notification system
+// Notification system for dashboard pages
 function showNotification(msg, type = 'info') {
     console.log(`${type}: ${msg}`);
     
-    // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.style.cssText = `
@@ -294,7 +171,6 @@ function showNotification(msg, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // Auto remove after 3 seconds
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
@@ -341,63 +217,7 @@ function hideModal(modalId) {
     }
 }
 
-// User authentication (for demo - customers and drivers)
-function login(userType) {
-    let user;
-    
-    switch(userType) {
-        case 'driver':
-            user = {
-                _id: 'driver_' + Date.now(),
-                name: 'Demo Driver',
-                email: 'driver@demo.com',
-                userType: 'driver',
-                phone: '0821234567',
-                vehicle: {
-                    type: 'motorcycle',
-                    model: 'Honda 125',
-                    licensePlate: 'DEMO123',
-                    color: 'Red'
-                },
-                status: 'online',
-                rating: 4.8,
-                totalEarnings: 12500,
-                todayEarnings: 325,
-                todayTrips: 7,
-                completedTrips: 245,
-                totalDistance: 1250
-            };
-            break;
-        case 'customer':
-            user = {
-                _id: 'customer_' + Date.now(),
-                name: 'Demo Customer',
-                email: 'customer@demo.com',
-                userType: 'customer',
-                phone: '0839876543',
-                address: '123 Main St, Johannesburg'
-            };
-            break;
-        default:
-            return;
-    }
-    
-    const token = `swiftride_${userType}_${Date.now()}`;
-    
-    localStorage.setItem('swiftride_token', token);
-    localStorage.setItem('swiftride_user', JSON.stringify(user));
-    
-    window.AppState.token = token;
-    window.AppState.user = user;
-    
-    showNotification(`Welcome ${user.name}!`, 'success');
-    
-    // Redirect to appropriate page
-    setTimeout(() => {
-        window.location.href = `${userType}.html`;
-    }, 500);
-}
-
+// Logout function
 function logout() {
     if (window.AppState.socket) {
         window.AppState.socket.disconnect();
@@ -435,14 +255,31 @@ function calculateFare(distanceKm, ratePerKm = 10) {
     };
 }
 
+// Security check for admin
+function isAdmin() {
+    const user = window.AppState.user;
+    const isAdminFlag = localStorage.getItem('is_admin');
+    return user && user.userType === 'admin' && isAdminFlag === 'true';
+}
+
+// Security check for driver
+function isDriver() {
+    const user = window.AppState.user;
+    return user && user.userType === 'driver';
+}
+
+// Security check for customer
+function isCustomer() {
+    const user = window.AppState.user;
+    return user && user.userType === 'customer';
+}
+
 // Expose functions to global scope
-window.API = API;
 window.MapManager = MapManager;
 window.showNotification = showNotification;
 window.logout = logout;
 window.showModal = showModal;
 window.hideModal = hideModal;
-window.login = login;
 window.calculateFare = calculateFare;
 window.isAdmin = isAdmin;
 window.isDriver = isDriver;
@@ -458,3 +295,6 @@ window.trackDriver = (driverId) => {
     localStorage.setItem('trackingDriverId', driverId);
     window.location.href = `tracking.html?driver=${driverId}`;
 };
+
+// DO NOT EXPOSE login() function - it's only for index.html
+// DO NOT EXPOSE AppState globally - it's only for dashboard pages
