@@ -381,6 +381,7 @@ window.MapManager = class MapManager {
 
 // ===== DEBUG =====
 console.log('✅ app.js loaded successfully');
+console.log('API Base URL:', APP_CONFIG.API_BASE_URL);
 console.log('Available functions:', Object.keys(window).filter(k => 
     typeof window[k] === 'function' && 
     ['trackDriver', 'loginAsAdmin', 'loginAsDriver', 'loginAsCustomer', 'logout'].includes(k)
