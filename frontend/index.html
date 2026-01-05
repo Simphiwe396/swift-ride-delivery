@@ -124,6 +124,50 @@
             font-size: 0.9rem;
         }
         
+        /* Login Options */
+        .login-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .login-option-btn {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            border: 2px solid #e8eaf2;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .login-option-btn:hover {
+            border-color: #6C63FF;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .login-option-btn i {
+            font-size: 2rem;
+            color: #6C63FF;
+        }
+        
+        .login-option-btn h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        
+        .login-option-btn p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
         /* Modal styles */
         .modal {
             display: none;
@@ -428,7 +472,7 @@
         
         // ===== INITIALIZATION =====
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Page loaded successfully');
+            console.log('✅ SwiftRide App Initialized');
             
             // Load user from localStorage
             const savedUser = localStorage.getItem('user');
@@ -470,93 +514,57 @@
             });
             
             // Login link
-            const loginLink = document.getElementById('loginLink');
-            if (loginLink) {
-                loginLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    showModal('loginModal');
-                });
-            }
+            document.getElementById('loginLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal('loginModal');
+            });
             
             // User cards
-            const customerCard = document.getElementById('customerCard');
-            if (customerCard) {
-                customerCard.addEventListener('click', function() {
-                    loginAsCustomer();
-                });
-            }
+            document.getElementById('customerCard').addEventListener('click', function() {
+                loginAsCustomer();
+            });
             
-            const driverCard = document.getElementById('driverCard');
-            if (driverCard) {
-                driverCard.addEventListener('click', function() {
-                    loginAsDriver();
-                });
-            }
+            document.getElementById('driverCard').addEventListener('click', function() {
+                loginAsDriver();
+            });
             
-            const adminCard = document.getElementById('adminCard');
-            if (adminCard) {
-                adminCard.addEventListener('click', function() {
-                    loginAsAdmin();
-                });
-            }
+            document.getElementById('adminCard').addEventListener('click', function() {
+                loginAsAdmin();
+            });
             
             // View live map button
-            const viewLiveMapBtn = document.getElementById('viewLiveMapBtn');
-            if (viewLiveMapBtn) {
-                viewLiveMapBtn.addEventListener('click', function() {
-                    loginAsAdmin();
-                });
-            }
+            document.getElementById('viewLiveMapBtn').addEventListener('click', function() {
+                loginAsAdmin();
+            });
             
             // CTA buttons
-            const sendPackageBtn = document.getElementById('sendPackageBtn');
-            if (sendPackageBtn) {
-                sendPackageBtn.addEventListener('click', function() {
-                    loginAsCustomer();
-                });
-            }
+            document.getElementById('sendPackageBtn').addEventListener('click', function() {
+                loginAsCustomer();
+            });
             
-            const becomeDriverBtn = document.getElementById('becomeDriverBtn');
-            if (becomeDriverBtn) {
-                becomeDriverBtn.addEventListener('click', function() {
-                    loginAsDriver();
-                });
-            }
+            document.getElementById('becomeDriverBtn').addEventListener('click', function() {
+                loginAsDriver();
+            });
             
             // Install PWA button
-            const installPwaBtn = document.getElementById('installPwaBtn');
-            if (installPwaBtn) {
-                installPwaBtn.addEventListener('click', installPWA);
-            }
+            document.getElementById('installPwaBtn').addEventListener('click', installPWA);
             
             // Login modal buttons
-            const closeLoginModal = document.getElementById('closeLoginModal');
-            if (closeLoginModal) {
-                closeLoginModal.addEventListener('click', function() {
-                    hideModal('loginModal');
-                });
-            }
+            document.getElementById('closeLoginModal').addEventListener('click', function() {
+                hideModal('loginModal');
+            });
             
-            const loginAsCustomerBtn = document.getElementById('loginAsCustomerBtn');
-            if (loginAsCustomerBtn) {
-                loginAsCustomerBtn.addEventListener('click', function() {
-                    loginAsCustomer();
-                });
-            }
+            document.getElementById('loginAsCustomerBtn').addEventListener('click', function() {
+                loginAsCustomer();
+            });
             
-            const loginAsDriverBtn = document.getElementById('loginAsDriverBtn');
-            if (loginAsDriverBtn) {
-                loginAsDriverBtn.addEventListener('click', function() {
-                    loginAsDriver();
-                });
-            }
+            document.getElementById('loginAsDriverBtn').addEventListener('click', function() {
+                loginAsDriver();
+            });
             
-            const loginAsAdminBtn = document.getElementById('loginAsAdminBtn');
-            if (loginAsAdminBtn) {
-                loginAsAdminBtn.addEventListener('click', function() {
-                    loginAsAdmin();
-                });
-            }
+            document.getElementById('loginAsAdminBtn').addEventListener('click', function() {
+                loginAsAdmin();
+            });
             
             // Close modal when clicking outside
             window.addEventListener('click', function(event) {
@@ -721,6 +729,24 @@
             window.location.href = 'index.html';
         }
         
+        // ===== GLOBAL FUNCTIONS FOR OTHER PAGES =====
+        window.trackDriver = function(id) {
+            console.log('Tracking driver:', id);
+            localStorage.setItem('trackingDriverId', id);
+            window.location.href = 'tracking.html?driver=' + id;
+        };
+        
+        window.logout = logout;
+        window.showModal = showModal;
+        window.hideModal = hideModal;
+        window.showNotification = showNotification;
+        window.loginAsAdmin = loginAsAdmin;
+        window.loginAsDriver = loginAsDriver;
+        window.loginAsCustomer = loginAsCustomer;
+        window.redirectTo = function(page) {
+            window.location.href = page + '.html';
+        };
+        
         // ===== PWA INSTALLATION =====
         let deferredPrompt;
         
@@ -742,75 +768,6 @@
                 showNotification('App already installed or not available', 'info');
             }
         }
-        
-        // ===== MAKE FUNCTIONS GLOBALLY AVAILABLE =====
-        window.trackDriver = function(id) {
-            console.log('Tracking driver:', id);
-            localStorage.setItem('trackingDriverId', id);
-            window.location.href = 'tracking.html?driver=' + id;
-        };
-        
-        window.logout = logout;
-        window.showModal = showModal;
-        window.hideModal = hideModal;
-        window.showNotification = showNotification;
-        window.loginAsAdmin = loginAsAdmin;
-        window.loginAsDriver = loginAsDriver;
-        window.loginAsCustomer = loginAsCustomer;
-        window.redirectTo = function(page) {
-            window.location.href = page + '.html';
-        };
-        
-        // ===== ADDITIONAL STYLES FOR LOGIN OPTIONS =====
-        const loginStyles = document.createElement('style');
-        loginStyles.textContent = `
-            .login-options {
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .login-option-btn {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                padding: 20px;
-                border: 2px solid #e8eaf2;
-                border-radius: 12px;
-                background: white;
-                cursor: pointer;
-                text-align: left;
-                transition: all 0.3s ease;
-                width: 100%;
-            }
-            
-            .login-option-btn:hover {
-                border-color: #6C63FF;
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            }
-            
-            .login-option-btn i {
-                font-size: 2rem;
-                color: #6C63FF;
-            }
-            
-            .login-option-btn h3 {
-                margin: 0 0 5px 0;
-                color: #333;
-            }
-            
-            .login-option-btn p {
-                margin: 0;
-                color: #666;
-                font-size: 0.9rem;
-            }
-            
-            #loginAsCustomerBtn:hover { border-color: #4CAF50; }
-            #loginAsDriverBtn:hover { border-color: #2196F3; }
-            #loginAsAdminBtn:hover { border-color: #9C27B0; }
-        `;
-        document.head.appendChild(loginStyles);
         
         console.log('✅ All functions loaded and ready');
     </script>
