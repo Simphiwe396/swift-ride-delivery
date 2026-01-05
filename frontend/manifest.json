@@ -1,23 +1,27 @@
 {
   "name": "SwiftRide Delivery",
   "short_name": "SwiftRide",
-  "description": "Premium Delivery Service",
+  "description": "Fast and reliable delivery service with real-time tracking",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1A1D29",
+  "background_color": "#6C63FF",
   "theme_color": "#6C63FF",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "./icons/android-chrome-192x192.png",
+      "src": "./icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "./icons/android-chrome-512x512.png",
+      "src": "./icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
-  ]
+  ],
+  "categories": ["business", "shopping", "transportation"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "related_applications": []
 }

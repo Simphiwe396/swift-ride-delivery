@@ -3,168 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftRide - Premium Delivery Service</title>
+    <title>SwiftRide Delivery - Fast & Reliable</title>
     
-    <!-- PWA Configuration -->
-    <meta name="application-name" content="SwiftRide">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#6C63FF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     
-    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
-    <link rel="manifest" href="./site.webmanifest">
-    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
-
-    <!-- Fonts & Icons -->
+    <!-- Icons -->
+    <link rel="icon" href="./icons/favicon.ico">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Styles & Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="./styles.css">
     
-    <!-- Map Preview CSS -->
     <style>
-    #previewMap {
-        height: 400px !important;
-        width: 100% !important;
-        min-height: 400px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-    
-    #previewMap.leaflet-container {
-        height: 400px !important;
-    }
-    
-    .pricing-card {
-        background: white;
-        border-radius: 16px;
-        padding: 2rem;
-        text-align: center;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-        position: relative;
-    }
-    
-    .pricing-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-        border-color: #6C63FF;
-    }
-    
-    .pricing-card.popular {
-        border-color: #6C63FF;
-    }
-    
-    .popular-badge {
-        position: absolute;
-        top: -10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #6C63FF;
-        color: white;
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        font-weight: 600;
-    }
-    
-    .price-amount {
-        font-size: 3rem;
-        font-weight: 700;
-        color: #6C63FF;
-        margin: 1rem 0;
-    }
-    
-    .price-amount small {
-        font-size: 1rem;
-        color: #8C8FA6;
-    }
-    
-    .price-features {
-        list-style: none;
-        padding: 0;
-        margin: 1.5rem 0;
-        text-align: left;
-    }
-    
-    .price-features li {
-        padding: 0.5rem 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .price-features li i {
-        color: #6C63FF;
-    }
-    
-    .user-type-selector {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
-        margin-top: 2rem;
-    }
-    
-    @media (max-width: 768px) {
-        .user-type-selector {
-            grid-template-columns: 1fr;
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #6C63FF 0%, #4A43C8 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
         }
-    }
-    
-    .user-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 16px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .user-card:hover {
-        transform: translateY(-5px);
-        border-color: #6C63FF;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-    }
-    
-    .user-card i {
-        font-size: 3rem;
-        color: #6C63FF;
-        background: #E3E2FF;
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .user-card h3 {
-        margin: 0;
-        font-size: 1.5rem;
-        color: #1A1D29;
-    }
-    
-    .user-card p {
-        color: #8C8FA6;
-        margin: 0;
-    }
+        
+        .hero-content {
+            max-width: 800px;
+            z-index: 2;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease;
+        }
+        
+        /* Role Selector */
+        .role-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin: 3rem auto;
+            max-width: 1000px;
+            padding: 0 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .role-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .role-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 3px solid transparent;
+        }
+        
+        .role-card:hover {
+            transform: translateY(-10px);
+            border-color: #6C63FF;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        }
+        
+        .role-card i {
+            font-size: 4rem;
+            color: #6C63FF;
+            margin-bottom: 1.5rem;
+            background: #F0EFFF;
+            width: 100px;
+            height: 100px;
+            line-height: 100px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .role-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .role-card p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .btn-role {
+            background: #6C63FF;
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-role:hover {
+            background: #554FD8;
+            transform: scale(1.05);
+        }
+        
+        /* Features */
+        .features {
+            padding: 5rem 2rem;
+            background: #F8F9FF;
+        }
+        
+        .features h2 {
+            text-align: center;
+            font-size: 2.8rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        
+        .feature i {
+            font-size: 3rem;
+            color: #6C63FF;
+            margin-bottom: 1rem;
+        }
+        
+        .feature h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        /* Pricing */
+        .pricing {
+            padding: 5rem 2rem;
+            background: white;
+        }
+        
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 3rem auto 0;
+        }
+        
+        .pricing-card {
+            background: #F8F9FF;
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .pricing-card:hover {
+            border-color: #6C63FF;
+            transform: translateY(-5px);
+        }
+        
+        .pricing-card.popular {
+            background: linear-gradient(135deg, #6C63FF 0%, #4A43C8 100%);
+            color: white;
+        }
+        
+        .pricing-card.popular .price {
+            color: white;
+        }
+        
+        .price {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #6C63FF;
+            margin: 1.5rem 0;
+        }
+        
+        .price small {
+            font-size: 1rem;
+            color: #888;
+        }
+        
+        .pricing-card.popular .price small {
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .price-features {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+            text-align: left;
+        }
+        
+        .price-features li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .price-features li i {
+            color: #6C63FF;
+        }
+        
+        .pricing-card.popular .price-features li i {
+            color: white;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.8s ease forwards;
+        }
     </style>
 </head>
-<body data-page="home">
+<body>
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
@@ -172,631 +272,181 @@
         <p>Loading your experience...</p>
     </div>
     
-    <!-- App Container -->
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="logo">
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Delivery in Minutes, Not Hours</h1>
+            <p>Track your packages in real-time with South Africa's fastest delivery service</p>
+            
+            <!-- Role Selection Cards -->
+            <div class="role-selector">
+                <div class="role-card fade-in" style="animation-delay: 0.2s">
+                    <i class="fas fa-shopping-bag"></i>
+                    <h3>Customer</h3>
+                    <p>Send packages instantly with real-time tracking</p>
+                    <button class="btn-role" onclick="loginAsUser('customer')">
+                        <i class="fas fa-arrow-right"></i> Send Package
+                    </button>
+                </div>
+                
+                <div class="role-card fade-in" style="animation-delay: 0.4s">
+                    <i class="fas fa-motorcycle"></i>
+                    <h3>Driver</h3>
+                    <p>Earn money delivering packages across the city</p>
+                    <button class="btn-role" onclick="loginAsUser('driver')">
+                        <i class="fas fa-arrow-right"></i> Start Driving
+                    </button>
+                </div>
+                
+                <div class="role-card fade-in" style="animation-delay: 0.6s">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Business Owner</h3>
+                    <p>Manage your delivery business with admin dashboard</p>
+                    <button class="btn-role" onclick="window.location.href='login.html'">
+                        <i class="fas fa-lock"></i> Admin Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="features">
+        <h2 class="fade-in">Why Choose SwiftRide?</h2>
+        <div class="feature-grid">
+            <div class="feature fade-in">
+                <i class="fas fa-map-marked-alt"></i>
+                <h3>Real-Time Tracking</h3>
+                <p>Watch your delivery move on live map with GPS updates</p>
+            </div>
+            
+            <div class="feature fade-in">
                 <i class="fas fa-bolt"></i>
-                <h1>SwiftRide</h1>
+                <h3>Fast Delivery</h3>
+                <p>Average delivery time: 30 minutes in urban areas</p>
             </div>
-            <nav class="main-nav">
-                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-                <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
-                <a href="#pricing" class="nav-link"><i class="fas fa-tag"></i> Pricing</a>
-                <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
-            </nav>
-        </header>
+            
+            <div class="feature fade-in">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Secure & Safe</h3>
+                <p>All drivers verified, background checked and insured</p>
+            </div>
+            
+            <div class="feature fade-in">
+                <i class="fas fa-money-bill-wave"></i>
+                <h3>Flexible Pricing</h3>
+                <p>Choose from R5/km (Economy), R10/km (Standard), R20/km (Express)</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Pricing Section -->
+    <section class="pricing">
+        <h2 class="fade-in" style="text-align: center; font-size: 2.8rem; margin-bottom: 1rem;">Transparent Pricing</h2>
+        <p class="fade-in" style="text-align: center; color: #666; max-width: 600px; margin: 0 auto 3rem; font-size: 1.1rem;">
+            No hidden fees. Pay only for the distance traveled.
+        </p>
         
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Hero Section -->
-            <section id="home" class="hero-section">
-                <div class="hero-content">
-                    <h2>Delivery in Minutes, Not Hours</h2>
-                    <p>Track your packages in real-time with our premium delivery service</p>
-                    
-                    <!-- User Type Selection -->
-                    <div class="user-type-selector">
-                        <div class="user-card" id="customerCard">
-                            <i class="fas fa-shopping-bag"></i>
-                            <h3>Customer</h3>
-                            <p>Send packages instantly</p>
-                        </div>
-                        <div class="user-card" id="driverCard">
-                            <i class="fas fa-motorcycle"></i>
-                            <h3>Driver</h3>
-                            <p>Earn money delivering</p>
-                        </div>
-                        <div class="user-card" id="adminCard">
-                            <i class="fas fa-chart-line"></i>
-                            <h3>Admin Login</h3>
-                            <p>Business dashboard</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Stats -->
-                    <div class="quick-stats" style="margin-top: 3rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
-                        <div style="text-align: center;">
-                            <h3 style="color: #6C63FF; font-size: 2rem; margin: 0;">500+</h3>
-                            <p style="color: #8C8FA6; margin: 5px 0;">Active Drivers</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <h3 style="color: #6C63FF; font-size: 2rem; margin: 0;">10k+</h3>
-                            <p style="color: #8C8FA6; margin: 5px 0;">Deliveries</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <h3 style="color: #6C63FF; font-size: 2rem; margin: 0;">30min</h3>
-                            <p style="color: #8C8FA6; margin: 5px 0;">Avg Delivery</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <h3 style="color: #6C63FF; font-size: 2rem; margin: 0;">4.8★</h3>
-                            <p style="color: #8C8FA6; margin: 5px 0;">Rating</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Map Preview -->
-                <div class="map-preview">
-                    <div id="previewMap"></div>
-                </div>
-            </section>
-            
-            <!-- Features Section -->
-            <section class="features-section">
-                <h2>Why Choose SwiftRide?</h2>
-                <div class="features-grid">
-                    <div class="feature">
-                        <i class="fas fa-map-marked-alt"></i>
-                        <h3>Real-Time Tracking</h3>
-                        <p>Watch your delivery move on live map with live GPS updates</p>
-                    </div>
-                    <div class="feature">
-                        <i class="fas fa-bolt"></i>
-                        <h3>Fast Delivery</h3>
-                        <p>Average delivery time: 30 minutes in urban areas</p>
-                    </div>
-                    <div class="feature">
-                        <i class="fas fa-shield-alt"></i>
-                        <h3>Secure & Safe</h3>
-                        <p>All drivers verified, background checked and insured</p>
-                    </div>
-                    <div class="feature">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <h3>Flexible Pricing</h3>
-                        <p>Choose from R5/km (Economy), R10/km (Standard), R20/km (Express)</p>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Pricing Section -->
-            <section id="pricing" class="pricing-section">
-                <h2>Transparent Pricing</h2>
-                <p class="section-subtitle" style="text-align: center; color: #8C8FA6; margin-bottom: 3rem;">
-                    Choose the rate that fits your needs
-                </p>
-                <div class="pricing-cards">
-                    <div class="pricing-card">
-                        <h3>Economy</h3>
-                        <div class="price-amount">R5<small>/km</small></div>
-                        <ul class="price-features">
-                            <li><i class="fas fa-check"></i> Standard delivery</li>
-                            <li><i class="fas fa-check"></i> 45-60 min delivery</li>
-                            <li><i class="fas fa-check"></i> Real-time tracking</li>
-                            <li><i class="fas fa-check"></i> Basic support</li>
-                        </ul>
-                        <button class="btn btn-primary economy-btn">
-                            <i class="fas fa-check"></i> Select Economy
-                        </button>
-                    </div>
-                    
-                    <div class="pricing-card popular">
-                        <div class="popular-badge">MOST POPULAR</div>
-                        <h3>Standard</h3>
-                        <div class="price-amount">R10<small>/km</small></div>
-                        <ul class="price-features">
-                            <li><i class="fas fa-check"></i> Fast delivery</li>
-                            <li><i class="fas fa-check"></i> 30-45 min delivery</li>
-                            <li><i class="fas fa-check"></i> Live GPS tracking</li>
-                            <li><i class="fas fa-check"></i> Priority support</li>
-                            <li><i class="fas fa-check"></i> Delivery proof</li>
-                        </ul>
-                        <button class="btn btn-primary standard-btn">
-                            <i class="fas fa-bolt"></i> Select Standard
-                        </button>
-                    </div>
-                    
-                    <div class="pricing-card">
-                        <h3>Express</h3>
-                        <div class="price-amount">R20<small>/km</small></div>
-                        <ul class="price-features">
-                            <li><i class="fas fa-check"></i> Instant delivery</li>
-                            <li><i class="fas fa-check"></i> 15-30 min delivery</li>
-                            <li><i class="fas fa-check"></i> Live GPS + SOS</li>
-                            <li><i class="fas fa-check"></i> 24/7 priority support</li>
-                            <li><i class="fas fa-check"></i> Signature required</li>
-                            <li><i class="fas fa-check"></i> Insurance included</li>
-                        </ul>
-                        <button class="btn btn-primary express-btn">
-                            <i class="fas fa-rocket"></i> Select Express
-                        </button>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Recent Tracking History Section -->
-            <section id="tracking" class="tracking-history-section">
-                <h2>Recent Driver Tracking</h2>
-                <p class="section-subtitle">Track recent driver deliveries and status in real-time</p>
-                
-                <div class="tracking-history-container" id="trackingHistory">
-                    <!-- Tracking history cards will be loaded here -->
-                    <div class="loading-trackings">
-                        <div class="loader"></div>
-                        <p>Loading tracking history...</p>
-                    </div>
-                </div>
-                
-                <div class="view-all-container">
-                    <button class="view-all-btn" id="viewAllBtn">
-                        <i class="fas fa-chart-line"></i> View All Trackings
-                    </button>
-                </div>
-            </section>
-            
-            <!-- CTA Section -->
-            <section class="cta-section">
-                <h2>Ready to Deliver?</h2>
-                <p>Join thousands of satisfied customers and drivers across South Africa</p>
-                <div class="cta-buttons">
-                    <button class="cta-btn primary" id="sendPackageBtn">
-                        <i class="fas fa-box"></i> Send a Package
-                    </button>
-                    <button class="cta-btn secondary" id="becomeDriverBtn">
-                        <i class="fas fa-motorcycle"></i> Become a Driver
-                    </button>
-                </div>
-            </section>
-        </main>
-        
-        <!-- Footer -->
-        <footer class="app-footer">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>SwiftRide</h4>
-                    <p>Premium delivery service for businesses and individuals across South Africa</p>
-                    <div style="display: flex; gap: 15px; margin-top: 15px;">
-                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-facebook"></i></a>
-                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-twitter"></i></a>
-                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-instagram"></i></a>
-                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-linkedin"></i></a>
-                    </div>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>Quick Links</h4>
-                    <ul style="list-style: none; padding: 0;">
-                        <li><a href="#home" style="color: white; text-decoration: none;">Home</a></li>
-                        <li><a href="#tracking" style="color: white; text-decoration: none;">Tracking</a></li>
-                        <li><a href="#pricing" style="color: white; text-decoration: none;">Pricing</a></li>
-                        <li><a href="driver.html" style="color: white; text-decoration: none;">Driver App</a></li>
-                        <li><a href="admin.html" style="color: white; text-decoration: none;">Business Portal</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>Contact</h4>
-                    <p><i class="fas fa-phone"></i> 0800 123 456</p>
-                    <p><i class="fas fa-envelope"></i> support@swiftride.co.za</p>
-                    <p><i class="fas fa-map-marker-alt"></i> Johannesburg, South Africa</p>
-                </div>
-
-                <div class="footer-section">
-                    <h4>Download</h4>
-                    <button class="install-btn" id="installBtn">
-                        <i class="fas fa-download"></i> Install App
-                    </button>
-                    <p style="margin-top: 10px; font-size: 0.9rem;">Available as PWA on all devices</p>
-                </div>
+        <div class="pricing-cards">
+            <div class="pricing-card fade-in">
+                <h3>Economy</h3>
+                <div class="price">R5<small>/km</small></div>
+                <ul class="price-features">
+                    <li><i class="fas fa-check"></i> Standard delivery</li>
+                    <li><i class="fas fa-check"></i> 45-60 minutes</li>
+                    <li><i class="fas fa-check"></i> Real-time tracking</li>
+                    <li><i class="fas fa-check"></i> Basic support</li>
+                </ul>
+                <button class="btn-role" onclick="loginAsUser('customer')">
+                    <i class="fas fa-check"></i> Select Economy
+                </button>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
-                <div style="display: flex; gap: 20px; margin-top: 10px;">
-                    <a href="#" style="color: white; text-decoration: none; font-size: 0.9rem;">Privacy Policy</a>
-                    <a href="#" style="color: white; text-decoration: none; font-size: 0.9rem;">Terms of Service</a>
-                    <a href="#" style="color: white; text-decoration: none; font-size: 0.9rem;">Cookie Policy</a>
-                </div>
+            
+            <div class="pricing-card popular fade-in">
+                <h3>Standard</h3>
+                <div class="price">R10<small>/km</small></div>
+                <ul class="price-features">
+                    <li><i class="fas fa-check"></i> Fast delivery</li>
+                    <li><i class="fas fa-check"></i> 30-45 minutes</li>
+                    <li><i class="fas fa-check"></i> Live GPS tracking</li>
+                    <li><i class="fas fa-check"></i> Priority support</li>
+                    <li><i class="fas fa-check"></i> Delivery proof</li>
+                </ul>
+                <button class="btn-role" style="background: white; color: #6C63FF;" onclick="loginAsUser('customer')">
+                    <i class="fas fa-bolt"></i> Select Standard
+                </button>
             </div>
-        </footer>
-    </div>
+            
+            <div class="pricing-card fade-in">
+                <h3>Express</h3>
+                <div class="price">R20<small>/km</small></div>
+                <ul class="price-features">
+                    <li><i class="fas fa-check"></i> Instant delivery</li>
+                    <li><i class="fas fa-check"></i> 15-30 minutes</li>
+                    <li><i class="fas fa-check"></i> Live GPS + SOS</li>
+                    <li><i class="fas fa-check"></i> 24/7 priority support</li>
+                    <li><i class="fas fa-check"></i> Signature required</li>
+                    <li><i class="fas fa-check"></i> Insurance included</li>
+                </ul>
+                <button class="btn-role" onclick="loginAsUser('customer')">
+                    <i class="fas fa-rocket"></i> Select Express
+                </button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer style="background: #1A1D29; color: white; padding: 4rem 2rem; text-align: center;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 2rem;">
+                <i class="fas fa-bolt" style="font-size: 2rem; color: #6C63FF;"></i>
+                <h2 style="margin: 0; font-size: 2rem;">SwiftRide Delivery</h2>
+            </div>
+            
+            <p style="color: #8C8FA6; max-width: 600px; margin: 0 auto 2rem;">
+                Premium delivery service for businesses and individuals across South Africa
+            </p>
+            
+            <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap;">
+                <a href="index.html" style="color: white; text-decoration: none;">Home</a>
+                <a href="driver.html" style="color: white; text-decoration: none;">Driver App</a>
+                <a href="admin.html" style="color: white; text-decoration: none;">Business Portal</a>
+                <a href="#" style="color: white; text-decoration: none;">Contact</a>
+                <a href="#" style="color: white; text-decoration: none;">Privacy Policy</a>
+            </div>
+            
+            <p style="color: #8C8FA6; margin-top: 2rem;">
+                &copy; 2025 SwiftRide Delivery. All rights reserved.
+            </p>
+        </div>
+    </footer>
     
     <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="./app.js"></script>
     
-    <!-- JavaScript Code -->
     <script>
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then(registration => {
-                        console.log('✅ Service Worker registered with scope:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('❌ Service Worker registration failed:', error);
-                    });
-            });
-        }
-        
-        // PWA Installation
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // Show install button if hidden
-            const installBtn = document.getElementById('installBtn');
-            if (installBtn) {
-                installBtn.style.display = 'flex';
-            }
-        });
-        
-        function installPWA() {
-            if (!deferredPrompt) {
-                alert('PWA installation not available in this browser.');
-                return;
-            }
-            
-            deferredPrompt.prompt();
-            
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                    showNotification('App installed successfully!', 'success');
-                } else {
-                    console.log('User dismissed the install prompt');
-                }
-                deferredPrompt = null;
-            });
-        }
-        
-        // Notification function
-        function showNotification(msg, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${type === 'error' ? '#f44336' : type === 'success' ? '#4CAF50' : '#2196F3'};
-                color: white;
-                padding: 15px 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 9999;
-                animation: slideIn 0.3s ease;
-                max-width: 300px;
-            `;
-            
-            notification.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-                    <span>${msg}</span>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    notification.remove();
-                }, 300);
-            }, 3000);
-        }
-        
-        // Add CSS for notifications
-        const notificationStyle = document.createElement('style');
-        notificationStyle.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(notificationStyle);
-        
-        // Login function for customers and drivers
-        function login(userType) {
-            let userData;
-            
-            switch(userType) {
-                case 'customer':
-                    userData = {
-                        _id: 'cust_' + Date.now(),
-                        name: 'Demo Customer',
-                        email: 'customer@demo.com',
-                        userType: 'customer',
-                        phone: '0831234567'
-                    };
-                    break;
-                    
-                case 'driver':
-                    userData = {
-                        _id: 'drv_' + Date.now(),
-                        name: 'Demo Driver',
-                        email: 'driver@demo.com',
-                        userType: 'driver',
-                        phone: '0821234567',
-                        vehicle: {
-                            type: 'motorcycle',
-                            model: 'Honda 125',
-                            licensePlate: 'DEMO123'
-                        },
-                        status: 'online',
-                        rating: 4.8,
-                        todayEarnings: 0,
-                        todayTrips: 0
-                    };
-                    break;
-            }
-            
-            if (userData) {
-                localStorage.setItem('swiftride_user', JSON.stringify(userData));
-                localStorage.setItem('swiftride_token', 'demo_token_' + Date.now());
-                
-                showNotification(`Welcome ${userData.name}!`, 'success');
-                
-                setTimeout(() => {
-                    window.location.href = userType + '.html';
-                }, 500);
-            }
-        }
-        
-        // Rate selection function
-        function selectRate(rate) {
-            localStorage.setItem('selectedRate', rate);
-            showNotification(`Selected ${rate} rate (R${rate === 'economy' ? '5' : rate === 'standard' ? '10' : '20'}/km)`, 'success');
-            setTimeout(() => {
-                login('customer');
-            }, 1000);
-        }
-        
-        // Initialize home page
+        // Home page specific JavaScript
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                // Initialize map preview
-                const map = L.map('previewMap').setView([-26.195246, 28.034088], 13);
-                
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors',
-                    maxZoom: 19
-                }).addTo(map);
-                
-                // Add sample markers
-                L.marker([-26.195246, 28.034088])
-                    .addTo(map)
-                    .bindPopup('<b>SwiftRide HQ</b><br>Johannesburg Office')
-                    .openPopup();
-                
-                L.marker([-26.185246, 28.044088])
-                    .addTo(map)
-                    .bindPopup('<b>Driver Location</b><br>Live tracking enabled');
-                    
-                L.marker([-26.205246, 28.024088])
-                    .addTo(map)
-                    .bindPopup('<b>Delivery in Progress</b><br>Package #1234');
-                
-                // Add tracking history
-                const trackingContainer = document.getElementById('trackingHistory');
-                if (trackingContainer) {
-                    const trackingData = [
-                        {
-                            driver: 'John D',
-                            status: 'completed',
-                            route: 'Sandton → Randburg',
-                            pickup: 'Sandton City',
-                            delivery: 'Randburg Square',
-                            time: '10:30 AM',
-                            fare: 'R 85.50',
-                            duration: '25 min'
-                        },
-                        {
-                            driver: 'Mike R',
-                            status: 'in_progress',
-                            route: 'Pretoria → Centurion',
-                            pickup: 'Pretoria CBD',
-                            delivery: 'Centurion Mall',
-                            time: '11:15 AM',
-                            fare: 'R 120.00',
-                            duration: '35 min'
-                        },
-                        {
-                            driver: 'Sarah C',
-                            status: 'pending',
-                            route: 'Midrand → Fourways',
-                            pickup: 'Midrand Station',
-                            delivery: 'Fourways Mall',
-                            time: '12:00 PM',
-                            fare: 'R 95.00',
-                            duration: '30 min'
-                        }
-                    ];
-                    
-                    trackingContainer.innerHTML = trackingData.map(tracking => `
-                        <div class="tracking-card">
-                            <div class="tracking-header">
-                                <div class="tracking-driver-info">
-                                    <div class="driver-avatar-sm">${tracking.driver.charAt(0)}</div>
-                                    <div>
-                                        <strong>${tracking.driver}</strong>
-                                        <div style="font-size: 0.9rem; color: #666;">${tracking.time}</div>
-                                    </div>
-                                </div>
-                                <div class="tracking-status status-${tracking.status.replace('_', '-')}">
-                                    ${tracking.status.replace('_', ' ').toUpperCase()}
-                                </div>
-                            </div>
-                            
-                            <div class="tracking-details">
-                                <div class="tracking-route">
-                                    <i class="fas fa-map-marker-alt" style="color: #6C63FF;"></i>
-                                    <span><strong>${tracking.route}</strong></span>
-                                </div>
-                                <div style="margin: 10px 0;">
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                                        <i class="fas fa-arrow-up" style="color: #4CAF50;"></i>
-                                        <span>${tracking.pickup}</span>
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-flag-checkered" style="color: #FF6584;"></i>
-                                        <span>${tracking.delivery}</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="tracking-time">
-                                    <div>
-                                        <div style="font-size: 0.9rem; color: #666;">Duration</div>
-                                        <strong>${tracking.duration}</strong>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 0.9rem; color: #666;">Fare</div>
-                                        <strong>${tracking.fare}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="tracking-actions">
-                                <button class="track-btn-small view-map-btn">
-                                    <i class="fas fa-map-marker-alt"></i> View on Map
-                                </button>
-                                <button class="track-btn-small send-package-btn" style="background: #6C63FF; color: white;">
-                                    <i class="fas fa-shopping-bag"></i> Send Package
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-                
-                // Setup event listeners
-                setupEventListeners();
-                
-                // Hide loading screen
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) {
-                    loadingScreen.style.display = 'none';
-                }
-                
-            }, 1000);
+            // Add animation classes
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe all sections
+            document.querySelectorAll('section').forEach(section => {
+                observer.observe(section);
+            });
         });
-        
-        // Setup all event listeners - FIXED VERSION
-        function setupEventListeners() {
-            // User cards
-            const customerCard = document.getElementById('customerCard');
-            const driverCard = document.getElementById('driverCard');
-            const adminCard = document.getElementById('adminCard');
-            
-            if (customerCard) {
-                customerCard.addEventListener('click', function() {
-                    login('customer');
-                });
-            }
-            
-            if (driverCard) {
-                driverCard.addEventListener('click', function() {
-                    login('driver');
-                });
-            }
-            
-            if (adminCard) {
-                adminCard.addEventListener('click', function() {
-                    window.location.href = 'login.html';
-                });
-            }
-            
-            // CTA buttons
-            const sendPackageBtn = document.getElementById('sendPackageBtn');
-            if (sendPackageBtn) {
-                sendPackageBtn.addEventListener('click', function() {
-                    login('customer');
-                });
-            }
-            
-            const becomeDriverBtn = document.getElementById('becomeDriverBtn');
-            if (becomeDriverBtn) {
-                becomeDriverBtn.addEventListener('click', function() {
-                    login('driver');
-                });
-            }
-            
-            // Pricing buttons
-            const economyBtn = document.querySelector('.economy-btn');
-            if (economyBtn) {
-                economyBtn.addEventListener('click', function() {
-                    selectRate('economy');
-                });
-            }
-            
-            const standardBtn = document.querySelector('.standard-btn');
-            if (standardBtn) {
-                standardBtn.addEventListener('click', function() {
-                    selectRate('standard');
-                });
-            }
-            
-            const expressBtn = document.querySelector('.express-btn');
-            if (expressBtn) {
-                expressBtn.addEventListener('click', function() {
-                    selectRate('express');
-                });
-            }
-            
-            // Tracking buttons
-            const viewMapBtns = document.querySelectorAll('.view-map-btn');
-            viewMapBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    window.location.href = 'login.html';
-                });
-            });
-            
-            const sendPackageBtns = document.querySelectorAll('.send-package-btn');
-            sendPackageBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    login('customer');
-                });
-            });
-            
-            // View all button
-            const viewAllBtn = document.getElementById('viewAllBtn');
-            if (viewAllBtn) {
-                viewAllBtn.addEventListener('click', function() {
-                    window.location.href = 'login.html';
-                });
-            }
-            
-            // Install button
-            const installBtn = document.getElementById('installBtn');
-            if (installBtn) {
-                installBtn.addEventListener('click', installPWA);
-            }
-        }
-        
-        // Redirect function for index.html
-        function redirectTo(page) {
-            window.location.href = page + '.html';
-        }
-        
-        // Expose functions globally
-        window.login = login;
-        window.selectRate = selectRate;
-        window.installPWA = installPWA;
-        window.showNotification = showNotification;
-        window.redirectTo = redirectTo;
     </script>
 </body>
 </html>
