@@ -8,7 +8,7 @@
     <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide Admin">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1A1D29">
+    <meta name="mobile-web-app-capable" content="yes">
     
     <!-- Icons & Fonts -->
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
@@ -645,17 +645,11 @@
         </div>
     </div>
     
-    <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Add this line after socket.io script and before app.js -->
-    <script src="./socket.js"></script>
-    <script src="./app.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
-    <script src="admin.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<script src="./socket.js"></script>
+<script src="./app.js"></script>
+<script src="./admin.js"></script> <!-- or driver.js, etc. -->
 
 </body>
 </html>

@@ -1,15 +1,24 @@
-const APP_CONFIG = {
-    API_BASE_URL: 'https://swiftride-backend-jcyl.onrender.com/api',
-    MAP_CONFIG: { defaultCenter: [-26.195246, 28.034088], defaultZoom: 14 }
-};
+// SwiftRide Delivery App - Main JavaScript
+// Global configuration and state management
 
-let AppState = { 
-    user: null, 
-    token: null, 
-    mapManager: null, 
-    socket: null,
-    currentTrip: null
-};
+// Check if APP_CONFIG already exists
+if (typeof window.APP_CONFIG === 'undefined') {
+    window.APP_CONFIG = {
+        API_BASE_URL: 'https://swiftride-backend-jcyl.onrender.com/api',
+        MAP_CONFIG: { defaultCenter: [-26.195246, 28.034088], defaultZoom: 14 }
+    };
+}
+
+// Check if AppState already exists
+if (typeof window.AppState === 'undefined') {
+    window.AppState = { 
+        user: null, 
+        token: null, 
+        mapManager: null, 
+        socket: null,
+        currentTrip: null
+    };
+}
 
 // Map Manager Class
 class MapManager {
@@ -31,8 +40,8 @@ class MapManager {
         try {
             // Create map
             this.map = L.map(this.mapElementId).setView(
-                this.options.center || APP_CONFIG.MAP_CONFIG.defaultCenter,
-                this.options.zoom || APP_CONFIG.MAP_CONFIG.defaultZoom
+                this.options.center || window.APP_CONFIG.MAP_CONFIG.defaultCenter,
+                this.options.zoom || window.APP_CONFIG.MAP_CONFIG.defaultZoom
             );
 
             // Add tile layer
@@ -132,11 +141,11 @@ class MapManager {
 const API = {
     async request(endpoint, options = {}) {
         try {
-            const url = `${APP_CONFIG.API_BASE_URL}${endpoint}`;
+            const url = `${window.APP_CONFIG.API_BASE_URL}${endpoint}`;
             const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AppState.token ? `Bearer ${AppState.token}` : ''
+                    'Authorization': window.AppState.token ? `Bearer ${window.AppState.token}` : ''
                 },
                 ...options
             });
@@ -198,9 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('swiftride_token');
     const user = localStorage.getItem('swiftride_user');
     if (token && user) {
-        AppState.token = token;
-        AppState.user = JSON.parse(user);
-        console.log('User loaded:', AppState.user.name);
+        window.AppState.token = token;
+        window.AppState.user = JSON.parse(user);
+        console.log('User loaded:', window.AppState.user?.name);
     }
 
     // Initialize socket connection
@@ -209,31 +218,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initSocket() {
     try {
-        const socket = io('https://swiftride-backend-jcyl.onrender.com', {
-            transports: ['websocket', 'polling'],
-            withCredentials: true
-        });
-
-        socket.on('connect', () => {
-            console.log('✅ Connected to WebSocket server');
-            AppState.socket = socket;
-        });
-
-        socket.on('disconnect', () => {
-            console.log('❌ Disconnected from WebSocket server');
-            AppState.socket = null;
-        });
-
-        socket.on('connect_error', (error) => {
-            console.error('WebSocket connection error:', error);
-        });
+        // Socket.io is loaded from CDN
+        // Connection will be established when needed
+        console.log('Socket.io ready for connection');
     } catch (error) {
         console.error('Failed to initialize socket:', error);
     }
 }
 
 // Notification system
-function showNotification(msg, type='info') {
+function showNotification(msg, type = 'info') {
     console.log(`${type}: ${msg}`);
     
     // Create notification element
@@ -271,19 +265,22 @@ function showNotification(msg, type='info') {
     }, 3000);
 }
 
-// Add CSS for notifications
-const notificationStyle = document.createElement('style');
-notificationStyle.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-`;
-document.head.appendChild(notificationStyle);
+// Add CSS for notifications if not already added
+if (!document.querySelector('style[data-notifications]')) {
+    const notificationStyle = document.createElement('style');
+    notificationStyle.setAttribute('data-notifications', 'true');
+    notificationStyle.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(notificationStyle);
+}
 
 // Modal functions
 function showModal(modalId) {
@@ -362,8 +359,8 @@ function login(userType) {
     localStorage.setItem('swiftride_token', token);
     localStorage.setItem('swiftride_user', JSON.stringify(user));
     
-    AppState.token = token;
-    AppState.user = user;
+    window.AppState.token = token;
+    window.AppState.user = user;
     
     showNotification(`Welcome ${user.name}!`, 'success');
     
@@ -374,18 +371,18 @@ function login(userType) {
 }
 
 function logout() {
-    if (AppState.socket) {
-        AppState.socket.disconnect();
+    if (window.AppState.socket) {
+        window.AppState.socket.disconnect();
     }
     
-    if (AppState.mapManager) {
-        AppState.mapManager.destroy();
+    if (window.AppState.mapManager) {
+        window.AppState.mapManager.destroy();
     }
     
     localStorage.removeItem('swiftride_token');
     localStorage.removeItem('swiftride_user');
     
-    AppState = { user: null, token: null, mapManager: null, socket: null };
+    window.AppState = { user: null, token: null, mapManager: null, socket: null };
     
     showNotification('Logged out successfully', 'info');
     
@@ -395,9 +392,8 @@ function logout() {
 }
 
 // Trip management
-function calculateFare(distanceKm) {
+function calculateFare(distanceKm, ratePerKm = 10) {
     const baseFare = 20;
-    const ratePerKm = 10; // R10 per km
     const distanceFare = distanceKm * ratePerKm;
     const serviceFee = (baseFare + distanceFare) * 0.1;
     const total = baseFare + distanceFare + serviceFee;
@@ -406,12 +402,11 @@ function calculateFare(distanceKm) {
         base: baseFare,
         distance: distanceFare,
         serviceFee: serviceFee,
-        total: total
+        total: Math.round(total)
     };
 }
 
 // Expose functions to global scope
-window.AppState = AppState;
 window.API = API;
 window.MapManager = MapManager;
 window.showNotification = showNotification;
