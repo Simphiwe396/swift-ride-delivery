@@ -371,209 +371,156 @@
     <script src="./app.js"></script>
     
     <!-- Admin Page Script -->
-    <script>
+<script>
+    // Initialize admin page
+    function initAdminPage() {
+        console.log('🚀 Admin page initializing...');
         
-        // Wait for app.js to load
-        setTimeout(() => {
-            initAdminPage();
-        }, 500);
-        
-        function initAdminPage() {
-            console.log('Admin page initializing');
-            
-            // Update admin info
-            if (AppState.user) {
-                document.getElementById('adminName').textContent = AppState.user.name;
-                document.getElementById('adminAvatar').textContent = AppState.user.name.charAt(0);
-            }
-            
-            // Initialize map
-            initAdminMap();
-            
-            // Load dashboard data
-            loadDashboardData();
+        // Check login
+        if (!AppState.user || AppState.user.userType !== 'admin') {
+            showNotification('Please login as admin first', 'error');
+            setTimeout(() => window.location.href = 'index.html', 1500);
+            return;
         }
         
-        function initAdminMap() {
-            setTimeout(() => {
-                try {
-                    const mapContainer = document.getElementById('adminMap');
-                    if (!mapContainer) return;
-                    
-                    // Clear container
-                    mapContainer.innerHTML = '';
-                    mapContainer.style.height = '400px';
-                    mapContainer.style.width = '100%';
-                    
-                    // Create map
-                    const map = L.map('adminMap').setView([-26.195246, 28.034088], 12);
-                    
-                    // Add tiles
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap'
-                    }).addTo(map);
-                    
-                    // Add sample driver markers
-                    const drivers = [
-                        { name: 'John Driver', lat: -26.190, lng: 28.030, status: 'online' },
-                        { name: 'Sarah Rider', lat: -26.200, lng: 28.040, status: 'busy' },
-                        { name: 'Mike Courier', lat: -26.180, lng: 28.020, status: 'online' }
-                    ];
-                    
-                    drivers.forEach(driver => {
-                        const marker = L.marker([driver.lat, driver.lng]).addTo(map);
-                        marker.bindPopup(`
-                            <strong>${driver.name}</strong><br>
-                            Status: ${driver.status}<br>
-                            <button onclick="trackDriver('driver_${driver.name.replace(/\s+/g, '')}')" 
-                                    style="margin-top: 5px; padding: 5px 10px; background: #6C63FF; color: white; border: none; border-radius: 4px;">
-                                Track Live
-                            </button>
-                        `);
-                    });
-                    
-                    console.log('Admin map initialized');
-                    
-                } catch (error) {
-                    console.error('Failed to initialize admin map:', error);
-                }
-            }, 1000);
-        }
-
-        // FIX: Only initialize map once
-let adminMapInitialized = false;
-
-function initAdminMap() {
-    if (adminMapInitialized) {
-        console.log('Map already initialized, skipping');
-        return;
+        // Update admin info
+        document.getElementById('adminName').textContent = AppState.user.name;
+        document.getElementById('adminAvatar').textContent = AppState.user.name.charAt(0);
+        
+        // Load dashboard data
+        loadDashboardData();
+        
+        // Initialize map after a delay
+        setTimeout(initAdminMap, 1000);
     }
     
-    setTimeout(() => {
+    // Initialize map
+    let adminMap = null;
+    function initAdminMap() {
         try {
-            const mapContainer = document.getElementById('adminMap');
-            if (!mapContainer) return;
+            const mapElement = document.getElementById('adminMap');
+            if (!mapElement) return;
             
-            // Clear container
-            mapContainer.innerHTML = '';
-            mapContainer.style.height = '400px';
-            mapContainer.style.width = '100%';
+            // Clear previous map
+            mapElement.innerHTML = '';
             
-            // Create map
-            const map = L.map('adminMap').setView([-26.195246, 28.034088], 12);
+            // Create new map
+            adminMap = L.map('adminMap').setView([-26.195246, 28.034088], 12);
             
             // Add tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap'
-            }).addTo(map);
+            }).addTo(adminMap);
             
             // Add sample markers
-            L.marker([-26.190, 28.030])
-                .addTo(map)
-                .bindPopup('Driver 1 - Online');
-                
-            adminMapInitialized = true;
+            const drivers = [
+                { name: 'John Driver', lat: -26.190, lng: 28.030, status: 'online' },
+                { name: 'Sarah Rider', lat: -26.200, lng: 28.040, status: 'busy' },
+                { name: 'Mike Courier', lat: -26.180, lng: 28.020, status: 'online' }
+            ];
+            
+            drivers.forEach(driver => {
+                const marker = L.marker([driver.lat, driver.lng]).addTo(adminMap);
+                marker.bindPopup(`
+                    <strong>${driver.name}</strong><br>
+                    Status: ${driver.status}<br>
+                    <button onclick="trackDriver('${driver.name.replace(/\s+/g, '')}')" 
+                            style="margin-top:5px; padding:5px 10px; 
+                                   background:#6C63FF; color:white; 
+                                   border:none; border-radius:4px; cursor:pointer;">
+                        Track Live
+                    </button>
+                `);
+            });
+            
             console.log('✅ Admin map initialized');
             
         } catch (error) {
             console.error('Failed to initialize admin map:', error);
-        }
-    }, 1000);
-}
-
-// Update refreshMap function
-window.refreshMap = function() {
-    console.log('Refreshing map...');
-    adminMapInitialized = false;
-    initAdminMap();
-    showNotification('Map refreshed', 'success');
-};
-
-// Update centerMap function  
-window.centerMap = function() {
-    const mapContainer = document.getElementById('adminMap');
-    if (mapContainer._leaflet_id) {
-        try {
-            const map = L.map('adminMap', { reuse: true });
-            map.setView([-26.195246, 28.034088], 12);
-            showNotification('Map centered', 'info');
-        } catch (error) {
-            console.error('Failed to center map:', error);
+            showNotification('Map initialization failed', 'error');
         }
     }
-};
-        
-        async function loadDashboardData() {
-            try {
-                // Update stats
-                document.getElementById('totalDrivers').textContent = '3';
-                document.getElementById('activeDeliveries').textContent = '5';
-                document.getElementById('todayRevenue').textContent = 'R 1,250.00';
-                document.getElementById('completionRate').textContent = '95%';
-                
-                // Load active drivers
-                const drivers = [
-                    { id: '1', name: 'John Driver', status: 'online', phone: '082 123 4567' },
-                    { id: '2', name: 'Sarah Rider', status: 'busy', phone: '083 987 6543' },
-                    { id: '3', name: 'Mike Courier', status: 'online', phone: '084 555 6789' }
-                ];
-                
-                renderDriversList(drivers);
-                
-            } catch (error) {
-                console.error('Failed to load dashboard data:', error);
-            }
-        }
-        
-        function renderDriversList(drivers) {
-            const container = document.getElementById('activeDriversList');
-            if (!container) return;
+    
+    // Load dashboard data
+    async function loadDashboardData() {
+        try {
+            // Update stats
+            document.getElementById('totalDrivers').textContent = '12';
+            document.getElementById('activeDeliveries').textContent = '8';
+            document.getElementById('todayRevenue').textContent = 'R 2,450.75';
+            document.getElementById('completionRate').textContent = '95%';
             
-            container.innerHTML = drivers.map(driver => `
-                <div class="driver-card">
-                    <div class="driver-avatar">
-                        <div class="driver-img">${driver.name.charAt(0)}</div>
-                        <div class="driver-status status-${driver.status}"></div>
-                    </div>
-                    <div>
-                        <h4 style="margin: 0 0 5px 0;">${driver.name}</h4>
-                        <p style="margin: 0; color: #666; font-size: 0.9rem;">${driver.phone}</p>
-                        <span style="color: #666; font-size: 0.8rem;">Status: ${driver.status}</span>
-                    </div>
-                    <div class="driver-actions">
-                        <button class="action-btn primary" onclick="trackDriver('${driver.id}')">
-                            <i class="fas fa-map-marker-alt"></i> Track
-                        </button>
-                        <button class="action-btn secondary" onclick="messageDriver('${driver.id}')">
-                            <i class="fas fa-comment"></i> Message
-                        </button>
-                    </div>
+            // Load drivers list
+            const drivers = [
+                { id: '1', name: 'John Driver', status: 'online', phone: '082 123 4567' },
+                { id: '2', name: 'Sarah Rider', status: 'busy', phone: '083 987 6543' },
+                { id: '3', name: 'Mike Courier', status: 'online', phone: '084 555 6789' }
+            ];
+            
+            renderDriversList(drivers);
+            
+        } catch (error) {
+            console.error('Failed to load dashboard data:', error);
+        }
+    }
+    
+    // Render drivers list
+    function renderDriversList(drivers) {
+        const container = document.getElementById('activeDriversList');
+        if (!container) return;
+        
+        container.innerHTML = drivers.map(driver => `
+            <div class="driver-card">
+                <div class="driver-avatar">
+                    <div class="driver-img">${driver.name.charAt(0)}</div>
+                    <div class="driver-status status-${driver.status}"></div>
                 </div>
-            `).join('');
+                <div>
+                    <h4 style="margin:0 0 5px 0;">${driver.name}</h4>
+                    <p style="margin:0; color:#666; font-size:0.9rem;">${driver.phone}</p>
+                    <span style="color:#666; font-size:0.8rem;">Status: ${driver.status}</span>
+                </div>
+                <div class="driver-actions">
+                    <button class="action-btn primary" onclick="trackDriver('${driver.id}')">
+                        <i class="fas fa-map-marker-alt"></i> Track
+                    </button>
+                    <button class="action-btn secondary" onclick="messageDriver('${driver.id}')">
+                        <i class="fas fa-comment"></i> Message
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Refresh functions
+    window.refreshDashboard = function() {
+        showNotification('Dashboard refreshed', 'success');
+        loadDashboardData();
+    };
+    
+    window.refreshMap = function() {
+        if (adminMap) {
+            adminMap.remove();
         }
-        
-        function refreshDashboard() {
-            showNotification('Dashboard refreshed', 'success');
-            loadDashboardData();
+        initAdminMap();
+        showNotification('Map refreshed', 'success');
+    };
+    
+    window.centerMap = function() {
+        if (adminMap) {
+            adminMap.setView([-26.195246, 28.034088], 12);
+            showNotification('Map centered', 'info');
         }
-        
-        function refreshMap() {
-            initAdminMap();
-            showNotification('Map refreshed', 'success');
-        }
-        
-        function centerMap() {
-            const mapContainer = document.getElementById('adminMap');
-            if (mapContainer._leaflet_id && L) {
-                try {
-                    const map = L.map('adminMap', { reuse: true });
-                    map.setView([-26.195246, 28.034088], 12);
-                    showNotification('Map centered', 'info');
-                } catch (error) {
-                    console.error('Failed to center map:', error);
-                }
-            }
-        }
-    </script>
+    };
+    
+    window.messageDriver = function(id) {
+        showNotification(`Messaging driver ${id}...`, 'info');
+    };
+    
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initAdminPage, 500);
+    });
+</script>
 </body>
 </html>
