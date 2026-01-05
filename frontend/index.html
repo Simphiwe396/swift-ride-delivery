@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwiftRide - Premium Delivery Service</title>
     
+    <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#6C63FF">
     
@@ -16,203 +18,114 @@
     <link rel="manifest" href="./site.webmanifest">
     <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
 
+    <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="./styles.css">
     
+    <!-- Map Preview CSS -->
     <style>
-        .loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #6C63FF, #4A43C8);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            color: white;
-        }
-        
-        .loader {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .map-placeholder {
-            height: 400px;
-            width: 100%;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #6C63FF, #4A43C8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-align: center;
-            margin: 20px 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        
-        .user-type-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .user-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .user-card:hover {
-            transform: translateY(-5px);
-            border-color: #6C63FF;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-        }
-        
-        .tracking-item {
-            background: #f8f9ff;
-            padding: 20px;
-            border-radius: 12px;
-            border-left: 4px solid #6C63FF;
-            margin: 10px 0;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid #e8eaf2;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-        
-        .login-option {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 20px;
-            border: 2px solid #e8eaf2;
-            border-radius: 12px;
-            background: white;
-            cursor: pointer;
-            margin-bottom: 15px;
-            width: 100%;
-        }
-        
-        .login-option:hover {
-            border-color: #6C63FF;
-        }
-        
-        .login-option i {
-            font-size: 2rem;
-            color: #6C63FF;
-        }
+    /* Ensure map container has proper dimensions */
+    #previewMap {
+        height: 400px !important;
+        width: 100% !important;
+        min-height: 400px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Clear any existing map */
+    #previewMap.leaflet-container {
+        height: 400px !important;
+    }
     </style>
 </head>
-<body>
+<body data-page="home">
+    <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
         <h2>SwiftRide Delivery</h2>
         <p>Loading your experience...</p>
     </div>
     
+    <!-- App Container -->
     <div class="app-container">
+        <!-- Header -->
         <header class="app-header">
             <div class="logo">
                 <i class="fas fa-bolt"></i>
                 <h1>SwiftRide</h1>
             </div>
-            <nav class="main-nav">
-                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-                <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
-                <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
-                <a href="#login" class="nav-link" id="loginBtn"><i class="fas fa-user"></i> Login</a>
-            </nav>
+<nav class="main-nav">
+    <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+    <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
+    <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
+    <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
+</nav>
         </header>
         
+        <!-- Main Content -->
         <main class="main-content">
+            <!-- Hero Section -->
             <section id="home" class="hero-section">
                 <div class="hero-content">
                     <h2>Delivery in Minutes, Not Hours</h2>
                     <p>Track your packages in real-time with our premium delivery service</p>
                     
-                    <div class="user-type-selector">
-                        <div class="user-card" id="customerCard">
-                            <i class="fas fa-shopping-bag"></i>
-                            <h3>Customer</h3>
-                            <p>Send packages</p>
-                        </div>
-                        <div class="user-card" id="driverCard">
-                            <i class="fas fa-motorcycle"></i>
-                            <h3>Driver</h3>
-                            <p>Earn money</p>
-                        </div>
-                        <div class="user-card" id="adminCard">
-                            <i class="fas fa-chart-line"></i>
-                            <h3>Business</h3>
-                            <p>Manage deliveries</p>
-                        </div>
+                    <!-- User Type Selection -->
+<!-- User Type Selection -->
+<div class="user-type-selector">
+    <div class="user-card" onclick="window.location.href='customer.html'">
+        <i class="fas fa-shopping-bag"></i>
+        <h3>Customer</h3>
+        <p>Send packages</p>
+    </div>
+    <div class="user-card" onclick="window.location.href='driver.html'">
+        <i class="fas fa-motorcycle"></i>
+        <h3>Driver</h3>
+        <p>Earn money</p>
+    </div>
+    <div class="user-card" onclick="window.location.href='admin.html'">
+        <i class="fas fa-chart-line"></i>
+        <h3>Business</h3>
+        <p>Manage deliveries</p>
+    </div>
+</div>
+
+
+<!-- ADD THIS AFTER THE USER TYPE SELECTOR (temporary for testing) -->
+<div style="margin: 20px auto; text-align: center; background: #f0f0f0; padding: 15px; border-radius: 10px; max-width: 500px;">
+    <h3 style="color: #666;">🛠️ TEST LOGINS (Temporary)</h3>
+    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+        <button onclick="loginAsAdmin()" style="padding: 10px 20px; background: #9C27B0; color: white; border: none; border-radius: 5px;">
+            Login as Admin
+        </button>
+        <button onclick="loginAsDriver()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 5px;">
+            Login as Driver
+        </button>
+        <button onclick="loginAsCustomer()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
+            Login as Customer
+        </button>
+        <button onclick="logout()" style="padding: 10px 20px; background: #F44336; color: white; border: none; border-radius: 5px;">
+            Logout
+        </button>
+    </div>
+</div>
                     </div>
                 </div>
                 
+                <!-- Map Preview -->
                 <div class="map-preview">
-                    <div class="map-placeholder">
-                        <div>
-                            <i class="fas fa-map-marked-alt" style="font-size: 3rem;"></i>
-                            <h3>Live Driver Tracking</h3>
-                            <p>Real-time map available on dashboard</p>
-                            <button id="viewMapBtn" style="margin-top: 15px; padding: 10px 20px; background: white; color: #6C63FF; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                                View Live Map
-                            </button>
-                        </div>
-                    </div>
+                    <div id="previewMap"></div>
                 </div>
             </section>
             
+            <!-- Features Section -->
             <section class="features-section">
                 <h2>Why Choose SwiftRide?</h2>
                 <div class="features-grid">
@@ -239,197 +152,191 @@
                 </div>
             </section>
             
-            <section id="tracking" class="tracking-history-section">
-                <h2>Recent Driver Tracking</h2>
-                <p style="text-align: center; color: #666; margin-bottom: 30px;">Track recent driver activities and deliveries</p>
-                
-                <div id="trackingHistory">
-                    <div class="tracking-item">
-                        <h4>John Driver</h4>
-                        <p><i class="fas fa-map-marker-alt"></i> Rosebank to Sandton</p>
-                        <p><i class="fas fa-clock"></i> 25 minutes ago</p>
-                        <p><i class="fas fa-check-circle" style="color: #4CAF50;"></i> Completed</p>
-                    </div>
-                    <div class="tracking-item">
-                        <h4>Sarah Rider</h4>
-                        <p><i class="fas fa-map-marker-alt"></i> Melville to Randburg</p>
-                        <p><i class="fas fa-clock"></i> 40 minutes ago</p>
-                        <p><i class="fas fa-truck-moving" style="color: #2196F3;"></i> In Progress</p>
-                    </div>
-                    <div class="tracking-item">
-                        <h4>Mike Courier</h4>
-                        <p><i class="fas fa-map-marker-alt"></i> CBD to Midrand</p>
-                        <p><i class="fas fa-clock"></i> 1 hour ago</p>
-                        <p><i class="fas fa-check-circle" style="color: #4CAF50;"></i> Completed</p>
-                    </div>
-                </div>
-            </section>
+<!-- Recent Tracking History Section -->
+<section id="tracking" class="tracking-history-section">
+    <h2>Recent Driver Tracking</h2>
+    <p class="section-subtitle">Track recent driver deliveries and status</p>
+    
+    <div class="tracking-history-container" id="trackingHistory">
+        <!-- Tracking history cards will be loaded here -->
+        <div class="loading-trackings">
+            <div class="loader"></div>
+            <p>Loading tracking history...</p>
+        </div>
+    </div>
+    
+    <div class="view-all-container">
+        <button class="view-all-btn" onclick="redirectTo('admin')">
+            <i class="fas fa-chart-line"></i> View All Trackings
+        </button>
+    </div>
+
+<!-- TEST BUTTONS (Add somewhere visible) -->
+<div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+    <strong>🛠️ DEBUG BUTTONS</strong><br>
+    <button onclick="testLogin('customer')" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Customer</button><br>
+    <button onclick="testLogin('driver')" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Driver</button><br>
+    <button onclick="testLogin('admin')" style="background: #9C27B0; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Admin</button><br>
+    <button onclick="logout()" style="background: #F44336; color: white; border: none; padding: 5px 10px; margin: 2px;">Logout</button>
+</div>
+
+    <!-- Load app.js after everything is ready -->
+    <script src="./app.js" defer></script>
+
+<script>
+    function testLogin(userType) {
+        const testUser = {
+            _id: 'test123',
+            name: 'Test ' + userType,
+            email: 'test@example.com',
+            userType: userType
+        };
+        
+        localStorage.setItem('token', 'test-token-123');
+        localStorage.setItem('user', JSON.stringify(testUser));
+        
+        AppState.token = 'test-token-123';
+        AppState.user = testUser;
+        
+        alert('Logged in as ' + userType + '!\nRedirecting to ' + userType + '.html');
+        window.location.href = userType + '.html';
+    }
+</script>
+
+</section>
             
+            <!-- CTA Section -->
             <section class="cta-section">
                 <h2>Ready to Deliver?</h2>
                 <p>Join thousands of satisfied customers and drivers</p>
                 <div class="cta-buttons">
-                    <button class="cta-btn primary" id="sendPackageBtn">
+                    <button class="cta-btn primary" onclick="redirectTo('customer')">
                         <i class="fas fa-box"></i> Send a Package
                     </button>
-                    <button class="cta-btn secondary" id="becomeDriverBtn">
+                    <button class="cta-btn secondary" onclick="redirectTo('driver')">
                         <i class="fas fa-motorcycle"></i> Become a Driver
                     </button>
                 </div>
             </section>
         </main>
         
+        <!-- Footer -->
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>SwiftRide</h4>
                     <p>Premium delivery service for businesses and individuals</p>
                 </div>
-                <div class="footer-section">
-                    <h4>Contact</h4>
-                    <p><i class="fas fa-phone"></i> +27 11 123 4567</p>
-                    <p><i class="fas fa-envelope"></i> support@swiftride.co.za</p>
-                </div>
+
                 <div class="footer-section">
                     <h4>Download</h4>
-                    <button class="install-btn" id="installBtn">
+                    <button class="install-btn" onclick="installPWA()">
                         <i class="fas fa-download"></i> Install App
                     </button>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 SwiftRide Delivery. All rights reserved.</p>
+                <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
             </div>
         </footer>
     </div>
     
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Login to SwiftRide</h2>
-                <button class="close-modal" id="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="login-option" id="loginCustomer">
-                    <i class="fas fa-user"></i>
-                    <div>
-                        <h3 style="margin: 0 0 5px 0;">Customer Login</h3>
-                        <p style="margin: 0; color: #666;">Send and track packages</p>
-                    </div>
-                </div>
-                
-                <div class="login-option" id="loginDriver">
-                    <i class="fas fa-motorcycle"></i>
-                    <div>
-                        <h3 style="margin: 0 0 5px 0;">Driver Login</h3>
-                        <p style="margin: 0; color: #666;">Accept delivery requests</p>
-                    </div>
-                </div>
-                
-                <div class="login-option" id="loginAdmin">
-                    <i class="fas fa-user-shield"></i>
-                    <div>
-                        <h3 style="margin: 0 0 5px 0;">Admin Login</h3>
-                        <p style="margin: 0; color: #666;">Manage the platform</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    
+    <!-- Service Worker Registration -->
     <script>
-        // ===== ALL FUNCTIONS DEFINED HERE =====
-        
-        // Login functions
-        function loginAsAdmin() {
-            const user = {_id:'admin1', name:'Admin', userType:'admin'};
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', 'test');
-            hideModal('loginModal');
-            setTimeout(() => window.location.href = 'admin.html', 500);
-        }
-        
-        function loginAsDriver() {
-            const user = {_id:'driver1', name:'Driver', userType:'driver'};
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', 'test');
-            hideModal('loginModal');
-            setTimeout(() => window.location.href = 'driver.html', 500);
-        }
-        
-        function loginAsCustomer() {
-            const user = {_id:'customer1', name:'Customer', userType:'customer'};
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', 'test');
-            hideModal('loginModal');
-            setTimeout(() => window.location.href = 'customer.html', 500);
-        }
-        
-        // Modal functions
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
-        }
-        
-        function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-        
-        // Global functions for other pages
-        window.trackDriver = function(id) {
-            localStorage.setItem('trackingDriverId', id);
-            window.location.href = 'tracking.html?driver=' + id;
-        };
-        
-        window.logout = function() {
-            localStorage.clear();
-            window.location.href = 'index.html';
-        };
-        
-        window.redirectTo = function(page) {
-            window.location.href = page + '.html';
-        };
-        
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ SwiftRide loaded successfully');
-            
-            // Hide loading screen
-            setTimeout(() => {
-                document.getElementById('loadingScreen').style.display = 'none';
-            }, 1000);
-            
-            // Setup event listeners
-            document.getElementById('loginBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                showModal('loginModal');
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
             });
+        }
+        
+        // Redirect function for index.html
+        function redirectTo(userType) {
+            localStorage.setItem('userType', userType);
+            window.location.href = userType + '.html';
+        }
+        
+        // Rate selection function
+        function selectRate(rate) {
+            localStorage.setItem('selectedRate', rate);
+            redirectTo('customer');
+        }
+        
+        // PWA Installation
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
             
-            document.getElementById('customerCard').addEventListener('click', loginAsCustomer);
-            document.getElementById('driverCard').addEventListener('click', loginAsDriver);
-            document.getElementById('adminCard').addEventListener('click', loginAsAdmin);
-            
-            document.getElementById('viewMapBtn').addEventListener('click', loginAsAdmin);
-            document.getElementById('sendPackageBtn').addEventListener('click', loginAsCustomer);
-            document.getElementById('becomeDriverBtn').addEventListener('click', loginAsDriver);
-            document.getElementById('installBtn').addEventListener('click', function() {
-                alert('PWA installation would happen here');
-            });
-            
-            document.getElementById('closeModal').addEventListener('click', function() {
-                hideModal('loginModal');
-            });
-            
-            document.getElementById('loginCustomer').addEventListener('click', loginAsCustomer);
-            document.getElementById('loginDriver').addEventListener('click', loginAsDriver);
-            document.getElementById('loginAdmin').addEventListener('click', loginAsAdmin);
-            
-            // Close modal on outside click
-            window.addEventListener('click', function(e) {
-                if (e.target.id === 'loginModal') {
-                    hideModal('loginModal');
-                }
-            });
+            // Show install button if hidden
+            const installBtn = document.querySelector('.install-btn');
+            if (installBtn) {
+                installBtn.style.display = 'flex';
+            }
         });
+        
+        function installPWA() {
+            if (!deferredPrompt) {
+                alert('PWA installation not available in this browser.');
+                return;
+            }
+            
+            deferredPrompt.prompt();
+            
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                } else {
+                    console.log('User dismissed the install prompt');
+                }
+                deferredPrompt = null;
+            });
+        }
     </script>
+<script>
+    // Debug all buttons
+    document.addEventListener('click', function(e) {
+        const button = e.target.closest('button');
+        if (button) {
+            console.log('🔄 BUTTON CLICKED:', button.textContent, button.onclick);
+            
+            // Check if it's a redirect button
+            if (button.onclick && button.onclick.toString().includes('redirectTo')) {
+                console.log('📤 REDIRECT BUTTON DETECTED');
+                e.preventDefault();
+                
+                const match = button.onclick.toString().match(/redirectTo\('([^']+)'\)/);
+                if (match) {
+                    const page = match[1];
+                    console.log('🎯 Redirecting to:', page);
+                    setTimeout(() => {
+                        window.location.href = page + '.html';
+                    }, 100);
+                }
+            }
+        }
+    });
+    
+    // Debug user type buttons
+    document.querySelectorAll('.user-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const page = this.getAttribute('onclick')?.match(/redirectTo\('([^']+)'\)/)?.[1];
+            console.log('👤 User type selected:', page);
+            localStorage.setItem('debug_page', page);
+        });
+    });
+</script>    
+
 </body>
 </html>
