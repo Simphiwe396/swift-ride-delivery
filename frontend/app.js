@@ -161,6 +161,26 @@ const API = {
         }
     },
 
+    // Admin functions
+    async adminLogin(email, password) {
+        return this.request('/admin/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+    },
+
+    async addDriver(driverData) {
+        return this.request('/admin/drivers', {
+            method: 'POST',
+            body: JSON.stringify(driverData)
+        });
+    },
+
+    async getAdminDrivers() {
+        return this.request('/admin/drivers');
+    },
+
+    // Public functions
     async getTrips(userId) {
         return this.request(`/trips?userId=${userId}`);
     },
@@ -219,11 +239,29 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSocket() {
     try {
         // Socket.io is loaded from CDN
-        // Connection will be established when needed
         console.log('Socket.io ready for connection');
     } catch (error) {
         console.error('Failed to initialize socket:', error);
     }
+}
+
+// SECURITY: Check if user is admin
+function isAdmin() {
+    const user = window.AppState.user;
+    const isAdminFlag = localStorage.getItem('is_admin');
+    return user && user.userType === 'admin' && isAdminFlag === 'true';
+}
+
+// SECURITY: Check if user is driver
+function isDriver() {
+    const user = window.AppState.user;
+    return user && user.userType === 'driver';
+}
+
+// SECURITY: Check if user is customer
+function isCustomer() {
+    const user = window.AppState.user;
+    return user && user.userType === 'customer';
 }
 
 // Notification system
@@ -303,32 +341,22 @@ function hideModal(modalId) {
     }
 }
 
-// User authentication
+// User authentication (for demo - customers and drivers)
 function login(userType) {
     let user;
     
     switch(userType) {
-        case 'admin':
-            user = {
-                _id: 'admin1',
-                name: 'Admin User',
-                email: 'admin@swiftride.com',
-                userType: 'admin',
-                phone: '0111234567',
-                companyName: 'SwiftRide Delivery'
-            };
-            break;
         case 'driver':
             user = {
-                _id: 'driver1',
-                name: 'John Driver',
-                email: 'driver@swiftride.com',
+                _id: 'driver_' + Date.now(),
+                name: 'Demo Driver',
+                email: 'driver@demo.com',
                 userType: 'driver',
                 phone: '0821234567',
                 vehicle: {
                     type: 'motorcycle',
                     model: 'Honda 125',
-                    licensePlate: 'CA123456',
+                    licensePlate: 'DEMO123',
                     color: 'Red'
                 },
                 status: 'online',
@@ -342,9 +370,9 @@ function login(userType) {
             break;
         case 'customer':
             user = {
-                _id: 'customer1',
-                name: 'Sarah Customer',
-                email: 'customer@swiftride.com',
+                _id: 'customer_' + Date.now(),
+                name: 'Demo Customer',
+                email: 'customer@demo.com',
                 userType: 'customer',
                 phone: '0839876543',
                 address: '123 Main St, Johannesburg'
@@ -381,6 +409,7 @@ function logout() {
     
     localStorage.removeItem('swiftride_token');
     localStorage.removeItem('swiftride_user');
+    localStorage.removeItem('is_admin');
     
     window.AppState = { user: null, token: null, mapManager: null, socket: null };
     
@@ -415,6 +444,9 @@ window.showModal = showModal;
 window.hideModal = hideModal;
 window.login = login;
 window.calculateFare = calculateFare;
+window.isAdmin = isAdmin;
+window.isDriver = isDriver;
+window.isCustomer = isCustomer;
 
 // Redirect function
 window.redirectTo = (page) => {
@@ -426,8 +458,3 @@ window.trackDriver = (driverId) => {
     localStorage.setItem('trackingDriverId', driverId);
     window.location.href = `tracking.html?driver=${driverId}`;
 };
-
-// Export the login functions for the home page
-window.loginAsAdmin = () => login('admin');
-window.loginAsDriver = () => login('driver');
-window.loginAsCustomer = () => login('customer');

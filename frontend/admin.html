@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard - SwiftRide Delivery</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - SwiftRide Delivery</title>
     
     <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide Admin">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1A1D29">
     
     <!-- Icons & Fonts -->
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
@@ -43,27 +44,27 @@
         .quick-stat {
             background: white;
             padding: 1.5rem;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
-            transition: var(--transition-fast);
+            transition: all 0.3s ease;
         }
         
         .quick-stat:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
         }
         
         .quick-stat i {
             font-size: 2rem;
             margin-bottom: 1rem;
-            color: var(--primary);
+            color: #6C63FF;
         }
         
         .quick-stat h3 {
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
-            color: var(--dark);
+            color: #1A1D29;
         }
         
         .dashboard-grid {
@@ -81,15 +82,15 @@
         
         .dashboard-card {
             background: white;
-            border-radius: var(--radius-lg);
+            border-radius: 16px;
             padding: 1.5rem;
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
         
         .dashboard-card h3 {
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
-            border-bottom: 2px solid var(--gray-light);
+            border-bottom: 2px solid #E8EAF2;
         }
         
         .table-container {
@@ -102,21 +103,21 @@
         }
         
         .data-table th {
-            background: var(--light);
+            background: #F8F9FF;
             padding: 1rem;
             text-align: left;
             font-weight: 600;
-            color: var(--dark);
-            border-bottom: 2px solid var(--gray-light);
+            color: #1A1D29;
+            border-bottom: 2px solid #E8EAF2;
         }
         
         .data-table td {
             padding: 1rem;
-            border-bottom: 1px solid var(--gray-light);
+            border-bottom: 1px solid #E8EAF2;
         }
         
         .data-table tr:hover {
-            background: var(--light);
+            background: #F8F9FF;
         }
         
         .action-buttons {
@@ -126,28 +127,28 @@
         
         .action-btn {
             padding: 0.5rem 1rem;
-            border-radius: var(--radius-md);
+            border-radius: 8px;
             border: none;
             font-size: 0.9rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 5px;
-            transition: var(--transition-fast);
+            transition: all 0.3s ease;
         }
         
         .action-btn.view {
-            background: var(--info);
+            background: #2196F3;
             color: white;
         }
         
         .action-btn.edit {
-            background: var(--warning);
+            background: #FF9800;
             color: white;
         }
         
         .action-btn.delete {
-            background: var(--danger);
+            background: #FF5252;
             color: white;
         }
         
@@ -159,7 +160,7 @@
         .empty-state {
             text-align: center;
             padding: 3rem;
-            color: var(--gray);
+            color: #8C8FA6;
         }
         
         .empty-state i {
@@ -170,6 +171,39 @@
     </style>
 </head>
 <body data-page="admin">
+    <!-- SECURITY CHECK - Prevents unauthorized access -->
+    <script>
+        (function() {
+            // Check if user is logged in as admin
+            const user = localStorage.getItem('swiftride_user');
+            const isAdmin = localStorage.getItem('is_admin');
+            
+            if (!user || !isAdmin) {
+                // Not authorized - redirect to login
+                alert('Access denied. Please login as admin first.');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Parse user data
+            try {
+                const userData = JSON.parse(user);
+                if (userData.userType !== 'admin') {
+                    alert('Admin access required.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+            } catch (e) {
+                alert('Invalid session. Please login again.');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // User is authorized - continue loading page
+            console.log('Admin user authenticated');
+        })();
+    </script>
+    
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
@@ -227,22 +261,21 @@
             </nav>
         </aside>
 
+        <div class="dashboard">
+            <aside class="sidebar">
+                <h2>Drivers</h2>
+                <div id="driverList"></div>
+            </aside>
 
-  <div class="dashboard">
-    <aside class="sidebar">
-      <h2>Drivers</h2>
-      <div id="driverList"></div>
-    </aside>
+            <main class="main">
+                <div id="map"></div>
 
-    <main class="main">
-      <div id="map"></div>
-
-      <section class="trip-panel">
-        <h3>Trip History (Today)</h3>
-        <div id="tripHistory"></div>
-      </section>
-    </main>
-  </div>
+                <section class="trip-panel">
+                    <h3>Trip History (Today)</h3>
+                    <div id="tripHistory"></div>
+                </section>
+            </main>
+        </div>
         
         <!-- Main Content -->
         <main class="main-dashboard">
@@ -320,7 +353,7 @@
                 <div class="dashboard-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h3>Active Drivers</h3>
-                        <select id="driverStatusFilter" onchange="filterDrivers()" style="padding: 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--gray-light);">
+                        <select id="driverStatusFilter" onchange="filterDrivers()" style="padding: 0.5rem; border-radius: 8px; border: 1px solid #E8EAF2;">
                             <option value="all">All Drivers</option>
                             <option value="online">Online</option>
                             <option value="busy">On Delivery</option>
@@ -370,7 +403,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h3>All Deliveries</h3>
                         <div style="display: flex; gap: 1rem;">
-                            <select id="deliveryStatusFilter" onchange="filterDeliveries()" style="padding: 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--gray-light);">
+                            <select id="deliveryStatusFilter" onchange="filterDeliveries()" style="padding: 0.5rem; border-radius: 8px; border: 1px solid #E8EAF2;">
                                 <option value="all">All Status</option>
                                 <option value="pending">Pending</option>
                                 <option value="accepted">Accepted</option>
@@ -645,11 +678,12 @@
         </div>
     </div>
     
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-<script src="./socket.js"></script>
-<script src="./app.js"></script>
-<script src="./admin.js"></script> <!-- or driver.js, etc. -->
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+    <script src="admin.js"></script>
 
 </body>
 </html>

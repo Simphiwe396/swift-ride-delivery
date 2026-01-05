@@ -210,8 +210,8 @@
                         </div>
                         <div class="user-card" id="adminCard">
                             <i class="fas fa-chart-line"></i>
-                            <h3>Business</h3>
-                            <p>Manage your deliveries</p>
+                            <h3>Admin Login</h3>
+                            <p>Business dashboard</p>
                         </div>
                     </div>
                     
@@ -412,7 +412,6 @@
     
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     
     <!-- JavaScript Code -->
     <script>
@@ -511,7 +510,7 @@
         `;
         document.head.appendChild(notificationStyle);
         
-        // Login function
+        // Login function for customers and drivers
         function login(userType) {
             let userData;
             
@@ -542,16 +541,6 @@
                         rating: 4.8,
                         todayEarnings: 0,
                         todayTrips: 0
-                    };
-                    break;
-                    
-                case 'admin':
-                    userData = {
-                        _id: 'adm_' + Date.now(),
-                        name: 'Demo Admin',
-                        email: 'admin@demo.com',
-                        userType: 'admin',
-                        phone: '0111234567'
                     };
                     break;
             }
@@ -705,36 +694,96 @@
             }, 1000);
         });
         
-        // Setup all event listeners
+        // Setup all event listeners - FIXED VERSION
         function setupEventListeners() {
             // User cards
-            document.getElementById('customerCard').addEventListener('click', () => login('customer'));
-            document.getElementById('driverCard').addEventListener('click', () => login('driver'));
-            document.getElementById('adminCard').addEventListener('click', () => login('admin'));
+            const customerCard = document.getElementById('customerCard');
+            const driverCard = document.getElementById('driverCard');
+            const adminCard = document.getElementById('adminCard');
+            
+            if (customerCard) {
+                customerCard.addEventListener('click', function() {
+                    login('customer');
+                });
+            }
+            
+            if (driverCard) {
+                driverCard.addEventListener('click', function() {
+                    login('driver');
+                });
+            }
+            
+            if (adminCard) {
+                adminCard.addEventListener('click', function() {
+                    window.location.href = 'login.html';
+                });
+            }
             
             // CTA buttons
-            document.getElementById('sendPackageBtn').addEventListener('click', () => login('customer'));
-            document.getElementById('becomeDriverBtn').addEventListener('click', () => login('driver'));
+            const sendPackageBtn = document.getElementById('sendPackageBtn');
+            if (sendPackageBtn) {
+                sendPackageBtn.addEventListener('click', function() {
+                    login('customer');
+                });
+            }
+            
+            const becomeDriverBtn = document.getElementById('becomeDriverBtn');
+            if (becomeDriverBtn) {
+                becomeDriverBtn.addEventListener('click', function() {
+                    login('driver');
+                });
+            }
             
             // Pricing buttons
-            document.querySelector('.economy-btn').addEventListener('click', () => selectRate('economy'));
-            document.querySelector('.standard-btn').addEventListener('click', () => selectRate('standard'));
-            document.querySelector('.express-btn').addEventListener('click', () => selectRate('express'));
+            const economyBtn = document.querySelector('.economy-btn');
+            if (economyBtn) {
+                economyBtn.addEventListener('click', function() {
+                    selectRate('economy');
+                });
+            }
+            
+            const standardBtn = document.querySelector('.standard-btn');
+            if (standardBtn) {
+                standardBtn.addEventListener('click', function() {
+                    selectRate('standard');
+                });
+            }
+            
+            const expressBtn = document.querySelector('.express-btn');
+            if (expressBtn) {
+                expressBtn.addEventListener('click', function() {
+                    selectRate('express');
+                });
+            }
             
             // Tracking buttons
-            document.querySelectorAll('.view-map-btn').forEach(btn => {
-                btn.addEventListener('click', () => login('admin'));
+            const viewMapBtns = document.querySelectorAll('.view-map-btn');
+            viewMapBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    window.location.href = 'login.html';
+                });
             });
             
-            document.querySelectorAll('.send-package-btn').forEach(btn => {
-                btn.addEventListener('click', () => login('customer'));
+            const sendPackageBtns = document.querySelectorAll('.send-package-btn');
+            sendPackageBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    login('customer');
+                });
             });
             
             // View all button
-            document.getElementById('viewAllBtn').addEventListener('click', () => login('admin'));
+            const viewAllBtn = document.getElementById('viewAllBtn');
+            if (viewAllBtn) {
+                viewAllBtn.addEventListener('click', function() {
+                    window.location.href = 'login.html';
+                });
+            }
             
             // Install button
-            document.getElementById('installBtn').addEventListener('click', installPWA);
+            const installBtn = document.getElementById('installBtn');
+            if (installBtn) {
+                installBtn.addEventListener('click', installPWA);
+            }
         }
         
         // Expose functions globally
