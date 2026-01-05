@@ -8,8 +8,8 @@
     <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#6C63FF">
     
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
@@ -43,6 +43,128 @@
     #previewMap.leaflet-container {
         height: 400px !important;
     }
+    
+    /* Pricing Cards */
+    .pricing-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-normal);
+        border: 2px solid transparent;
+    }
+    
+    .pricing-card:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary);
+    }
+    
+    .pricing-card.popular {
+        border-color: var(--primary);
+        position: relative;
+    }
+    
+    .popular-badge {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--primary);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .price-amount {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 1rem 0;
+    }
+    
+    .price-amount small {
+        font-size: 1rem;
+        color: var(--gray);
+    }
+    
+    .price-features {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+    
+    .price-features li {
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .price-features li i {
+        color: var(--primary);
+    }
+    
+    /* User Type Selector */
+    .user-type-selector {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .user-type-selector {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .user-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .user-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .user-card i {
+        font-size: 3rem;
+        color: var(--primary);
+        background: var(--primary-light);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .user-card h3 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+    
+    .user-card p {
+        color: var(--gray);
+        margin: 0;
+    }
     </style>
 </head>
 <body data-page="home">
@@ -61,12 +183,12 @@
                 <i class="fas fa-bolt"></i>
                 <h1>SwiftRide</h1>
             </div>
-<nav class="main-nav">
-    <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-    <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
-    <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
-    <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
-</nav>
+            <nav class="main-nav">
+                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+                <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
+                <a href="#pricing" class="nav-link"><i class="fas fa-tag"></i> Pricing</a>
+                <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
+            </nav>
         </header>
         
         <!-- Main Content -->
@@ -78,44 +200,42 @@
                     <p>Track your packages in real-time with our premium delivery service</p>
                     
                     <!-- User Type Selection -->
-<!-- User Type Selection -->
-<div class="user-type-selector">
-    <div class="user-card" onclick="window.location.href='customer.html'">
-        <i class="fas fa-shopping-bag"></i>
-        <h3>Customer</h3>
-        <p>Send packages</p>
-    </div>
-    <div class="user-card" onclick="window.location.href='driver.html'">
-        <i class="fas fa-motorcycle"></i>
-        <h3>Driver</h3>
-        <p>Earn money</p>
-    </div>
-    <div class="user-card" onclick="window.location.href='admin.html'">
-        <i class="fas fa-chart-line"></i>
-        <h3>Business</h3>
-        <p>Manage deliveries</p>
-    </div>
-</div>
-
-
-<!-- ADD THIS AFTER THE USER TYPE SELECTOR (temporary for testing) -->
-<div style="margin: 20px auto; text-align: center; background: #f0f0f0; padding: 15px; border-radius: 10px; max-width: 500px;">
-    <h3 style="color: #666;">🛠️ TEST LOGINS (Temporary)</h3>
-    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-        <button onclick="loginAsAdmin()" style="padding: 10px 20px; background: #9C27B0; color: white; border: none; border-radius: 5px;">
-            Login as Admin
-        </button>
-        <button onclick="loginAsDriver()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 5px;">
-            Login as Driver
-        </button>
-        <button onclick="loginAsCustomer()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
-            Login as Customer
-        </button>
-        <button onclick="logout()" style="padding: 10px 20px; background: #F44336; color: white; border: none; border-radius: 5px;">
-            Logout
-        </button>
-    </div>
-</div>
+                    <div class="user-type-selector">
+                        <div class="user-card" onclick="login('customer')">
+                            <i class="fas fa-shopping-bag"></i>
+                            <h3>Customer</h3>
+                            <p>Send packages instantly</p>
+                        </div>
+                        <div class="user-card" onclick="login('driver')">
+                            <i class="fas fa-motorcycle"></i>
+                            <h3>Driver</h3>
+                            <p>Earn money delivering</p>
+                        </div>
+                        <div class="user-card" onclick="login('admin')">
+                            <i class="fas fa-chart-line"></i>
+                            <h3>Business</h3>
+                            <p>Manage your deliveries</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="quick-stats" style="margin-top: 3rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                        <div style="text-align: center;">
+                            <h3 style="color: var(--primary); font-size: 2rem; margin: 0;">500+</h3>
+                            <p style="color: var(--gray); margin: 5px 0;">Active Drivers</p>
+                        </div>
+                        <div style="text-align: center;">
+                            <h3 style="color: var(--primary); font-size: 2rem; margin: 0;">10k+</h3>
+                            <p style="color: var(--gray); margin: 5px 0;">Deliveries</p>
+                        </div>
+                        <div style="text-align: center;">
+                            <h3 style="color: var(--primary); font-size: 2rem; margin: 0;">30min</h3>
+                            <p style="color: var(--gray); margin: 5px 0;">Avg Delivery</p>
+                        </div>
+                        <div style="text-align: center;">
+                            <h3 style="color: var(--primary); font-size: 2rem; margin: 0;">4.8★</h3>
+                            <p style="color: var(--gray); margin: 5px 0;">Rating</p>
+                        </div>
                     </div>
                 </div>
                 
@@ -132,88 +252,110 @@
                     <div class="feature">
                         <i class="fas fa-map-marked-alt"></i>
                         <h3>Real-Time Tracking</h3>
-                        <p>Watch your delivery move on live map</p>
+                        <p>Watch your delivery move on live map with live GPS updates</p>
                     </div>
                     <div class="feature">
                         <i class="fas fa-bolt"></i>
                         <h3>Fast Delivery</h3>
-                        <p>Average delivery time: 30 minutes</p>
+                        <p>Average delivery time: 30 minutes in urban areas</p>
                     </div>
                     <div class="feature">
                         <i class="fas fa-shield-alt"></i>
                         <h3>Secure & Safe</h3>
-                        <p>All drivers verified and insured</p>
+                        <p>All drivers verified, background checked and insured</p>
                     </div>
                     <div class="feature">
                         <i class="fas fa-money-bill-wave"></i>
-                        <h3>Affordable Rates</h3>
-                        <p>From R5/km with no hidden fees</p>
+                        <h3>Flexible Pricing</h3>
+                        <p>Choose from R5/km (Economy), R10/km (Standard), R20/km (Express)</p>
                     </div>
                 </div>
             </section>
             
-<!-- Recent Tracking History Section -->
-<section id="tracking" class="tracking-history-section">
-    <h2>Recent Driver Tracking</h2>
-    <p class="section-subtitle">Track recent driver deliveries and status</p>
-    
-    <div class="tracking-history-container" id="trackingHistory">
-        <!-- Tracking history cards will be loaded here -->
-        <div class="loading-trackings">
-            <div class="loader"></div>
-            <p>Loading tracking history...</p>
-        </div>
-    </div>
-    
-    <div class="view-all-container">
-        <button class="view-all-btn" onclick="redirectTo('admin')">
-            <i class="fas fa-chart-line"></i> View All Trackings
-        </button>
-    </div>
-
-<!-- TEST BUTTONS (Add somewhere visible) -->
-<div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
-    <strong>🛠️ DEBUG BUTTONS</strong><br>
-    <button onclick="testLogin('customer')" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Customer</button><br>
-    <button onclick="testLogin('driver')" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Driver</button><br>
-    <button onclick="testLogin('admin')" style="background: #9C27B0; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Admin</button><br>
-    <button onclick="logout()" style="background: #F44336; color: white; border: none; padding: 5px 10px; margin: 2px;">Logout</button>
-</div>
-
-    <!-- Load app.js after everything is ready -->
-    <script src="./app.js" defer></script>
-
-<script>
-    function testLogin(userType) {
-        const testUser = {
-            _id: 'test123',
-            name: 'Test ' + userType,
-            email: 'test@example.com',
-            userType: userType
-        };
-        
-        localStorage.setItem('token', 'test-token-123');
-        localStorage.setItem('user', JSON.stringify(testUser));
-        
-        AppState.token = 'test-token-123';
-        AppState.user = testUser;
-        
-        alert('Logged in as ' + userType + '!\nRedirecting to ' + userType + '.html');
-        window.location.href = userType + '.html';
-    }
-</script>
-
-</section>
+            <!-- Pricing Section -->
+            <section id="pricing" class="pricing-section">
+                <h2>Transparent Pricing</h2>
+                <p class="section-subtitle" style="text-align: center; color: var(--gray); margin-bottom: 3rem;">
+                    Choose the rate that fits your needs
+                </p>
+                <div class="pricing-cards">
+                    <div class="pricing-card">
+                        <h3>Economy</h3>
+                        <div class="price-amount">R5<small>/km</small></div>
+                        <ul class="price-features">
+                            <li><i class="fas fa-check"></i> Standard delivery</li>
+                            <li><i class="fas fa-check"></i> 45-60 min delivery</li>
+                            <li><i class="fas fa-check"></i> Real-time tracking</li>
+                            <li><i class="fas fa-check"></i> Basic support</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="selectRate('economy')">
+                            <i class="fas fa-check"></i> Select Economy
+                        </button>
+                    </div>
+                    
+                    <div class="pricing-card popular">
+                        <div class="popular-badge">MOST POPULAR</div>
+                        <h3>Standard</h3>
+                        <div class="price-amount">R10<small>/km</small></div>
+                        <ul class="price-features">
+                            <li><i class="fas fa-check"></i> Fast delivery</li>
+                            <li><i class="fas fa-check"></i> 30-45 min delivery</li>
+                            <li><i class="fas fa-check"></i> Live GPS tracking</li>
+                            <li><i class="fas fa-check"></i> Priority support</li>
+                            <li><i class="fas fa-check"></i> Delivery proof</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="selectRate('standard')">
+                            <i class="fas fa-bolt"></i> Select Standard
+                        </button>
+                    </div>
+                    
+                    <div class="pricing-card">
+                        <h3>Express</h3>
+                        <div class="price-amount">R20<small>/km</small></div>
+                        <ul class="price-features">
+                            <li><i class="fas fa-check"></i> Instant delivery</li>
+                            <li><i class="fas fa-check"></i> 15-30 min delivery</li>
+                            <li><i class="fas fa-check"></i> Live GPS + SOS</li>
+                            <li><i class="fas fa-check"></i> 24/7 priority support</li>
+                            <li><i class="fas fa-check"></i> Signature required</li>
+                            <li><i class="fas fa-check"></i> Insurance included</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="selectRate('express')">
+                            <i class="fas fa-rocket"></i> Select Express
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Recent Tracking History Section -->
+            <section id="tracking" class="tracking-history-section">
+                <h2>Recent Driver Tracking</h2>
+                <p class="section-subtitle">Track recent driver deliveries and status in real-time</p>
+                
+                <div class="tracking-history-container" id="trackingHistory">
+                    <!-- Tracking history cards will be loaded here -->
+                    <div class="loading-trackings">
+                        <div class="loader"></div>
+                        <p>Loading tracking history...</p>
+                    </div>
+                </div>
+                
+                <div class="view-all-container">
+                    <button class="view-all-btn" onclick="redirectTo('admin')">
+                        <i class="fas fa-chart-line"></i> View All Trackings
+                    </button>
+                </div>
+            </section>
             
             <!-- CTA Section -->
             <section class="cta-section">
                 <h2>Ready to Deliver?</h2>
-                <p>Join thousands of satisfied customers and drivers</p>
+                <p>Join thousands of satisfied customers and drivers across South Africa</p>
                 <div class="cta-buttons">
-                    <button class="cta-btn primary" onclick="redirectTo('customer')">
+                    <button class="cta-btn primary" onclick="login('customer')">
                         <i class="fas fa-box"></i> Send a Package
                     </button>
-                    <button class="cta-btn secondary" onclick="redirectTo('driver')">
+                    <button class="cta-btn secondary" onclick="login('driver')">
                         <i class="fas fa-motorcycle"></i> Become a Driver
                     </button>
                 </div>
@@ -225,7 +367,31 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>SwiftRide</h4>
-                    <p>Premium delivery service for businesses and individuals</p>
+                    <p>Premium delivery service for businesses and individuals across South Africa</p>
+                    <div style="display: flex; gap: 15px; margin-top: 15px;">
+                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-facebook"></i></a>
+                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-twitter"></i></a>
+                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-instagram"></i></a>
+                        <a href="#" style="color: white; font-size: 1.2rem;"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li><a href="#home" style="color: white; text-decoration: none;">Home</a></li>
+                        <li><a href="#tracking" style="color: white; text-decoration: none;">Tracking</a></li>
+                        <li><a href="#pricing" style="color: white; text-decoration: none;">Pricing</a></li>
+                        <li><a href="driver.html" style="color: white; text-decoration: none;">Driver App</a></li>
+                        <li><a href="admin.html" style="color: white; text-decoration: none;">Business Portal</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p><i class="fas fa-phone"></i> 0800 123 456</p>
+                    <p><i class="fas fa-envelope"></i> support@swiftride.co.za</p>
+                    <p><i class="fas fa-map-marker-alt"></i> Johannesburg, South Africa</p>
                 </div>
 
                 <div class="footer-section">
@@ -233,10 +399,16 @@
                     <button class="install-btn" onclick="installPWA()">
                         <i class="fas fa-download"></i> Install App
                     </button>
+                    <p style="margin-top: 10px; font-size: 0.9rem;">Available as PWA on all devices</p>
                 </div>
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
+                <div style="display: flex; gap: 20px; margin-top: 10px;">
+                    <a href="#" style="color: white; text-decoration: none; font-size: 0.9rem;">Privacy Policy</a>
+                    <a href="#" style="color: white; text-decoration: none; font-size: 0.9rem;">Terms of Service</a>
+                    <a href="#" style="color: white; text-decoration: none; font-size: 0.9rem;">Cookie Policy</a>
+                </div>
             </div>
         </footer>
     </div>
@@ -260,16 +432,13 @@
             });
         }
         
-        // Redirect function for index.html
-        function redirectTo(userType) {
-            localStorage.setItem('userType', userType);
-            window.location.href = userType + '.html';
-        }
-        
         // Rate selection function
         function selectRate(rate) {
             localStorage.setItem('selectedRate', rate);
-            redirectTo('customer');
+            showNotification(`Selected ${rate} rate (R${rate === 'economy' ? '5' : rate === 'standard' ? '10' : '20'}/km)`, 'success');
+            setTimeout(() => {
+                login('customer');
+            }, 1000);
         }
         
         // PWA Installation
@@ -297,46 +466,142 @@
             deferredPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
                     console.log('User accepted the install prompt');
+                    showNotification('App installed successfully!', 'success');
                 } else {
                     console.log('User dismissed the install prompt');
                 }
                 deferredPrompt = null;
             });
         }
-    </script>
-<script>
-    // Debug all buttons
-    document.addEventListener('click', function(e) {
-        const button = e.target.closest('button');
-        if (button) {
-            console.log('🔄 BUTTON CLICKED:', button.textContent, button.onclick);
-            
-            // Check if it's a redirect button
-            if (button.onclick && button.onclick.toString().includes('redirectTo')) {
-                console.log('📤 REDIRECT BUTTON DETECTED');
-                e.preventDefault();
+        
+        // Initialize home page map
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                // Initialize map preview
+                const map = L.map('previewMap').setView([-26.195246, 28.034088], 13);
                 
-                const match = button.onclick.toString().match(/redirectTo\('([^']+)'\)/);
-                if (match) {
-                    const page = match[1];
-                    console.log('🎯 Redirecting to:', page);
-                    setTimeout(() => {
-                        window.location.href = page + '.html';
-                    }, 100);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+                
+                // Add sample markers
+                L.marker([-26.195246, 28.034088])
+                    .addTo(map)
+                    .bindPopup('<b>SwiftRide HQ</b><br>Johannesburg Office')
+                    .openPopup();
+                
+                L.marker([-26.185246, 28.044088])
+                    .addTo(map)
+                    .bindPopup('<b>Driver Location</b><br>Live tracking enabled');
+                    
+                L.marker([-26.205246, 28.024088])
+                    .addTo(map)
+                    .bindPopup('<b>Delivery in Progress</b><br>Package #1234');
+                
+                // Add tracking history
+                const trackingContainer = document.getElementById('trackingHistory');
+                if (trackingContainer) {
+                    const trackingData = [
+                        {
+                            driver: 'John D',
+                            status: 'completed',
+                            route: 'Sandton → Randburg',
+                            pickup: 'Sandton City',
+                            delivery: 'Randburg Square',
+                            time: '10:30 AM',
+                            fare: 'R 85.50',
+                            duration: '25 min'
+                        },
+                        {
+                            driver: 'Mike R',
+                            status: 'in_progress',
+                            route: 'Pretoria → Centurion',
+                            pickup: 'Pretoria CBD',
+                            delivery: 'Centurion Mall',
+                            time: '11:15 AM',
+                            fare: 'R 120.00',
+                            duration: '35 min'
+                        },
+                        {
+                            driver: 'Sarah C',
+                            status: 'pending',
+                            route: 'Midrand → Fourways',
+                            pickup: 'Midrand Station',
+                            delivery: 'Fourways Mall',
+                            time: '12:00 PM',
+                            fare: 'R 95.00',
+                            duration: '30 min'
+                        }
+                    ];
+                    
+                    trackingContainer.innerHTML = trackingData.map(tracking => `
+                        <div class="tracking-card">
+                            <div class="tracking-header">
+                                <div class="tracking-driver-info">
+                                    <div class="driver-avatar-sm">${tracking.driver.charAt(0)}</div>
+                                    <div>
+                                        <strong>${tracking.driver}</strong>
+                                        <div style="font-size: 0.9rem; color: #666;">${tracking.time}</div>
+                                    </div>
+                                </div>
+                                <div class="tracking-status status-${tracking.status.replace('_', '-')}">
+                                    ${tracking.status.replace('_', ' ').toUpperCase()}
+                                </div>
+                            </div>
+                            
+                            <div class="tracking-details">
+                                <div class="tracking-route">
+                                    <i class="fas fa-map-marker-alt" style="color: #6C63FF;"></i>
+                                    <span><strong>${tracking.route}</strong></span>
+                                </div>
+                                <div style="margin: 10px 0;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                        <i class="fas fa-arrow-up" style="color: #4CAF50;"></i>
+                                        <span>${tracking.pickup}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-flag-checkered" style="color: #FF6584;"></i>
+                                        <span>${tracking.delivery}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="tracking-time">
+                                    <div>
+                                        <div style="font-size: 0.9rem; color: #666;">Duration</div>
+                                        <strong>${tracking.duration}</strong>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.9rem; color: #666;">Fare</div>
+                                        <strong>${tracking.fare}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="tracking-actions">
+                                <button class="track-btn-small" onclick="login('admin')">
+                                    <i class="fas fa-map-marker-alt"></i> View on Map
+                                </button>
+                                <button class="track-btn-small" style="background: #6C63FF; color: white;" onclick="login('customer')">
+                                    <i class="fas fa-shopping-bag"></i> Send Package
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
                 }
-            }
-        }
-    });
-    
-    // Debug user type buttons
-    document.querySelectorAll('.user-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const page = this.getAttribute('onclick')?.match(/redirectTo\('([^']+)'\)/)?.[1];
-            console.log('👤 User type selected:', page);
-            localStorage.setItem('debug_page', page);
+                
+                // Hide loading screen
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+                
+            }, 1000);
         });
-    });
-</script>    
+    </script>
+    
+    <!-- Load app.js after everything is ready -->
+    <script src="./app.js" defer></script>
 
 </body>
 </html>
