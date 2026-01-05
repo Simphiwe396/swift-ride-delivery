@@ -372,6 +372,7 @@
     
     <!-- Admin Page Script -->
     <script>
+        
         // Wait for app.js to load
         setTimeout(() => {
             initAdminPage();
@@ -438,6 +439,69 @@
                 }
             }, 1000);
         }
+
+        // FIX: Only initialize map once
+let adminMapInitialized = false;
+
+function initAdminMap() {
+    if (adminMapInitialized) {
+        console.log('Map already initialized, skipping');
+        return;
+    }
+    
+    setTimeout(() => {
+        try {
+            const mapContainer = document.getElementById('adminMap');
+            if (!mapContainer) return;
+            
+            // Clear container
+            mapContainer.innerHTML = '';
+            mapContainer.style.height = '400px';
+            mapContainer.style.width = '100%';
+            
+            // Create map
+            const map = L.map('adminMap').setView([-26.195246, 28.034088], 12);
+            
+            // Add tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            
+            // Add sample markers
+            L.marker([-26.190, 28.030])
+                .addTo(map)
+                .bindPopup('Driver 1 - Online');
+                
+            adminMapInitialized = true;
+            console.log('✅ Admin map initialized');
+            
+        } catch (error) {
+            console.error('Failed to initialize admin map:', error);
+        }
+    }, 1000);
+}
+
+// Update refreshMap function
+window.refreshMap = function() {
+    console.log('Refreshing map...');
+    adminMapInitialized = false;
+    initAdminMap();
+    showNotification('Map refreshed', 'success');
+};
+
+// Update centerMap function  
+window.centerMap = function() {
+    const mapContainer = document.getElementById('adminMap');
+    if (mapContainer._leaflet_id) {
+        try {
+            const map = L.map('adminMap', { reuse: true });
+            map.setView([-26.195246, 28.034088], 12);
+            showNotification('Map centered', 'info');
+        } catch (error) {
+            console.error('Failed to center map:', error);
+        }
+    }
+};
         
         async function loadDashboardData() {
             try {
