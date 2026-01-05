@@ -605,3 +605,19 @@ function setupSignatureCanvas() {
 
 // Export functions to global scope
 window.initDriverPage = initDriverPage;
+
+// Setup socket listeners for driver
+if (socketManager) {
+    socketManager.on('delivery:request', (deliveryData) => {
+        if (AppState.user?.status === 'online') {
+            showNotification(`New delivery request: R${deliveryData.fare?.total || '0.00'}`, 'info');
+            loadAvailableDeliveries(); // Refresh deliveries list
+        }
+    });
+    
+    socketManager.on('chat:message', (message) => {
+        if (message.receiverId === AppState.user?._id) {
+            showNotification(`New message from ${message.senderName}`, 'info');
+        }
+    });
+}
