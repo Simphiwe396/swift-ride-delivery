@@ -5,31 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwiftRide - Premium Delivery Service</title>
     
-    <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#6C63FF">
     
-    <!-- Icons -->
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
     <link rel="manifest" href="./site.webmanifest">
     <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
 
-    <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="./styles.css">
     
     <style>
-        /* Simple map placeholder */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #6C63FF, #4A43C8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+        }
+        
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         .map-placeholder {
             height: 400px;
             width: 100%;
@@ -44,17 +65,16 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         
-        /* User Type Selector */
         .user-type-selector {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 40px 0;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
         }
         
         .user-card {
             background: white;
-            padding: 30px 20px;
+            padding: 2rem;
             border-radius: 16px;
             text-align: center;
             cursor: pointer;
@@ -66,44 +86,7 @@
         .user-card:hover {
             transform: translateY(-5px);
             border-color: #6C63FF;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        .user-card i {
-            font-size: 3rem;
-            color: #6C63FF;
-            margin-bottom: 15px;
-        }
-        
-        .user-card h3 {
-            margin: 10px 0;
-            color: #333;
-        }
-        
-        .user-card p {
-            color: #666;
-            margin: 0;
-        }
-        
-        /* Tracking History */
-        .tracking-history-section {
-            background: white;
-            padding: 40px 20px;
-            border-radius: 16px;
-            margin: 40px 0;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .section-subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .tracking-history-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
         }
         
         .tracking-item {
@@ -111,64 +94,9 @@
             padding: 20px;
             border-radius: 12px;
             border-left: 4px solid #6C63FF;
+            margin: 10px 0;
         }
         
-        .tracking-item h4 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-        
-        .tracking-item p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-        
-        /* Login Options */
-        .login-options {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .login-option-btn {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 20px;
-            border: 2px solid #e8eaf2;
-            border-radius: 12px;
-            background: white;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-        
-        .login-option-btn:hover {
-            border-color: #6C63FF;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .login-option-btn i {
-            font-size: 2rem;
-            color: #6C63FF;
-        }
-        
-        .login-option-btn h3 {
-            margin: 0 0 5px 0;
-            color: #333;
-        }
-        
-        .login-option-btn p {
-            margin: 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-        
-        /* Modal styles */
         .modal {
             display: none;
             position: fixed;
@@ -187,8 +115,6 @@
             border-radius: 16px;
             width: 90%;
             max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         
@@ -204,73 +130,37 @@
             padding: 20px;
         }
         
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #8c8fa6;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e8eaf2;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
+        .login-option {
             display: flex;
             align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-            font-family: 'Poppins', sans-serif;
+            gap: 15px;
+            padding: 20px;
+            border: 2px solid #e8eaf2;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            margin-bottom: 15px;
+            width: 100%;
         }
         
-        .btn-primary {
-            background: #6C63FF;
-            color: white;
+        .login-option:hover {
+            border-color: #6C63FF;
         }
         
-        .btn-primary:hover {
-            background: #4A43C8;
-            transform: translateY(-2px);
-        }
-        
-        .btn-secondary {
-            background: #E8EAF2;
-            color: #333;
+        .login-option i {
+            font-size: 2rem;
+            color: #6C63FF;
         }
     </style>
 </head>
-<body data-page="home">
-    <!-- Loading Screen -->
+<body>
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
         <h2>SwiftRide Delivery</h2>
         <p>Loading your experience...</p>
     </div>
     
-    <!-- App Container -->
     <div class="app-container">
-        <!-- Header -->
         <header class="app-header">
             <div class="logo">
                 <i class="fas fa-bolt"></i>
@@ -280,19 +170,16 @@
                 <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
                 <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
                 <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
-                <a href="#login" class="nav-link" id="loginLink"><i class="fas fa-user"></i> Login</a>
+                <a href="#login" class="nav-link" id="loginBtn"><i class="fas fa-user"></i> Login</a>
             </nav>
         </header>
         
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Hero Section -->
             <section id="home" class="hero-section">
                 <div class="hero-content">
                     <h2>Delivery in Minutes, Not Hours</h2>
                     <p>Track your packages in real-time with our premium delivery service</p>
                     
-                    <!-- User Type Selection -->
                     <div class="user-type-selector">
                         <div class="user-card" id="customerCard">
                             <i class="fas fa-shopping-bag"></i>
@@ -312,14 +199,13 @@
                     </div>
                 </div>
                 
-                <!-- Map Preview -->
                 <div class="map-preview">
-                    <div class="map-placeholder" id="previewMap">
+                    <div class="map-placeholder">
                         <div>
                             <i class="fas fa-map-marked-alt" style="font-size: 3rem;"></i>
                             <h3>Live Driver Tracking</h3>
                             <p>Real-time map available on dashboard</p>
-                            <button id="viewLiveMapBtn" style="margin-top: 15px; padding: 10px 20px; background: white; color: #6C63FF; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            <button id="viewMapBtn" style="margin-top: 15px; padding: 10px 20px; background: white; color: #6C63FF; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
                                 View Live Map
                             </button>
                         </div>
@@ -327,7 +213,6 @@
                 </div>
             </section>
             
-            <!-- Features Section -->
             <section class="features-section">
                 <h2>Why Choose SwiftRide?</h2>
                 <div class="features-grid">
@@ -354,12 +239,11 @@
                 </div>
             </section>
             
-            <!-- Recent Tracking Section -->
             <section id="tracking" class="tracking-history-section">
                 <h2>Recent Driver Tracking</h2>
-                <p class="section-subtitle">Track recent driver activities and deliveries</p>
+                <p style="text-align: center; color: #666; margin-bottom: 30px;">Track recent driver activities and deliveries</p>
                 
-                <div class="tracking-history-container" id="trackingHistory">
+                <div id="trackingHistory">
                     <div class="tracking-item">
                         <h4>John Driver</h4>
                         <p><i class="fas fa-map-marker-alt"></i> Rosebank to Sandton</p>
@@ -381,7 +265,6 @@
                 </div>
             </section>
             
-            <!-- CTA Section -->
             <section class="cta-section">
                 <h2>Ready to Deliver?</h2>
                 <p>Join thousands of satisfied customers and drivers</p>
@@ -396,7 +279,6 @@
             </section>
         </main>
         
-        <!-- Footer -->
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-section">
@@ -410,7 +292,7 @@
                 </div>
                 <div class="footer-section">
                     <h4>Download</h4>
-                    <button class="install-btn" id="installPwaBtn">
+                    <button class="install-btn" id="installBtn">
                         <i class="fas fa-download"></i> Install App
                     </button>
                 </div>
@@ -421,355 +303,133 @@
         </footer>
     </div>
     
-    <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Login to SwiftRide</h2>
-                <button class="close-modal" id="closeLoginModal">&times;</button>
+                <button class="close-modal" id="closeModal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="login-options">
-                    <button class="login-option-btn" id="loginAsCustomerBtn">
-                        <i class="fas fa-user"></i>
-                        <div>
-                            <h3>Customer Login</h3>
-                            <p>Send and track packages</p>
-                        </div>
-                    </button>
-                    
-                    <button class="login-option-btn" id="loginAsDriverBtn">
-                        <i class="fas fa-motorcycle"></i>
-                        <div>
-                            <h3>Driver Login</h3>
-                            <p>Accept delivery requests</p>
-                        </div>
-                    </button>
-                    
-                    <button class="login-option-btn" id="loginAsAdminBtn">
-                        <i class="fas fa-user-shield"></i>
-                        <div>
-                            <h3>Admin Login</h3>
-                            <p>Manage the platform</p>
-                        </div>
-                    </button>
+                <div class="login-option" id="loginCustomer">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <h3 style="margin: 0 0 5px 0;">Customer Login</h3>
+                        <p style="margin: 0; color: #666;">Send and track packages</p>
+                    </div>
+                </div>
+                
+                <div class="login-option" id="loginDriver">
+                    <i class="fas fa-motorcycle"></i>
+                    <div>
+                        <h3 style="margin: 0 0 5px 0;">Driver Login</h3>
+                        <p style="margin: 0; color: #666;">Accept delivery requests</p>
+                    </div>
+                </div>
+                
+                <div class="login-option" id="loginAdmin">
+                    <i class="fas fa-user-shield"></i>
+                    <div>
+                        <h3 style="margin: 0 0 5px 0;">Admin Login</h3>
+                        <p style="margin: 0; color: #666;">Manage the platform</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Main App Script -->
+
     <script>
-        // ===== GLOBAL APP STATE =====
-        const AppState = {
-            user: null,
-            token: null,
-            apiUrl: 'https://swiftride-backend-jcyl.onrender.com/api'
-        };
+        // ===== ALL FUNCTIONS DEFINED HERE =====
         
-        // ===== INITIALIZATION =====
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ SwiftRide App Initialized');
-            
-            // Load user from localStorage
-            const savedUser = localStorage.getItem('user');
-            if (savedUser) {
-                try {
-                    AppState.user = JSON.parse(savedUser);
-                    AppState.token = localStorage.getItem('token');
-                    console.log('User loaded:', AppState.user);
-                } catch (e) {
-                    localStorage.clear();
-                }
-            }
-            
-            // Hide loading screen
-            setTimeout(() => {
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) {
-                    loadingScreen.style.display = 'none';
-                }
-            }, 1000);
-            
-            // Setup all event listeners
-            setupEventListeners();
-        });
-        
-        // ===== EVENT LISTENERS SETUP =====
-        function setupEventListeners() {
-            // Navigation links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    if (this.getAttribute('href') === '#login') {
-                        showModal('loginModal');
-                    }
-                });
-            });
-            
-            // Login link
-            document.getElementById('loginLink').addEventListener('click', function(e) {
-                e.preventDefault();
-                showModal('loginModal');
-            });
-            
-            // User cards
-            document.getElementById('customerCard').addEventListener('click', function() {
-                loginAsCustomer();
-            });
-            
-            document.getElementById('driverCard').addEventListener('click', function() {
-                loginAsDriver();
-            });
-            
-            document.getElementById('adminCard').addEventListener('click', function() {
-                loginAsAdmin();
-            });
-            
-            // View live map button
-            document.getElementById('viewLiveMapBtn').addEventListener('click', function() {
-                loginAsAdmin();
-            });
-            
-            // CTA buttons
-            document.getElementById('sendPackageBtn').addEventListener('click', function() {
-                loginAsCustomer();
-            });
-            
-            document.getElementById('becomeDriverBtn').addEventListener('click', function() {
-                loginAsDriver();
-            });
-            
-            // Install PWA button
-            document.getElementById('installPwaBtn').addEventListener('click', installPWA);
-            
-            // Login modal buttons
-            document.getElementById('closeLoginModal').addEventListener('click', function() {
-                hideModal('loginModal');
-            });
-            
-            document.getElementById('loginAsCustomerBtn').addEventListener('click', function() {
-                loginAsCustomer();
-            });
-            
-            document.getElementById('loginAsDriverBtn').addEventListener('click', function() {
-                loginAsDriver();
-            });
-            
-            document.getElementById('loginAsAdminBtn').addEventListener('click', function() {
-                loginAsAdmin();
-            });
-            
-            // Close modal when clicking outside
-            window.addEventListener('click', function(event) {
-                const modal = document.getElementById('loginModal');
-                if (event.target === modal) {
-                    hideModal('loginModal');
-                }
-            });
-        }
-        
-        // ===== CORE FUNCTIONS =====
-        function showModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = 'flex';
-            }
-        }
-        
-        function hideModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        }
-        
-        function showNotification(message, type = 'info') {
-            // Remove existing notifications
-            document.querySelectorAll('.notification').forEach(n => n.remove());
-            
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-            notification.innerHTML = `
-                <span>${message}</span>
-                <button onclick="this.parentElement.remove()">×</button>
-            `;
-            
-            // Add styles if not exists
-            if (!document.querySelector('#notification-styles')) {
-                const style = document.createElement('style');
-                style.id = 'notification-styles';
-                style.textContent = `
-                    .notification {
-                        position: fixed;
-                        top: 20px;
-                        right: 20px;
-                        padding: 12px 20px;
-                        border-radius: 8px;
-                        color: white;
-                        z-index: 10000;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        min-width: 250px;
-                        animation: slideIn 0.3s ease;
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                        font-family: 'Poppins', sans-serif;
-                    }
-                    .notification-success { background: #4CAF50; }
-                    .notification-error { background: #F44336; }
-                    .notification-info { background: #2196F3; }
-                    .notification-warning { background: #FF9800; }
-                    .notification button {
-                        background: none;
-                        border: none;
-                        color: white;
-                        font-size: 20px;
-                        cursor: pointer;
-                        margin-left: 15px;
-                    }
-                    @keyframes slideIn {
-                        from { transform: translateX(100%); opacity: 0; }
-                        to { transform: translateX(0); opacity: 1; }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-            
-            document.body.appendChild(notification);
-            
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 3000);
-        }
-        
-        // ===== LOGIN FUNCTIONS =====
+        // Login functions
         function loginAsAdmin() {
-            const user = {
-                _id: 'admin_001',
-                name: 'Admin User',
-                email: 'admin@swiftride.com',
-                phone: '082 123 4567',
-                userType: 'admin'
-            };
-            
+            const user = {_id:'admin1', name:'Admin', userType:'admin'};
             localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', 'test_admin_token_123');
-            
-            AppState.user = user;
-            AppState.token = 'test_admin_token_123';
-            
-            showNotification('Logged in as Admin', 'success');
+            localStorage.setItem('token', 'test');
             hideModal('loginModal');
-            
-            setTimeout(() => {
-                window.location.href = 'admin.html';
-            }, 500);
+            setTimeout(() => window.location.href = 'admin.html', 500);
         }
         
         function loginAsDriver() {
-            const user = {
-                _id: 'driver_001',
-                name: 'John Driver',
-                email: 'driver@swiftride.com',
-                phone: '083 987 6543',
-                userType: 'driver'
-            };
-            
+            const user = {_id:'driver1', name:'Driver', userType:'driver'};
             localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', 'test_driver_token_123');
-            
-            AppState.user = user;
-            AppState.token = 'test_driver_token_123';
-            
-            showNotification('Logged in as Driver', 'success');
+            localStorage.setItem('token', 'test');
             hideModal('loginModal');
-            
-            setTimeout(() => {
-                window.location.href = 'driver.html';
-            }, 500);
+            setTimeout(() => window.location.href = 'driver.html', 500);
         }
         
         function loginAsCustomer() {
-            const user = {
-                _id: 'customer_001',
-                name: 'Sarah Customer',
-                email: 'customer@swiftride.com',
-                phone: '084 555 6789',
-                userType: 'customer'
-            };
-            
+            const user = {_id:'customer1', name:'Customer', userType:'customer'};
             localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('token', 'test_customer_token_123');
-            
-            AppState.user = user;
-            AppState.token = 'test_customer_token_123';
-            
-            showNotification('Logged in as Customer', 'success');
+            localStorage.setItem('token', 'test');
             hideModal('loginModal');
-            
-            setTimeout(() => {
-                window.location.href = 'customer.html';
-            }, 500);
+            setTimeout(() => window.location.href = 'customer.html', 500);
         }
         
-        function logout() {
-            localStorage.clear();
-            AppState.user = null;
-            AppState.token = null;
-            window.location.href = 'index.html';
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
         }
         
-        // ===== GLOBAL FUNCTIONS FOR OTHER PAGES =====
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Global functions for other pages
         window.trackDriver = function(id) {
-            console.log('Tracking driver:', id);
             localStorage.setItem('trackingDriverId', id);
             window.location.href = 'tracking.html?driver=' + id;
         };
         
-        window.logout = logout;
-        window.showModal = showModal;
-        window.hideModal = hideModal;
-        window.showNotification = showNotification;
-        window.loginAsAdmin = loginAsAdmin;
-        window.loginAsDriver = loginAsDriver;
-        window.loginAsCustomer = loginAsCustomer;
+        window.logout = function() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        };
+        
         window.redirectTo = function(page) {
             window.location.href = page + '.html';
         };
         
-        // ===== PWA INSTALLATION =====
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ SwiftRide loaded successfully');
+            
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.display = 'none';
+            }, 1000);
+            
+            // Setup event listeners
+            document.getElementById('loginBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal('loginModal');
+            });
+            
+            document.getElementById('customerCard').addEventListener('click', loginAsCustomer);
+            document.getElementById('driverCard').addEventListener('click', loginAsDriver);
+            document.getElementById('adminCard').addEventListener('click', loginAsAdmin);
+            
+            document.getElementById('viewMapBtn').addEventListener('click', loginAsAdmin);
+            document.getElementById('sendPackageBtn').addEventListener('click', loginAsCustomer);
+            document.getElementById('becomeDriverBtn').addEventListener('click', loginAsDriver);
+            document.getElementById('installBtn').addEventListener('click', function() {
+                alert('PWA installation would happen here');
+            });
+            
+            document.getElementById('closeModal').addEventListener('click', function() {
+                hideModal('loginModal');
+            });
+            
+            document.getElementById('loginCustomer').addEventListener('click', loginAsCustomer);
+            document.getElementById('loginDriver').addEventListener('click', loginAsDriver);
+            document.getElementById('loginAdmin').addEventListener('click', loginAsAdmin);
+            
+            // Close modal on outside click
+            window.addEventListener('click', function(e) {
+                if (e.target.id === 'loginModal') {
+                    hideModal('loginModal');
+                }
+            });
         });
-        
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        showNotification('App installed successfully!', 'success');
-                    }
-                    deferredPrompt = null;
-                });
-            } else {
-                showNotification('App already installed or not available', 'info');
-            }
-        }
-        
-        console.log('✅ All functions loaded and ready');
     </script>
 </body>
 </html>
