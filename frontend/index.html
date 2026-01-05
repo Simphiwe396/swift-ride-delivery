@@ -44,65 +44,6 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         
-        /* Test buttons */
-        .test-login-buttons {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            z-index: 9999;
-            min-width: 200px;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .test-login-buttons h4 {
-            margin: 0 0 10px 0;
-            color: #333;
-            font-size: 14px;
-            font-weight: 600;
-            text-align: center;
-        }
-        
-        .test-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-        
-        .test-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-        }
-        
-        .test-btn.admin { 
-            background: #9C27B0; 
-            color: white; 
-        }
-        .test-btn.driver { 
-            background: #2196F3; 
-            color: white; 
-        }
-        .test-btn.customer { 
-            background: #4CAF50; 
-            color: white; 
-        }
-        .test-btn.logout { 
-            background: #F44336; 
-            color: white; 
-        }
-        
         /* User Type Selector */
         .user-type-selector {
             display: grid;
@@ -182,6 +123,97 @@
             color: #666;
             font-size: 0.9rem;
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e8eaf2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #8c8fa6;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e8eaf2;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .btn-primary {
+            background: #6C63FF;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4A43C8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #E8EAF2;
+            color: #333;
+        }
     </style>
 </head>
 <body data-page="home">
@@ -204,7 +236,7 @@
                 <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
                 <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
                 <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
-                <a href="#login" class="nav-link" onclick="showModal('loginModal')"><i class="fas fa-user"></i> Login</a>
+                <a href="#login" class="nav-link" id="loginLink"><i class="fas fa-user"></i> Login</a>
             </nav>
         </header>
         
@@ -218,17 +250,17 @@
                     
                     <!-- User Type Selection -->
                     <div class="user-type-selector">
-                        <div class="user-card" onclick="redirectTo('customer')">
+                        <div class="user-card" id="customerCard">
                             <i class="fas fa-shopping-bag"></i>
                             <h3>Customer</h3>
                             <p>Send packages</p>
                         </div>
-                        <div class="user-card" onclick="redirectTo('driver')">
+                        <div class="user-card" id="driverCard">
                             <i class="fas fa-motorcycle"></i>
                             <h3>Driver</h3>
                             <p>Earn money</p>
                         </div>
-                        <div class="user-card" onclick="redirectTo('admin')">
+                        <div class="user-card" id="adminCard">
                             <i class="fas fa-chart-line"></i>
                             <h3>Business</h3>
                             <p>Manage deliveries</p>
@@ -243,7 +275,7 @@
                             <i class="fas fa-map-marked-alt" style="font-size: 3rem;"></i>
                             <h3>Live Driver Tracking</h3>
                             <p>Real-time map available on dashboard</p>
-                            <button onclick="redirectTo('admin')" style="margin-top: 15px; padding: 10px 20px; background: white; color: #6C63FF; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            <button id="viewLiveMapBtn" style="margin-top: 15px; padding: 10px 20px; background: white; color: #6C63FF; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
                                 View Live Map
                             </button>
                         </div>
@@ -284,7 +316,6 @@
                 <p class="section-subtitle">Track recent driver activities and deliveries</p>
                 
                 <div class="tracking-history-container" id="trackingHistory">
-                    <!-- Tracking history will be loaded here -->
                     <div class="tracking-item">
                         <h4>John Driver</h4>
                         <p><i class="fas fa-map-marker-alt"></i> Rosebank to Sandton</p>
@@ -311,10 +342,10 @@
                 <h2>Ready to Deliver?</h2>
                 <p>Join thousands of satisfied customers and drivers</p>
                 <div class="cta-buttons">
-                    <button class="cta-btn primary" onclick="redirectTo('customer')">
+                    <button class="cta-btn primary" id="sendPackageBtn">
                         <i class="fas fa-box"></i> Send a Package
                     </button>
-                    <button class="cta-btn secondary" onclick="redirectTo('driver')">
+                    <button class="cta-btn secondary" id="becomeDriverBtn">
                         <i class="fas fa-motorcycle"></i> Become a Driver
                     </button>
                 </div>
@@ -335,7 +366,7 @@
                 </div>
                 <div class="footer-section">
                     <h4>Download</h4>
-                    <button class="install-btn" onclick="installPWA()">
+                    <button class="install-btn" id="installPwaBtn">
                         <i class="fas fa-download"></i> Install App
                     </button>
                 </div>
@@ -351,57 +382,346 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Login to SwiftRide</h2>
-                <button class="close-modal" onclick="hideModal('loginModal')">&times;</button>
+                <button class="close-modal" id="closeLoginModal">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" class="form-control" placeholder="you@example.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary" onclick="loginAsCustomer()">
-                            <i class="fas fa-sign-in-alt"></i> Login
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="hideModal('loginModal')">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+                <div class="login-options">
+                    <button class="login-option-btn" id="loginAsCustomerBtn">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <h3>Customer Login</h3>
+                            <p>Send and track packages</p>
+                        </div>
+                    </button>
+                    
+                    <button class="login-option-btn" id="loginAsDriverBtn">
+                        <i class="fas fa-motorcycle"></i>
+                        <div>
+                            <h3>Driver Login</h3>
+                            <p>Accept delivery requests</p>
+                        </div>
+                    </button>
+                    
+                    <button class="login-option-btn" id="loginAsAdminBtn">
+                        <i class="fas fa-user-shield"></i>
+                        <div>
+                            <h3>Admin Login</h3>
+                            <p>Manage the platform</p>
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- Test Login Buttons (Visible for development) -->
-    <div class="test-login-buttons">
-        <h4>🛠️ Test Logins</h4>
-        <button class="test-btn admin" onclick="loginAsAdmin()">
-            <i class="fas fa-user-shield"></i> Login as Admin
-        </button>
-        <button class="test-btn driver" onclick="loginAsDriver()">
-            <i class="fas fa-motorcycle"></i> Login as Driver
-        </button>
-        <button class="test-btn customer" onclick="loginAsCustomer()">
-            <i class="fas fa-user"></i> Login as Customer
-        </button>
-        <button class="test-btn logout" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-    </div>
-    
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     
-    <!-- IMPORTANT: Load app.js FIRST -->
-    <script src="./app.js"></script>
-    
-    <!-- Simple PWA Installation -->
+    <!-- Main App Script -->
     <script>
+        // ===== GLOBAL APP STATE =====
+        const AppState = {
+            user: null,
+            token: null,
+            apiUrl: 'https://swiftride-backend-jcyl.onrender.com/api'
+        };
+        
+        // ===== INITIALIZATION =====
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Page loaded successfully');
+            
+            // Load user from localStorage
+            const savedUser = localStorage.getItem('user');
+            if (savedUser) {
+                try {
+                    AppState.user = JSON.parse(savedUser);
+                    AppState.token = localStorage.getItem('token');
+                    console.log('User loaded:', AppState.user);
+                } catch (e) {
+                    localStorage.clear();
+                }
+            }
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+            }, 1000);
+            
+            // Setup all event listeners
+            setupEventListeners();
+        });
+        
+        // ===== EVENT LISTENERS SETUP =====
+        function setupEventListeners() {
+            // Navigation links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    if (this.getAttribute('href') === '#login') {
+                        showModal('loginModal');
+                    }
+                });
+            });
+            
+            // Login link
+            const loginLink = document.getElementById('loginLink');
+            if (loginLink) {
+                loginLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showModal('loginModal');
+                });
+            }
+            
+            // User cards
+            const customerCard = document.getElementById('customerCard');
+            if (customerCard) {
+                customerCard.addEventListener('click', function() {
+                    loginAsCustomer();
+                });
+            }
+            
+            const driverCard = document.getElementById('driverCard');
+            if (driverCard) {
+                driverCard.addEventListener('click', function() {
+                    loginAsDriver();
+                });
+            }
+            
+            const adminCard = document.getElementById('adminCard');
+            if (adminCard) {
+                adminCard.addEventListener('click', function() {
+                    loginAsAdmin();
+                });
+            }
+            
+            // View live map button
+            const viewLiveMapBtn = document.getElementById('viewLiveMapBtn');
+            if (viewLiveMapBtn) {
+                viewLiveMapBtn.addEventListener('click', function() {
+                    loginAsAdmin();
+                });
+            }
+            
+            // CTA buttons
+            const sendPackageBtn = document.getElementById('sendPackageBtn');
+            if (sendPackageBtn) {
+                sendPackageBtn.addEventListener('click', function() {
+                    loginAsCustomer();
+                });
+            }
+            
+            const becomeDriverBtn = document.getElementById('becomeDriverBtn');
+            if (becomeDriverBtn) {
+                becomeDriverBtn.addEventListener('click', function() {
+                    loginAsDriver();
+                });
+            }
+            
+            // Install PWA button
+            const installPwaBtn = document.getElementById('installPwaBtn');
+            if (installPwaBtn) {
+                installPwaBtn.addEventListener('click', installPWA);
+            }
+            
+            // Login modal buttons
+            const closeLoginModal = document.getElementById('closeLoginModal');
+            if (closeLoginModal) {
+                closeLoginModal.addEventListener('click', function() {
+                    hideModal('loginModal');
+                });
+            }
+            
+            const loginAsCustomerBtn = document.getElementById('loginAsCustomerBtn');
+            if (loginAsCustomerBtn) {
+                loginAsCustomerBtn.addEventListener('click', function() {
+                    loginAsCustomer();
+                });
+            }
+            
+            const loginAsDriverBtn = document.getElementById('loginAsDriverBtn');
+            if (loginAsDriverBtn) {
+                loginAsDriverBtn.addEventListener('click', function() {
+                    loginAsDriver();
+                });
+            }
+            
+            const loginAsAdminBtn = document.getElementById('loginAsAdminBtn');
+            if (loginAsAdminBtn) {
+                loginAsAdminBtn.addEventListener('click', function() {
+                    loginAsAdmin();
+                });
+            }
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('loginModal');
+                if (event.target === modal) {
+                    hideModal('loginModal');
+                }
+            });
+        }
+        
+        // ===== CORE FUNCTIONS =====
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+        
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            document.querySelectorAll('.notification').forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            // Add styles if not exists
+            if (!document.querySelector('#notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'notification-styles';
+                style.textContent = `
+                    .notification {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        color: white;
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        min-width: 250px;
+                        animation: slideIn 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                        font-family: 'Poppins', sans-serif;
+                    }
+                    .notification-success { background: #4CAF50; }
+                    .notification-error { background: #F44336; }
+                    .notification-info { background: #2196F3; }
+                    .notification-warning { background: #FF9800; }
+                    .notification button {
+                        background: none;
+                        border: none;
+                        color: white;
+                        font-size: 20px;
+                        cursor: pointer;
+                        margin-left: 15px;
+                    }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+        
+        // ===== LOGIN FUNCTIONS =====
+        function loginAsAdmin() {
+            const user = {
+                _id: 'admin_001',
+                name: 'Admin User',
+                email: 'admin@swiftride.com',
+                phone: '082 123 4567',
+                userType: 'admin'
+            };
+            
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('token', 'test_admin_token_123');
+            
+            AppState.user = user;
+            AppState.token = 'test_admin_token_123';
+            
+            showNotification('Logged in as Admin', 'success');
+            hideModal('loginModal');
+            
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 500);
+        }
+        
+        function loginAsDriver() {
+            const user = {
+                _id: 'driver_001',
+                name: 'John Driver',
+                email: 'driver@swiftride.com',
+                phone: '083 987 6543',
+                userType: 'driver'
+            };
+            
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('token', 'test_driver_token_123');
+            
+            AppState.user = user;
+            AppState.token = 'test_driver_token_123';
+            
+            showNotification('Logged in as Driver', 'success');
+            hideModal('loginModal');
+            
+            setTimeout(() => {
+                window.location.href = 'driver.html';
+            }, 500);
+        }
+        
+        function loginAsCustomer() {
+            const user = {
+                _id: 'customer_001',
+                name: 'Sarah Customer',
+                email: 'customer@swiftride.com',
+                phone: '084 555 6789',
+                userType: 'customer'
+            };
+            
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('token', 'test_customer_token_123');
+            
+            AppState.user = user;
+            AppState.token = 'test_customer_token_123';
+            
+            showNotification('Logged in as Customer', 'success');
+            hideModal('loginModal');
+            
+            setTimeout(() => {
+                window.location.href = 'customer.html';
+            }, 500);
+        }
+        
+        function logout() {
+            localStorage.clear();
+            AppState.user = null;
+            AppState.token = null;
+            window.location.href = 'index.html';
+        }
+        
+        // ===== PWA INSTALLATION =====
         let deferredPrompt;
         
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -414,228 +734,85 @@
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted install');
+                        showNotification('App installed successfully!', 'success');
                     }
                     deferredPrompt = null;
                 });
+            } else {
+                showNotification('App already installed or not available', 'info');
             }
         }
         
-        // Initialize page when DOM loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Page loaded successfully');
-            
-            // Hide loading screen after 1 second
-            setTimeout(() => {
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) {
-                    loadingScreen.style.display = 'none';
-                }
-            }, 1000);
-            
-            // Make sure all click handlers work
-            setupEventListeners();
-        });
+        // ===== MAKE FUNCTIONS GLOBALLY AVAILABLE =====
+        window.trackDriver = function(id) {
+            console.log('Tracking driver:', id);
+            localStorage.setItem('trackingDriverId', id);
+            window.location.href = 'tracking.html?driver=' + id;
+        };
         
-        function setupEventListeners() {
-            // Navigation links
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    const target = this.getAttribute('href');
-                    if (target === '#login') {
-                        showModal('loginModal');
-                    }
-                });
-            });
-        }
+        window.logout = logout;
+        window.showModal = showModal;
+        window.hideModal = hideModal;
+        window.showNotification = showNotification;
+        window.loginAsAdmin = loginAsAdmin;
+        window.loginAsDriver = loginAsDriver;
+        window.loginAsCustomer = loginAsCustomer;
+        window.redirectTo = function(page) {
+            window.location.href = page + '.html';
+        };
         
-        // Add CSS for notifications
-        const style = document.createElement('style');
-        style.textContent = `
-            .notification {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 12px 20px;
-                border-radius: 8px;
-                color: white;
-                z-index: 10000;
+        // ===== ADDITIONAL STYLES FOR LOGIN OPTIONS =====
+        const loginStyles = document.createElement('style');
+        loginStyles.textContent = `
+            .login-options {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .login-option-btn {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
-                min-width: 250px;
-                animation: slideIn 0.3s ease;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                font-family: 'Poppins', sans-serif;
-            }
-            .notification-success { background: #4CAF50; }
-            .notification-error { background: #F44336; }
-            .notification-info { background: #2196F3; }
-            .notification-warning { background: #FF9800; }
-            .notification button {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 20px;
-                cursor: pointer;
-                margin-left: 15px;
-            }
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            /* Modal styles */
-            .modal {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-            }
-            
-            .modal-content {
+                gap: 15px;
+                padding: 20px;
+                border: 2px solid #e8eaf2;
+                border-radius: 12px;
                 background: white;
-                border-radius: 16px;
-                width: 90%;
-                max-width: 500px;
-                max-height: 90vh;
-                overflow-y: auto;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            }
-            
-            .modal-header {
-                padding: 20px;
-                border-bottom: 1px solid #e8eaf2;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            
-            .modal-body {
-                padding: 20px;
-            }
-            
-            .close-modal {
-                background: none;
-                border: none;
-                font-size: 1.5rem;
                 cursor: pointer;
-                color: #8c8fa6;
-            }
-            
-            .form-group {
-                margin-bottom: 20px;
-            }
-            
-            .form-control {
+                text-align: left;
+                transition: all 0.3s ease;
                 width: 100%;
-                padding: 12px;
-                border: 1px solid #e8eaf2;
-                border-radius: 8px;
-                font-size: 1rem;
-                font-family: 'Poppins', sans-serif;
             }
             
-            .btn-group {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-            }
-            
-            .btn {
-                padding: 10px 20px;
-                border-radius: 8px;
-                border: none;
-                font-weight: 600;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                transition: all 0.2s ease;
-                font-family: 'Poppins', sans-serif;
-            }
-            
-            .btn-primary {
-                background: #6C63FF;
-                color: white;
-            }
-            
-            .btn-primary:hover {
-                background: #4A43C8;
+            .login-option-btn:hover {
+                border-color: #6C63FF;
                 transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             }
             
-            .btn-secondary {
-                background: #E8EAF2;
+            .login-option-btn i {
+                font-size: 2rem;
+                color: #6C63FF;
+            }
+            
+            .login-option-btn h3 {
+                margin: 0 0 5px 0;
                 color: #333;
             }
-        `;
-        document.head.appendChild(style);
-        
-        // Add notification function if not already defined
-        if (typeof showNotification !== 'function') {
-            window.showNotification = function(msg, type = 'info') {
-                console.log(type.toUpperCase() + ':', msg);
-                
-                const notification = document.createElement('div');
-                notification.className = `notification notification-${type}`;
-                notification.innerHTML = `
-                    <span>${msg}</span>
-                    <button onclick="this.parentElement.remove()">×</button>
-                `;
-                
-                document.body.appendChild(notification);
-                
-                setTimeout(() => {
-                    if (notification.parentElement) {
-                        notification.remove();
-                    }
-                }, 4000);
-            };
-        }
-        
-        // Add modal functions if not already defined
-        if (typeof showModal !== 'function') {
-            window.showModal = function(modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.style.display = 'flex';
-                }
-            };
             
-            window.hideModal = function(modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.style.display = 'none';
-                }
-            };
-        }
+            .login-option-btn p {
+                margin: 0;
+                color: #666;
+                font-size: 0.9rem;
+            }
+            
+            #loginAsCustomerBtn:hover { border-color: #4CAF50; }
+            #loginAsDriverBtn:hover { border-color: #2196F3; }
+            #loginAsAdminBtn:hover { border-color: #9C27B0; }
+        `;
+        document.head.appendChild(loginStyles);
         
-        // Add redirect function if not already defined
-        if (typeof redirectTo !== 'function') {
-            window.redirectTo = function(page) {
-                window.location.href = page + '.html';
-            };
-        }
-        
-        // Add logout function if not already defined
-        if (typeof logout !== 'function') {
-            window.logout = function() {
-                localStorage.clear();
-                window.location.href = 'index.html';
-            };
-        }
+        console.log('✅ All functions loaded and ready');
     </script>
 </body>
 </html>
