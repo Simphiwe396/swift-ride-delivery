@@ -3,450 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftRide Delivery - Fast & Reliable</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#6C63FF">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Icons -->
-    <link rel="icon" href="./icons/favicon.ico">
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-    <link rel="manifest" href="./manifest.json">
-    
-    <!-- Styles & Fonts -->
+    <title>SwiftRide - Premium Delivery Service</title>
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./styles.css">
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/favicon.ico">
     <style>
-        /* Hero Section */
         .hero {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #6C63FF 0%, #4A43C8 100%);
+            background: linear-gradient(135deg, #6C63FF, #4A43C8);
             color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 4rem 2rem;
             text-align: center;
-            padding: 2rem;
-            position: relative;
-            overflow: hidden;
         }
         
-        .hero-content {
-            max-width: 800px;
-            z-index: 2;
-        }
-        
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            animation: fadeInUp 0.8s ease;
-        }
-        
-        .hero p {
-            font-size: 1.3rem;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-            animation: fadeInUp 1s ease;
-        }
-        
-        /* Role Selector */
-        .role-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin: 3rem auto;
-            max-width: 1000px;
-            padding: 0 2rem;
-        }
-        
-        @media (max-width: 768px) {
-            .role-selector {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .role-card {
-            background: white;
-            border-radius: 20px;
-            padding: 2.5rem;
-            text-align: center;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: 3px solid transparent;
-        }
-        
-        .role-card:hover {
-            transform: translateY(-10px);
-            border-color: #6C63FF;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
-        }
-        
-        .role-card i {
-            font-size: 4rem;
-            color: #6C63FF;
-            margin-bottom: 1.5rem;
-            background: #F0EFFF;
-            width: 100px;
-            height: 100px;
-            line-height: 100px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        
-        .role-card h3 {
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-            color: #333;
-        }
-        
-        .role-card p {
-            color: #666;
-            margin-bottom: 1.5rem;
-            line-height: 1.6;
-        }
-        
-        .btn-role {
-            background: #6C63FF;
-            color: white;
-            border: none;
-            padding: 12px 35px;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .btn-role:hover {
-            background: #554FD8;
-            transform: scale(1.05);
-        }
-        
-        /* Features */
-        .features {
-            padding: 5rem 2rem;
-            background: #F8F9FF;
-        }
-        
-        .features h2 {
-            text-align: center;
-            font-size: 2.8rem;
-            margin-bottom: 3rem;
-            color: #333;
-        }
-        
-        .feature-grid {
+        .user-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
+            margin: 3rem auto;
+            max-width: 800px;
         }
         
-        .feature {
+        .user-card {
             background: white;
-            padding: 2rem;
             border-radius: 15px;
+            padding: 2rem;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s;
         }
         
-        .feature i {
+        .user-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .user-card i {
             font-size: 3rem;
-            color: #6C63FF;
             margin-bottom: 1rem;
         }
         
-        .feature h3 {
-            margin-bottom: 1rem;
-            color: #333;
-        }
-        
-        /* Pricing */
-        .pricing {
-            padding: 5rem 2rem;
-            background: white;
-        }
-        
-        .pricing-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 3rem auto 0;
-        }
-        
-        .pricing-card {
-            background: #F8F9FF;
-            border-radius: 20px;
-            padding: 2.5rem;
-            text-align: center;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-        
-        .pricing-card:hover {
-            border-color: #6C63FF;
-            transform: translateY(-5px);
-        }
-        
-        .pricing-card.popular {
-            background: linear-gradient(135deg, #6C63FF 0%, #4A43C8 100%);
-            color: white;
-        }
-        
-        .pricing-card.popular .price {
-            color: white;
-        }
-        
-        .price {
-            font-size: 3.5rem;
-            font-weight: 700;
-            color: #6C63FF;
-            margin: 1.5rem 0;
-        }
-        
-        .price small {
-            font-size: 1rem;
-            color: #888;
-        }
-        
-        .pricing-card.popular .price small {
-            color: rgba(255,255,255,0.8);
-        }
-        
-        .price-features {
-            list-style: none;
-            padding: 0;
-            margin: 2rem 0;
-            text-align: left;
-        }
-        
-        .price-features li {
-            padding: 0.5rem 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .price-features li i {
-            color: #6C63FF;
-        }
-        
-        .pricing-card.popular .price-features li i {
-            color: white;
-        }
-        
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .fade-in {
-            animation: fadeInUp 0.8s ease forwards;
-        }
+        .customer { color: #4CAF50; }
+        .driver { color: #2196F3; }
+        .admin { color: #9C27B0; }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
+    <div class="loading-screen" id="loadingScreen">
         <div class="loader"></div>
         <h2>SwiftRide Delivery</h2>
-        <p>Loading your experience...</p>
     </div>
     
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Delivery in Minutes, Not Hours</h1>
-            <p>Track your packages in real-time with South Africa's fastest delivery service</p>
-            
-            <!-- Role Selection Cards -->
-            <div class="role-selector">
-                <div class="role-card fade-in" style="animation-delay: 0.2s">
-                    <i class="fas fa-shopping-bag"></i>
-                    <h3>Customer</h3>
-                    <p>Send packages instantly with real-time tracking</p>
-                    <button class="btn-role" onclick="loginAsUser('customer')">
-                        <i class="fas fa-arrow-right"></i> Send Package
-                    </button>
-                </div>
-                
-                <div class="role-card fade-in" style="animation-delay: 0.4s">
-                    <i class="fas fa-motorcycle"></i>
-                    <h3>Driver</h3>
-                    <p>Earn money delivering packages across the city</p>
-                    <button class="btn-role" onclick="loginAsUser('driver')">
-                        <i class="fas fa-arrow-right"></i> Start Driving
-                    </button>
-                </div>
-                
-                <div class="role-card fade-in" style="animation-delay: 0.6s">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>Business Owner</h3>
-                    <p>Manage your delivery business with admin dashboard</p>
-                    <button class="btn-role" onclick="window.location.href='login.html'">
-                        <i class="fas fa-lock"></i> Admin Login
-                    </button>
-                </div>
-            </div>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-bolt"></i>
+            <span>SwiftRide</span>
         </div>
-    </section>
-    
-    <!-- Features Section -->
-    <section class="features">
-        <h2 class="fade-in">Why Choose SwiftRide?</h2>
-        <div class="feature-grid">
-            <div class="feature fade-in">
-                <i class="fas fa-map-marked-alt"></i>
-                <h3>Real-Time Tracking</h3>
-                <p>Watch your delivery move on live map with GPS updates</p>
-            </div>
-            
-            <div class="feature fade-in">
-                <i class="fas fa-bolt"></i>
-                <h3>Fast Delivery</h3>
-                <p>Average delivery time: 30 minutes in urban areas</p>
-            </div>
-            
-            <div class="feature fade-in">
-                <i class="fas fa-shield-alt"></i>
-                <h3>Secure & Safe</h3>
-                <p>All drivers verified, background checked and insured</p>
-            </div>
-            
-            <div class="feature fade-in">
-                <i class="fas fa-money-bill-wave"></i>
-                <h3>Flexible Pricing</h3>
-                <p>Choose from R5/km (Economy), R10/km (Standard), R20/km (Express)</p>
-            </div>
+        <div class="nav-links">
+            <a href="#home">Home</a>
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
         </div>
-    </section>
+    </nav>
     
-    <!-- Pricing Section -->
-    <section class="pricing">
-        <h2 class="fade-in" style="text-align: center; font-size: 2.8rem; margin-bottom: 1rem;">Transparent Pricing</h2>
-        <p class="fade-in" style="text-align: center; color: #666; max-width: 600px; margin: 0 auto 3rem; font-size: 1.1rem;">
-            No hidden fees. Pay only for the distance traveled.
-        </p>
+    <section class="hero" id="home">
+        <h1>Delivery in Minutes, Not Hours</h1>
+        <p>Track your packages in real-time with our premium delivery service</p>
         
-        <div class="pricing-cards">
-            <div class="pricing-card fade-in">
-                <h3>Economy</h3>
-                <div class="price">R5<small>/km</small></div>
-                <ul class="price-features">
-                    <li><i class="fas fa-check"></i> Standard delivery</li>
-                    <li><i class="fas fa-check"></i> 45-60 minutes</li>
-                    <li><i class="fas fa-check"></i> Real-time tracking</li>
-                    <li><i class="fas fa-check"></i> Basic support</li>
-                </ul>
-                <button class="btn-role" onclick="loginAsUser('customer')">
-                    <i class="fas fa-check"></i> Select Economy
-                </button>
+        <div class="user-cards">
+            <div class="user-card customer" onclick="loginAs('customer')">
+                <i class="fas fa-shopping-bag"></i>
+                <h3>Customer</h3>
+                <p>Send packages instantly</p>
+                <button class="btn">Enter as Customer</button>
             </div>
             
-            <div class="pricing-card popular fade-in">
-                <h3>Standard</h3>
-                <div class="price">R10<small>/km</small></div>
-                <ul class="price-features">
-                    <li><i class="fas fa-check"></i> Fast delivery</li>
-                    <li><i class="fas fa-check"></i> 30-45 minutes</li>
-                    <li><i class="fas fa-check"></i> Live GPS tracking</li>
-                    <li><i class="fas fa-check"></i> Priority support</li>
-                    <li><i class="fas fa-check"></i> Delivery proof</li>
-                </ul>
-                <button class="btn-role" style="background: white; color: #6C63FF;" onclick="loginAsUser('customer')">
-                    <i class="fas fa-bolt"></i> Select Standard
-                </button>
+            <div class="user-card driver" onclick="loginAs('driver')">
+                <i class="fas fa-motorcycle"></i>
+                <h3>Driver</h3>
+                <p>Earn money delivering</p>
+                <button class="btn">Enter as Driver</button>
             </div>
             
-            <div class="pricing-card fade-in">
-                <h3>Express</h3>
-                <div class="price">R20<small>/km</small></div>
-                <ul class="price-features">
-                    <li><i class="fas fa-check"></i> Instant delivery</li>
-                    <li><i class="fas fa-check"></i> 15-30 minutes</li>
-                    <li><i class="fas fa-check"></i> Live GPS + SOS</li>
-                    <li><i class="fas fa-check"></i> 24/7 priority support</li>
-                    <li><i class="fas fa-check"></i> Signature required</li>
-                    <li><i class="fas fa-check"></i> Insurance included</li>
-                </ul>
-                <button class="btn-role" onclick="loginAsUser('customer')">
-                    <i class="fas fa-rocket"></i> Select Express
-                </button>
+            <div class="user-card admin" onclick="loginAs('admin')">
+                <i class="fas fa-chart-line"></i>
+                <h3>Admin</h3>
+                <p>Manage deliveries</p>
+                <button class="btn">Enter as Admin</button>
             </div>
         </div>
     </section>
     
-    <!-- Footer -->
-    <footer style="background: #1A1D29; color: white; padding: 4rem 2rem; text-align: center;">
-        <div style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 2rem;">
-                <i class="fas fa-bolt" style="font-size: 2rem; color: #6C63FF;"></i>
-                <h2 style="margin: 0; font-size: 2rem;">SwiftRide Delivery</h2>
+    <section id="features" style="padding: 4rem 2rem; text-align: center;">
+        <h2>Why Choose SwiftRide?</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 3rem;">
+            <div class="feature">
+                <i class="fas fa-map-marked-alt" style="font-size: 2.5rem; color: #6C63FF;"></i>
+                <h3>Real-Time Tracking</h3>
+                <p>Watch your delivery move on live map</p>
             </div>
-            
-            <p style="color: #8C8FA6; max-width: 600px; margin: 0 auto 2rem;">
-                Premium delivery service for businesses and individuals across South Africa
-            </p>
-            
-            <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap;">
-                <a href="index.html" style="color: white; text-decoration: none;">Home</a>
-                <a href="driver.html" style="color: white; text-decoration: none;">Driver App</a>
-                <a href="admin.html" style="color: white; text-decoration: none;">Business Portal</a>
-                <a href="#" style="color: white; text-decoration: none;">Contact</a>
-                <a href="#" style="color: white; text-decoration: none;">Privacy Policy</a>
+            <div class="feature">
+                <i class="fas fa-bolt" style="font-size: 2.5rem; color: #6C63FF;"></i>
+                <h3>Fast Delivery</h3>
+                <p>Average delivery time: 30 minutes</p>
             </div>
-            
-            <p style="color: #8C8FA6; margin-top: 2rem;">
-                &copy; 2025 SwiftRide Delivery. All rights reserved.
-            </p>
+            <div class="feature">
+                <i class="fas fa-money-bill-wave" style="font-size: 2.5rem; color: #6C63FF;"></i>
+                <h3>Affordable Rates</h3>
+                <p>From R5/km with no hidden fees</p>
+            </div>
         </div>
+    </section>
+    
+    <footer style="background: #333; color: white; padding: 2rem; text-align: center;">
+        <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
     </footer>
+
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     
-    <!-- Scripts -->
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    <script src="./app.js"></script>
-    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
     <script>
-        // Home page specific JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add animation classes
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
+        function loginAs(userType) {
+            localStorage.setItem('userType', userType);
+            localStorage.setItem('user', JSON.stringify({
+                id: `${userType}_${Date.now()}`,
+                name: `Test ${userType}`,
+                email: `${userType}@test.com`,
+                type: userType
+            }));
             
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('fade-in');
-                    }
-                });
-            }, observerOptions);
-            
-            // Observe all sections
-            document.querySelectorAll('section').forEach(section => {
-                observer.observe(section);
-            });
-        });
+            window.location.href = userType + '.html';
+        }
+        
+        // Hide loading screen
+        setTimeout(() => {
+            document.getElementById('loadingScreen').style.display = 'none';
+        }, 1500);
     </script>
 </body>
 </html>

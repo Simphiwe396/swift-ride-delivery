@@ -1,227 +1,278 @@
-// Customer Dashboard JavaScript
-console.log('Customer Dashboard Loading...');
+let selectedRate = 10;
+let currentTrip = null;
 
-// Check if user is customer
-(function() {
-    const user = localStorage.getItem('swiftride_user');
-    if (!user) {
-        alert('Please login as customer first');
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize customer dashboard
+    if (!AppState.user || AppState.user.type !== 'customer') {
         window.location.href = 'index.html';
+        return;
+    }
+    
+    // Update customer name
+    document.getElementById('customerName').textContent = AppState.user.name;
+    
+    // Initialize map
+    initMap('customerMap');
+    
+    // Load available drivers
+    await loadAvailableDrivers();
+    
+    // Check for active trip
+    await checkActiveTrip();
+    
+    // Load trip history
+    await loadTripHistory();
+    
+    // Setup address autocomplete
+    setupAddressAutocomplete();
+});
+
+function showSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Remove active class from all menu items
+    document.querySelectorAll('.sidebar-menu li').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Show selected section
+    document.getElementById(sectionId).style.display = 'block';
+    
+    // Add active class to clicked menu item
+    event.target.closest('li').classList.add('active');
+}
+
+function selectRate(rate) {
+    selectedRate = rate;
+    
+    // Update UI
+    document.querySelectorAll('.rate-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    event.target.closest('.rate-option').classList.add('selected');
+    
+    // Update fare estimate
+    updateFareEstimate();
+}
+
+async function updateFareEstimate() {
+    const pickup = document.getElementById('pickupAddress').value;
+    const destination = document.getElementById('destinationAddress').value;
+    
+    if (!pickup || !destination) return;
+    
+    try {
+        // In real app, use geocoding API. Here we simulate distance
+        const distance = 5; // Simulated 5km
+        
+        document.getElementById('distanceDisplay').textContent = `${distance} km`;
+        
+        const fare = calculateFare(distance, selectedRate);
+        document.getElementById('fareDisplay').textContent = fare.toFixed(2);
+    } catch (error) {
+        console.error('Error calculating fare:', error);
+    }
+}
+
+async function requestDelivery() {
+    const pickup = document.getElementById('pickupAddress').value;
+    const destination = document.getElementById('destinationAddress').value;
+    const packageDesc = document.getElementById('packageDesc').value;
+    
+    if (!pickup || !destination) {
+        showNotification('Please enter pickup and destination addresses', 'error');
         return;
     }
     
     try {
-        const userData = JSON.parse(user);
-        if (userData.userType !== 'customer') {
-            alert('Customer access required');
-            window.location.href = 'index.html';
-            return;
-        }
-    } catch (e) {
-        alert('Invalid session');
-        window.location.href = 'index.html';
-        return;
-    }
-})();
-
-// Initialize Customer Dashboard
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing Customer Dashboard...');
-    
-    // Load customer info
-    const user = JSON.parse(localStorage.getItem('swiftride_user') || '{}');
-    if (user.name) {
-        const customerName = document.getElementById('customerName');
-        if (customerName) {
-            customerName.textContent = user.name;
-        }
-    }
-    
-    // Setup event listeners
-    setTimeout(() => {
-        setupCustomerEventListeners();
-        updateFareEstimate();
-        loadActiveDeliveries();
-    }, 500);
-    
-    // Hide loading screen
-    setTimeout(() => {
-        const loading = document.getElementById('loadingScreen');
-        if (loading) loading.style.display = 'none';
-    }, 1000);
-});
-
-// Setup Event Listeners
-function setupCustomerEventListeners() {
-    // Delivery option selection
-    document.querySelectorAll('.delivery-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('.delivery-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            this.classList.add('selected');
-            
-            const rate = this.dataset.rate || 'standard';
-            localStorage.setItem('selectedRate', rate);
-            updateFareEstimate();
-        });
-    });
-    
-    // Request delivery button
-    const requestBtn = document.querySelector('[onclick="requestDelivery()"]');
-    if (requestBtn) {
-        requestBtn.onclick = requestDelivery;
-    }
-    
-    // Order now button
-    const orderBtn = document.querySelector('[onclick="orderNow()"]');
-    if (orderBtn) {
-        orderBtn.onclick = orderNow;
-    }
-}
-
-// Update Fare Estimate
-function updateFareEstimate() {
-    const selectedOption = document.querySelector('.delivery-option.selected');
-    const rate = selectedOption ? (selectedOption.dataset.rate || 'standard') : 'standard';
-    const distance = 8.5; // Example distance in km
-    
-    const fare = calculateFare(distance, 
-        rate === 'economy' ? 5 : 
-        rate === 'express' ? 20 : 10
-    );
-    
-    document.getElementById('distanceFare').textContent = `R ${fare.distance}`;
-    document.getElementById('serviceFee').textContent = `R ${fare.serviceFee}`;
-    document.getElementById('totalFare').textContent = `R ${fare.total}`;
-}
-
-// Request Delivery
-function requestDelivery() {
-    const pickup = document.getElementById('pickupLocation');
-    const delivery = document.getElementById('deliveryLocation');
-    
-    if (!pickup.value || !delivery.value) {
-        showNotification('Please enter both pickup and delivery locations', 'error');
-        return;
-    }
-    
-    showNotification('Looking for available drivers...', 'info');
-    
-    // Simulate finding driver
-    setTimeout(() => {
-        showNotification('Driver found! Your delivery is on the way.', 'success');
+        // Simulate distance calculation
+        const distance = 5; // In real app, calculate from coordinates
+        const fare = calculateFare(distance, selectedRate);
         
-        // Add to active deliveries
-        const activeDeliveries = document.getElementById('activeDeliveries');
-        if (activeDeliveries) {
-            activeDeliveries.innerHTML = `
-                <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <span style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;">
-                            Active
-                        </span>
-                        <span style="font-size: 1.3rem; font-weight: 700; color: #6C63FF;">
-                            R 120.00
-                        </span>
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <i class="fas fa-map-marker-alt" style="color: #4CAF50;"></i>
-                            <div style="color: #666;">${pickup.value}</div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                            <i class="fas fa-flag-checkered" style="color: #FF6584;"></i>
-                            <div style="color: #666;">${delivery.value}</div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 15px; color: #666; font-size: 0.9rem;">
-                            <span><i class="fas fa-motorcycle"></i> John D</span>
-                            <span><i class="fas fa-clock"></i> 5 min away</span>
-                            <span><i class="fas fa-route"></i> 8.5 km</span>
-                        </div>
-                    </div>
-                    
-                    <button onclick="trackDelivery()" style="
-                        background: #6C63FF;
-                        color: white;
-                        border: none;
-                        width: 100%;
-                        padding: 12px;
-                        border-radius: 8px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 8px;
-                    ">
-                        <i class="fas fa-map"></i> Track Delivery
-                    </button>
-                </div>
-            `;
-        }
+        const tripData = {
+            customerId: AppState.user.id,
+            customerName: AppState.user.name,
+            pickup: {
+                address: pickup,
+                lat: -26.195246 + (Math.random() * 0.1 - 0.05),
+                lng: 28.034088 + (Math.random() * 0.1 - 0.05)
+            },
+            destination: {
+                address: destination,
+                lat: -26.195246 + (Math.random() * 0.1 - 0.05),
+                lng: 28.034088 + (Math.random() * 0.1 - 0.05)
+            },
+            distance: distance,
+            fare: fare,
+            packageDescription: packageDesc,
+            status: 'pending'
+        };
+        
+        // Send trip request via socket
+        AppState.socket.emit('request-trip', tripData);
+        
+        showNotification('Delivery request sent! Looking for drivers...', 'success');
         
         // Clear form
-        pickup.value = '';
-        delivery.value = '';
-        document.getElementById('packageDescription').value = '';
-    }, 2000);
+        document.getElementById('pickupAddress').value = '';
+        document.getElementById('destinationAddress').value = '';
+        document.getElementById('packageDesc').value = '';
+        
+        // Show tracking section
+        showSection('track-delivery');
+        
+    } catch (error) {
+        showNotification('Failed to request delivery: ' + error.message, 'error');
+    }
 }
 
-// Load Active Deliveries
-function loadActiveDeliveries() {
-    const container = document.getElementById('activeDeliveries');
-    if (!container) return;
+async function loadAvailableDrivers() {
+    try {
+        const drivers = await getAvailableDrivers();
+        
+        // Add driver markers to map
+        drivers.forEach(driver => {
+            if (driver.currentLocation) {
+                addMarker(`driver_${driver._id}`, 
+                    [driver.currentLocation.lat, driver.currentLocation.lng],
+                    {
+                        title: driver.name,
+                        icon: L.divIcon({
+                            html: `<div style="background: green; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>`,
+                            className: 'driver-marker'
+                        })
+                    }
+                );
+            }
+        });
+    } catch (error) {
+        console.error('Failed to load drivers:', error);
+    }
+}
+
+async function checkActiveTrip() {
+    try {
+        const trips = await getTripHistory(AppState.user.id, 'customer');
+        const activeTrip = trips.find(trip => 
+            ['pending', 'accepted', 'in_progress', 'picked_up'].includes(trip.status)
+        );
+        
+        if (activeTrip) {
+            currentTrip = activeTrip;
+            showActiveTrip(activeTrip);
+        }
+    } catch (error) {
+        console.error('Failed to check active trip:', error);
+    }
+}
+
+function showActiveTrip(trip) {
+    document.getElementById('noActiveTrip').style.display = 'none';
+    document.getElementById('currentTripCard').style.display = 'block';
     
-    // Check if there are any active deliveries
-    const hasActiveDelivery = false; // Change based on actual data
+    document.getElementById('tripStatus').textContent = trip.status;
+    document.getElementById('driverName').textContent = trip.driverName || 'Not assigned';
+    document.getElementById('eta').textContent = trip.estimatedTime || 'Calculating...';
     
-    if (!hasActiveDelivery) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 3rem; color: #666;">
-                <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                <p>No active deliveries</p>
-                <button onclick="scrollToOrder()" style="
-                    background: #6C63FF;
-                    color: white;
-                    border: none;
-                    padding: 10px 20px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    margin-top: 10px;
-                ">
-                    Order Your First Delivery
-                </button>
-            </div>
-        `;
+    // Initialize tracking map
+    initMap('trackingMap');
+    
+    // Add pickup and destination markers
+    if (trip.pickup) {
+        addMarker('pickup', [trip.pickup.lat, trip.pickup.lng], {
+            title: 'Pickup',
+            icon: L.divIcon({
+                html: '<i class="fas fa-circle" style="color: green; font-size: 20px;"></i>',
+                className: 'pickup-marker'
+            })
+        });
+    }
+    
+    if (trip.destination) {
+        addMarker('destination', [trip.destination.lat, trip.destination.lng], {
+            title: 'Destination',
+            icon: L.divIcon({
+                html: '<i class="fas fa-flag" style="color: red; font-size: 20px;"></i>',
+                className: 'destination-marker'
+            })
+        });
+    }
+    
+    // Fit map to show both points
+    if (trip.pickup && trip.destination) {
+        const bounds = L.latLngBounds(
+            [trip.pickup.lat, trip.pickup.lng],
+            [trip.destination.lat, trip.destination.lng]
+        );
+        AppState.map.fitBounds(bounds);
     }
 }
 
-// Utility Functions
-function orderNow() {
-    const orderSection = document.getElementById('orderSection');
-    if (orderSection) {
-        orderSection.scrollIntoView({ behavior: 'smooth' });
+async function loadTripHistory() {
+    try {
+        const trips = await getTripHistory(AppState.user.id, 'customer');
+        const tableBody = document.getElementById('tripHistoryTable');
+        
+        if (trips.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                        No trip history yet
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tableBody.innerHTML = trips.map(trip => `
+            <tr>
+                <td>${trip.tripId?.substring(0, 8) || 'N/A'}</td>
+                <td>${new Date(trip.createdAt).toLocaleDateString()}</td>
+                <td>${trip.pickup?.address?.substring(0, 20) || 'N/A'}...</td>
+                <td>${trip.destination?.address?.substring(0, 20) || 'N/A'}...</td>
+                <td>${trip.distance || 0} km</td>
+                <td>R ${trip.fare?.toFixed(2) || '0.00'}</td>
+                <td><span class="trip-status status-${trip.status}">${trip.status}</span></td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load trip history:', error);
     }
 }
 
-function scrollToOrder() {
-    const orderSection = document.getElementById('orderSection');
-    if (orderSection) {
-        orderSection.scrollIntoView({ behavior: 'smooth' });
-    }
+function setupAddressAutocomplete() {
+    // In a real app, integrate with Google Maps or similar API
+    // For this demo, we'll use simple listeners
+    const pickupInput = document.getElementById('pickupAddress');
+    const destInput = document.getElementById('destinationAddress');
+    
+    [pickupInput, destInput].forEach(input => {
+        input.addEventListener('input', updateFareEstimate);
+    });
 }
 
-function trackDelivery() {
-    showNotification('Opening live tracking map...', 'info');
-    // In real app, this would open tracking page
+// Listen for trip updates
+if (AppState.socket) {
+    AppState.socket.on('trip-assigned', (data) => {
+        showNotification(`Driver ${data.driverName} assigned to your trip!`, 'success');
+        
+        // Update current trip display
+        if (document.getElementById('track-delivery').style.display !== 'none') {
+            showActiveTrip({ ...currentTrip, ...data });
+        }
+    });
+    
+    AppState.socket.on('trip-accepted', (data) => {
+        showNotification('Driver has accepted your trip!', 'success');
+    });
+    
+    AppState.socket.on('trip-updated', (data) => {
+        if (currentTrip && currentTrip._id === data.tripId) {
+            currentTrip = data.trip;
+            showActiveTrip(currentTrip);
+        }
+    });
 }
-
-// Make functions globally available
-window.requestDelivery = requestDelivery;
-window.orderNow = orderNow;
-window.scrollToOrder = scrollToOrder;
-window.trackDelivery = trackDelivery;

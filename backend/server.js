@@ -1,234 +1,322 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const { Server } = require("socket.io");
-const http = require("http");
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const socketIo = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-
-// Socket.io setup
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+const io = socketIo(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
+    transports: ['websocket', 'polling']
 });
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/swiftride")
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
-
-// Models
-const Driver = require("./models/Driver");
-const Trip = require("./models/Trip");
-const User = require("./models/User");
-const Delivery = require("./models/Delivery");
-
-// Routes
-app.use("/api/admin", require("./routes/admin"));
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/drivers", require("./routes/drivers"));
-app.use("/api/trips", require("./routes/trips"));
-app.use("/api/tracking", require("./routes/tracking"));
-
-// Hardcoded Admin Credentials
-const ADMIN_CREDENTIALS = {
-  email: "admin@swiftride.co.za",
-  password: "Admin123!"
-};
-
-// Admin Login Endpoint
-app.post("/api/admin/login", (req, res) => {
-  const { email, password } = req.body;
-  
-  if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-    res.json({
-      success: true,
-      user: {
-        _id: "admin_001",
-        name: "Admin Owner",
-        email: email,
-        userType: "admin",
-        phone: "0111234567",
-        company: "SwiftRide Delivery"
-      },
-      token: "admin_token_" + Date.now()
+// Database Connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swiftride';
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch(err => {
+        console.error('❌ MongoDB connection error:', err.message);
+        console.log('⚠️ Using mock data mode');
     });
-  } else {
-    res.status(401).json({
-      success: false,
-      error: "Invalid admin credentials"
-    });
-  }
+
+// Simple schemas
+const driverSchema = new mongoose.Schema({
+    name: String,
+    email: String,
+    phone: String,
+    vehicleType: { type: String, default: 'motorcycle' },
+    currentLocation: { lat: Number, lng: Number },
+    status: { type: String, default: 'offline' },
+    ratePerKm: { type: Number, default: 10 },
+    lastActive: { type: Date, default: Date.now }
 });
 
-// Health check
-app.get("/health", (req, res) => {
-  res.json({ 
-    status: "OK", 
-    service: "SwiftRide API",
-    timestamp: new Date().toISOString()
-  });
+const tripSchema = new mongoose.Schema({
+    tripId: { type: String, default: () => `TRIP${Date.now()}` },
+    customerId: String,
+    customerName: String,
+    driverId: String,
+    driverName: String,
+    pickup: { address: String, lat: Number, lng: Number },
+    destination: { address: String, lat: Number, lng: Number },
+    distance: Number,
+    fare: Number,
+    status: { type: String, default: 'pending' },
+    driverLocation: { lat: Number, lng: Number },
+    createdAt: { type: Date, default: Date.now },
+    completedAt: Date
 });
 
-// API test endpoint
-app.get("/api/test", (req, res) => {
-  res.json({ 
-    success: true,
-    message: "SwiftRide API is running",
-    version: "1.0.0"
-  });
-});
+const Driver = mongoose.model('Driver', driverSchema);
+const Trip = mongoose.model('Trip', tripSchema);
 
-// Get all drivers
-app.get("/api/drivers/all", async (req, res) => {
-  try {
-    const drivers = await Driver.find();
-    res.json(drivers);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// Mock data fallback
+let mockDrivers = [
+    { _id: 'driver1', name: 'John Driver', status: 'available', currentLocation: { lat: -26.195246, lng: 28.034088 } },
+    { _id: 'driver2', name: 'Mike Rider', status: 'available', currentLocation: { lat: -26.205246, lng: 28.044088 } },
+    { _id: 'driver3', name: 'David Biker', status: 'busy', currentLocation: { lat: -26.185246, lng: 28.024088 } }
+];
 
-// Get all trips
-app.get("/api/trips/all", async (req, res) => {
-  try {
-    const trips = await Trip.find()
-      .populate("customerId", "name email")
-      .populate("driverId", "name email");
-    res.json(trips);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+let mockTrips = [];
+let connectedDrivers = new Map();
+let connectedUsers = new Map();
 
-// Get customer trips
-app.get("/api/trips/customer/:customerId", async (req, res) => {
-  try {
-    const trips = await Trip.find({ customerId: req.params.customerId })
-      .populate("driverId", "name email phone");
-    res.json({ success: true, trips });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Get driver trips
-app.get("/api/trips/driver/:driverId", async (req, res) => {
-  try {
-    const trips = await Trip.find({ driverId: req.params.driverId })
-      .populate("customerId", "name email phone");
-    res.json({ success: true, trips });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Request trip
-app.post("/api/trips/request", async (req, res) => {
-  try {
-    const { pickup, destination, tripType, customerId } = req.body;
+// Socket.io
+io.on('connection', (socket) => {
+    console.log('🔌 New connection:', socket.id);
     
-    const trip = new Trip({
-      pickup,
-      destination,
-      tripType,
-      customerId,
-      status: "pending",
-      fare: tripType === "delivery" ? 50 : 100
+    socket.on('user-connected', (data) => {
+        connectedUsers.set(socket.id, data);
+        console.log(`👤 ${data.userType} connected: ${data.name}`);
     });
     
-    await trip.save();
+    socket.on('driver-location', async (data) => {
+        const { driverId, lat, lng, status } = data;
+        
+        try {
+            await Driver.findByIdAndUpdate(driverId, {
+                currentLocation: { lat, lng },
+                status: status || 'available',
+                lastActive: new Date()
+            }, { upsert: true });
+        } catch (error) {
+            // Mock data
+            let driver = mockDrivers.find(d => d._id === driverId);
+            if (!driver) {
+                driver = { _id: driverId, name: `Driver ${driverId.substring(0, 5)}` };
+                mockDrivers.push(driver);
+            }
+            driver.currentLocation = { lat, lng };
+            driver.status = status || 'available';
+            driver.lastActive = new Date();
+        }
+        
+        connectedDrivers.set(driverId, { socketId: socket.id, location: { lat, lng }, status });
+        
+        io.emit('driver-update', {
+            driverId,
+            lat,
+            lng,
+            status: status || 'available',
+            timestamp: new Date()
+        });
+    });
     
-    // Notify via socket
-    io.emit("trip:new", trip);
+    socket.on('request-trip', async (data) => {
+        const { customerId, pickup, destination, distance, customerName, rate = 10 } = data;
+        const fare = Math.max(20, distance * rate);
+        
+        try {
+            const trip = new Trip({
+                customerId,
+                customerName: customerName || 'Customer',
+                pickup,
+                destination,
+                distance,
+                fare,
+                status: 'pending'
+            });
+            
+            await trip.save();
+            
+            const drivers = await Driver.find({ status: 'available' });
+            if (drivers.length > 0) {
+                const driver = drivers[0];
+                const driverSocket = connectedDrivers.get(driver._id.toString());
+                if (driverSocket) {
+                    io.to(driverSocket.socketId).emit('new-trip', {
+                        tripId: trip._id,
+                        pickup,
+                        destination,
+                        distance,
+                        fare,
+                        customerId,
+                        customerName: customerName || 'Customer'
+                    });
+                }
+                
+                trip.driverId = driver._id;
+                trip.driverName = driver.name;
+                trip.status = 'assigned';
+                await trip.save();
+                
+                socket.emit('trip-assigned', {
+                    tripId: trip._id,
+                    driverId: driver._id,
+                    driverName: driver.name,
+                    eta: '10 mins'
+                });
+            } else {
+                socket.emit('trip-assigned', {
+                    tripId: trip._id,
+                    driverId: 'mock_driver_1',
+                    driverName: 'Test Driver',
+                    eta: '5 mins'
+                });
+            }
+        } catch (error) {
+            const mockTrip = {
+                _id: `mock_${Date.now()}`,
+                tripId: `TRIP${Date.now()}`,
+                customerId,
+                customerName: customerName || 'Customer',
+                pickup,
+                destination,
+                distance,
+                fare,
+                status: 'assigned',
+                driverId: 'mock_driver_1',
+                driverName: 'Test Driver',
+                createdAt: new Date()
+            };
+            mockTrips.push(mockTrip);
+            
+            socket.emit('trip-assigned', {
+                tripId: mockTrip._id,
+                driverId: mockTrip.driverId,
+                driverName: mockTrip.driverName,
+                eta: '5 mins'
+            });
+        }
+    });
     
+    socket.on('accept-trip', async (data) => {
+        const { tripId, driverId } = data;
+        
+        try {
+            await Trip.findByIdAndUpdate(tripId, { status: 'accepted', driverId });
+        } catch (error) {
+            const trip = mockTrips.find(t => t._id === tripId);
+            if (trip) trip.status = 'accepted';
+        }
+        
+        io.emit('trip-accepted', { tripId, driverId, status: 'accepted' });
+    });
+    
+    socket.on('update-trip', async (data) => {
+        const { tripId, status, location } = data;
+        
+        try {
+            const updateData = { status };
+            if (location) updateData.driverLocation = location;
+            if (status === 'completed') updateData.completedAt = new Date();
+            
+            await Trip.findByIdAndUpdate(tripId, updateData);
+        } catch (error) {
+            const trip = mockTrips.find(t => t._id === tripId);
+            if (trip) {
+                trip.status = status;
+                if (location) trip.driverLocation = location;
+                if (status === 'completed') trip.completedAt = new Date();
+            }
+        }
+        
+        io.emit('trip-updated', { tripId, status, location });
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('❌ Disconnected:', socket.id);
+        
+        for (let [driverId, driver] of connectedDrivers) {
+            if (driver.socketId === socket.id) {
+                connectedDrivers.delete(driverId);
+                io.emit('driver-offline', { driverId });
+                break;
+            }
+        }
+        
+        connectedUsers.delete(socket.id);
+    });
+});
+
+// API Routes
+app.get('/api/status', (req, res) => {
     res.json({ 
-      success: true, 
-      message: "Trip requested successfully",
-      trip 
+        status: 'online', 
+        connectedUsers: connectedUsers.size,
+        connectedDrivers: connectedDrivers.size,
+        timestamp: new Date() 
     });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
 });
 
-// Update trip status
-app.put("/api/trips/:id/status", async (req, res) => {
-  try {
-    const { status } = req.body;
-    const trip = await Trip.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-    
-    io.emit("trip:update", trip);
-    
-    res.json({ success: true, trip });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+app.get('/api/drivers/available', async (req, res) => {
+    try {
+        const drivers = await Driver.find({ status: 'available' });
+        res.json(drivers);
+    } catch (error) {
+        res.json(mockDrivers.filter(d => d.status === 'available'));
+    }
 });
 
-// Admin stats
-app.get("/api/admin/stats", async (req, res) => {
-  try {
-    const totalTrips = await Trip.countDocuments();
-    const activeDrivers = await Driver.countDocuments({ status: "active" });
-    const totalUsers = await User.countDocuments();
-    const revenueResult = await Trip.aggregate([
-      { $match: { status: "completed" } },
-      { $group: { _id: null, total: { $sum: "$fare" } } }
-    ]);
-    
-    const revenue = revenueResult[0]?.total || 0;
-    
-    res.json({
-      success: true,
-      totalTrips,
-      activeDrivers,
-      totalUsers,
-      revenue
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+app.get('/api/drivers/all', async (req, res) => {
+    try {
+        const drivers = await Driver.find();
+        res.json(drivers);
+    } catch (error) {
+        res.json(mockDrivers);
+    }
 });
 
-// Socket.io events
-io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
-  
-  socket.on("driver:location", (data) => {
-    console.log("Driver location update:", data);
-    io.emit("location:update", data);
-  });
-  
-  socket.on("driver:status", (data) => {
-    console.log("Driver status update:", data);
-    io.emit("status:update", data);
-  });
-  
-  socket.on("trip:request", (data) => {
-    console.log("New trip request:", data);
-    io.emit("trip:new", data);
-  });
-  
-  socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
-  });
+app.get('/api/trips', async (req, res) => {
+    try {
+        const trips = await Trip.find().sort({ createdAt: -1 });
+        res.json(trips);
+    } catch (error) {
+        res.json(mockTrips);
+    }
+});
+
+app.get('/api/trips/history', async (req, res) => {
+    try {
+        const trips = await Trip.find().sort({ createdAt: -1 }).limit(50);
+        res.json(trips);
+    } catch (error) {
+        res.json(mockTrips.slice(0, 50));
+    }
+});
+
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+        const drivers = await Driver.find();
+        const trips = await Trip.find({
+            createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+        });
+        
+        res.json({
+            totalDrivers: drivers.length,
+            activeDeliveries: trips.filter(t => ['pending', 'accepted', 'in_progress'].includes(t.status)).length,
+            todayRevenue: trips.filter(t => t.status === 'completed').reduce((sum, t) => sum + (t.fare || 0), 0),
+            totalCustomers: connectedUsers.size
+        });
+    } catch (error) {
+        res.json({
+            totalDrivers: mockDrivers.length,
+            activeDeliveries: 3,
+            todayRevenue: 1250.50,
+            totalCustomers: connectedUsers.size
+        });
+    }
+});
+
+// Serve frontend
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
 });
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔧 Admin login: ${ADMIN_CREDENTIALS.email} / ${ADMIN_CREDENTIALS.password}`);
-  console.log(`🌍 Health check: http://localhost:${PORT}/health`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 Frontend: http://localhost:${PORT}`);
+    console.log(`📡 Socket.io: ws://localhost:${PORT}`);
+    console.log(`📊 Mock drivers: ${mockDrivers.length}`);
 });

@@ -3,686 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - SwiftRide Delivery</title>
-    
-    <!-- PWA Configuration -->
-    <meta name="application-name" content="SwiftRide Admin">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1A1D29">
-    
-    <!-- Icons & Fonts -->
-    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
-    <link rel="manifest" href="./site.webmanifest">
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Custom CSS -->
+    <title>Admin Dashboard - SwiftRide</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
-        /* Admin-specific styles */
-        .dashboard-container {
-            min-height: 100vh;
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
         }
         
-        .quick-stats {
+        .admin-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
         
-        .quick-stat {
+        .admin-stat-card {
             background: white;
             padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             text-align: center;
-            transition: all 0.3s ease;
         }
         
-        .quick-stat:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-        }
-        
-        .quick-stat i {
+        .admin-stat-card h3 {
             font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #6C63FF;
+            margin: 0.5rem 0;
+            color: var(--primary);
         }
         
-        .quick-stat h3 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            color: #1A1D29;
-        }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
+        .driver-list {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
             margin-bottom: 2rem;
         }
         
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .dashboard-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .dashboard-card h3 {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #E8EAF2;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .data-table th {
-            background: #F8F9FF;
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: #1A1D29;
-            border-bottom: 2px solid #E8EAF2;
-        }
-        
-        .data-table td {
-            padding: 1rem;
-            border-bottom: 1px solid #E8EAF2;
-        }
-        
-        .data-table tr:hover {
-            background: #F8F9FF;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .action-btn {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
+        .driver-item {
             display: flex;
             align-items: center;
-            gap: 5px;
-            transition: all 0.3s ease;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
         }
         
-        .action-btn.view {
-            background: #2196F3;
+        .driver-item:last-child {
+            border-bottom: none;
+        }
+        
+        .driver-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
             color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
         }
         
-        .action-btn.edit {
-            background: #FF9800;
-            color: white;
+        .driver-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: auto;
         }
         
-        .action-btn.delete {
-            background: #FF5252;
-            color: white;
-        }
-        
-        .action-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #8C8FA6;
-        }
-        
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
+        .status-online { background: #4CAF50; }
+        .status-busy { background: #FF9800; }
+        .status-offline { background: #ccc; }
     </style>
 </head>
-<body data-page="admin">
-    <!-- SECURITY CHECK - Prevents unauthorized access -->
-    <script>
-        (function() {
-            // Check if user is logged in as admin
-            const user = localStorage.getItem('swiftride_user');
-            const isAdmin = localStorage.getItem('is_admin');
-            
-            if (!user || !isAdmin) {
-                // Not authorized - redirect to login
-                alert('Access denied. Please login as admin first.');
-                window.location.href = 'login.html';
-                return;
-            }
-            
-            // Parse user data
-            try {
-                const userData = JSON.parse(user);
-                if (userData.userType !== 'admin') {
-                    alert('Admin access required.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-            } catch (e) {
-                alert('Invalid session. Please login again.');
-                window.location.href = 'login.html';
-                return;
-            }
-            
-            // User is authorized - continue loading page
-            console.log('Admin user authenticated');
-        })();
-    </script>
-    
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
+<body>
+    <div class="loading-screen" id="loadingScreen">
         <div class="loader"></div>
         <h2>SwiftRide Admin</h2>
-        <p>Loading dashboard...</p>
     </div>
     
-    <!-- Dashboard Container -->
-    <div class="dashboard-container">
-        <!-- Sidebar -->
+    <div class="dashboard">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-bolt"></i>
-                    <h2>SwiftRide</h2>
+                    <span>SwiftRide Admin</span>
                 </div>
-                <div class="user-info" id="adminUserInfo">
-                    <!-- Filled by JavaScript -->
+                <div style="margin-top: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 8px;">
+                    <h4>Admin Panel</h4>
+                    <p style="font-size: 0.9rem; color: #666;">Full System Control</p>
                 </div>
             </div>
             
-            <nav class="sidebar-nav">
-                <a href="#overview" class="sidebar-link active" onclick="switchSection('overview')">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Overview</span>
-                </a>
-                <a href="#drivers" class="sidebar-link" onclick="switchSection('drivers')">
-                    <i class="fas fa-motorcycle"></i>
-                    <span>Drivers</span>
-                </a>
-                <a href="#deliveries" class="sidebar-link" onclick="switchSection('deliveries')">
-                    <i class="fas fa-box"></i>
-                    <span>Deliveries</span>
-                </a>
-                <a href="#tracking" class="sidebar-link" onclick="switchSection('tracking')">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>Live Tracking</span>
-                </a>
-                <a href="#customers" class="sidebar-link" onclick="switchSection('customers')">
-                    <i class="fas fa-users"></i>
-                    <span>Customers</span>
-                </a>
-                <a href="#reports" class="sidebar-link" onclick="switchSection('reports')">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-                <a href="#settings" class="sidebar-link" onclick="switchSection('settings')">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </a>
-                <a href="index.html" class="sidebar-link" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
+            <ul class="sidebar-menu">
+                <li class="active" onclick="showSection('overview')">
+                    <i class="fas fa-tachometer-alt"></i> Overview
+                </li>
+                <li onclick="showSection('drivers')">
+                    <i class="fas fa-motorcycle"></i> Drivers
+                </li>
+                <li onclick="showSection('trips')">
+                    <i class="fas fa-road"></i> Trips
+                </li>
+                <li onclick="showSection('tracking')">
+                    <i class="fas fa-map-marker-alt"></i> Live Tracking
+                </li>
+                <li onclick="showSection('analytics')">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </li>
+                <li onclick="showSection('settings')">
+                    <i class="fas fa-cog"></i> Settings
+                </li>
+                <li onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </li>
+            </ul>
         </aside>
-
-        <div class="dashboard">
-            <aside class="sidebar">
-                <h2>Drivers</h2>
-                <div id="driverList"></div>
-            </aside>
-
-            <main class="main">
-                <div id="map"></div>
-
-                <section class="trip-panel">
-                    <h3>Trip History (Today)</h3>
-                    <div id="tripHistory"></div>
-                </section>
-            </main>
-        </div>
         
-        <!-- Main Content -->
-        <main class="main-dashboard">
-            <!-- Header -->
-            <header class="dashboard-header">
-                <h1 id="sectionTitle">Admin Dashboard</h1>
-                <div class="header-actions">
-                    <button class="notification-btn" onclick="showNotifications()">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </button>
-                    <button class="btn btn-primary" onclick="showModal('addDriverModal')">
-                        <i class="fas fa-user-plus"></i> Add Driver
+        <main class="main-content">
+            <!-- Overview Section -->
+            <section id="overview" class="section active">
+                <div class="admin-header">
+                    <h1>Admin Dashboard</h1>
+                    <button class="btn" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                 </div>
-            </header>
-            
-            <!-- Overview Section (Default) -->
-            <section id="overviewSection" class="dashboard-section active">
-                <!-- Quick Stats -->
-                <div class="quick-stats">
-                    <div class="quick-stat">
-                        <i class="fas fa-motorcycle"></i>
+                
+                <div class="admin-stats">
+                    <div class="admin-stat-card">
+                        <i class="fas fa-motorcycle" style="font-size: 2rem; color: var(--primary);"></i>
                         <h3 id="totalDrivers">0</h3>
                         <p>Total Drivers</p>
                     </div>
-                    <div class="quick-stat">
-                        <i class="fas fa-box"></i>
-                        <h3 id="activeDeliveries">0</h3>
-                        <p>Active Deliveries</p>
+                    <div class="admin-stat-card">
+                        <i class="fas fa-road" style="font-size: 2rem; color: var(--primary);"></i>
+                        <h3 id="activeTrips">0</h3>
+                        <p>Active Trips</p>
                     </div>
-                    <div class="quick-stat">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <h3 id="todayRevenue">R0</h3>
+                    <div class="admin-stat-card">
+                        <i class="fas fa-money-bill-wave" style="font-size: 2rem; color: var(--primary);"></i>
+                        <h3 id="dailyRevenue">R0</h3>
                         <p>Today's Revenue</p>
                     </div>
-                    <div class="quick-stat">
-                        <i class="fas fa-chart-line"></i>
-                        <h3 id="completionRate">0%</h3>
-                        <p>Completion Rate</p>
+                    <div class="admin-stat-card">
+                        <i class="fas fa-users" style="font-size: 2rem; color: var(--primary);"></i>
+                        <h3 id="totalCustomers">0</h3>
+                        <p>Customers</p>
                     </div>
                 </div>
                 
-                <!-- Dashboard Grid -->
-                <div class="dashboard-grid">
-                    <!-- Live Tracking Map -->
-                    <div class="dashboard-card">
-                        <h3>Live Tracking</h3>
-                        <div class="map-container">
-                            <div id="adminMap" style="height: 400px;"></div>
-                            <div class="map-controls">
-                                <button class="map-btn" onclick="refreshMap()">
-                                    <i class="fas fa-redo"></i>
-                                </button>
-                                <button class="map-btn" onclick="centerMap()">
-                                    <i class="fas fa-expand"></i>
-                                </button>
-                                <button class="map-btn" onclick="toggleSatellite()">
-                                    <i class="fas fa-satellite"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Recent Activity -->
-                    <div class="dashboard-card">
-                        <h3>Recent Activity</h3>
-                        <div id="recentActivity">
-                            <!-- Filled by JavaScript -->
-                        </div>
-                    </div>
+                <div class="map-container">
+                    <h3><i class="fas fa-map"></i> Live Driver Tracking</h3>
+                    <div id="adminMap" style="height: 400px;"></div>
                 </div>
                 
-                <!-- Active Drivers -->
-                <div class="dashboard-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3>Active Drivers</h3>
-                        <select id="driverStatusFilter" onchange="filterDrivers()" style="padding: 0.5rem; border-radius: 8px; border: 1px solid #E8EAF2;">
-                            <option value="all">All Drivers</option>
-                            <option value="online">Online</option>
-                            <option value="busy">On Delivery</option>
-                            <option value="offline">Offline</option>
-                        </select>
-                    </div>
-                    <div id="activeDriversList">
-                        <!-- Filled by JavaScript -->
+                <div class="driver-list">
+                    <h3>Online Drivers</h3>
+                    <div id="onlineDriversList">
+                        <!-- Drivers will be loaded here -->
                     </div>
                 </div>
             </section>
             
             <!-- Drivers Section -->
-            <section id="driversSection" class="dashboard-section" style="display: none;">
-                <div class="dashboard-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3>All Drivers</h3>
-                        <button class="btn btn-primary" onclick="showModal('addDriverModal')">
-                            <i class="fas fa-user-plus"></i> Add New Driver
-                        </button>
-                    </div>
-                    
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Driver ID</th>
-                                    <th>Name</th>
-                                    <th>Contact</th>
-                                    <th>Vehicle</th>
-                                    <th>Status</th>
-                                    <th>Rating</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="driversTable">
-                                <!-- Filled by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
+            <section id="drivers" class="section" style="display: none;">
+                <div class="admin-header">
+                    <h1>Driver Management</h1>
+                    <button class="btn" onclick="showAddDriverModal()">
+                        <i class="fas fa-plus"></i> Add Driver
+                    </button>
+                </div>
+                
+                <div class="table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Driver ID</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Vehicle</th>
+                                <th>Status</th>
+                                <th>Trips</th>
+                                <th>Earnings</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="driversTable">
+                            <!-- Drivers table will be loaded here -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
             
-            <!-- Deliveries Section -->
-            <section id="deliveriesSection" class="dashboard-section" style="display: none;">
-                <div class="dashboard-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3>All Deliveries</h3>
-                        <div style="display: flex; gap: 1rem;">
-                            <select id="deliveryStatusFilter" onchange="filterDeliveries()" style="padding: 0.5rem; border-radius: 8px; border: 1px solid #E8EAF2;">
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="accepted">Accepted</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                            <button class="btn btn-primary" onclick="exportDeliveries()">
-                                <i class="fas fa-download"></i> Export
-                            </button>
-                        </div>
+            <!-- Trips Section -->
+            <section id="trips" class="section" style="display: none;">
+                <div class="admin-header">
+                    <h1>Trip Management</h1>
+                    <div style="display: flex; gap: 1rem;">
+                        <select id="tripFilter" class="form-control" onchange="filterTrips()">
+                            <option value="all">All Trips</option>
+                            <option value="today">Today</option>
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <button class="btn" onclick="exportTrips()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
                     </div>
-                    
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Trip ID</th>
-                                    <th>Customer</th>
-                                    <th>Driver</th>
-                                    <th>Route</th>
-                                    <th>Distance</th>
-                                    <th>Fare</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="deliveriesTable">
-                                <!-- Filled by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
+                </div>
+                
+                <div class="table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Trip ID</th>
+                                <th>Customer</th>
+                                <th>Driver</th>
+                                <th>From → To</th>
+                                <th>Distance</th>
+                                <th>Fare</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tripsTable">
+                            <!-- Trips table will be loaded here -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
             
             <!-- Live Tracking Section -->
-            <section id="trackingSection" class="dashboard-section" style="display: none;">
-                <div class="dashboard-card">
-                    <h3>Live Driver Tracking</h3>
-                    <div class="map-container">
-                        <div id="trackingMap" style="height: 500px;"></div>
-                        <div class="map-controls">
-                            <button class="map-btn" onclick="refreshTracking()">
-                                <i class="fas fa-redo"></i>
-                            </button>
-                            <button class="map-btn" onclick="centerAllDrivers()">
-                                <i class="fas fa-expand"></i>
-                            </button>
-                            <button class="map-btn" onclick="toggleHeatmap()">
-                                <i class="fas fa-fire"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: 1.5rem;">
-                        <h4>Driver Details</h4>
-                        <div id="trackingDriverDetails">
-                            <!-- Filled by JavaScript -->
-                        </div>
-                    </div>
+            <section id="tracking" class="section" style="display: none;">
+                <div class="admin-header">
+                    <h1>Live GPS Tracking</h1>
+                    <button class="btn" onclick="centerAllDrivers()">
+                        <i class="fas fa-expand"></i> View All
+                    </button>
                 </div>
-            </section>
-            
-            <!-- Customers Section -->
-            <section id="customersSection" class="dashboard-section" style="display: none;">
-                <div class="dashboard-card">
-                    <h3>Customer Management</h3>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Customer ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Total Trips</th>
-                                    <th>Total Spent</th>
-                                    <th>Last Trip</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customersTable">
-                                <!-- Filled by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
+                
+                <div class="map-container">
+                    <div id="trackingMap" style="height: 500px;"></div>
                 </div>
-            </section>
-            
-            <!-- Reports Section -->
-            <section id="reportsSection" class="dashboard-section" style="display: none;">
-                <div class="dashboard-card">
-                    <h3>Analytics & Reports</h3>
-                    <div class="dashboard-grid">
-                        <div>
-                            <h4>Daily Revenue</h4>
-                            <canvas id="revenueChart" style="width: 100%; height: 300px;"></canvas>
-                        </div>
-                        <div>
-                            <h4>Delivery Status</h4>
-                            <canvas id="deliveryChart" style="width: 100%; height: 300px;"></canvas>
-                        </div>
+                
+                <div style="margin-top: 2rem;">
+                    <h3>Driver Details</h3>
+                    <div id="selectedDriverInfo" style="background: white; padding: 1.5rem; border-radius: 10px;">
+                        Select a driver on the map to view details
                     </div>
-                    
-                    <div style="margin-top: 2rem;">
-                        <h4>Generate Report</h4>
-                        <div style="display: flex; gap: 1rem; align-items: center;">
-                            <input type="date" id="reportStartDate" class="form-control" style="flex: 1;">
-                            <span>to</span>
-                            <input type="date" id="reportEndDate" class="form-control" style="flex: 1;">
-                            <button class="btn btn-primary" onclick="generateReport()">
-                                <i class="fas fa-file-export"></i> Generate
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Settings Section -->
-            <section id="settingsSection" class="dashboard-section" style="display: none;">
-                <div class="dashboard-card">
-                    <h3>System Settings</h3>
-                    <form id="settingsForm" onsubmit="saveSettings(event)">
-                        <div class="form-group">
-                            <label>Company Name</label>
-                            <input type="text" id="companyName" class="form-control" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Default Rate per km (R)</label>
-                            <input type="number" id="defaultRate" class="form-control" min="5" max="20" step="0.5" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Service Fee Percentage (%)</label>
-                            <input type="number" id="serviceFee" class="form-control" min="0" max="20" step="0.1" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Minimum Fare (R)</label>
-                            <input type="number" id="minimumFare" class="form-control" min="20" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Support Phone Number</label>
-                            <input type="tel" id="supportPhone" class="form-control" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Support Email</label>
-                            <input type="email" id="supportEmail" class="form-control" required>
-                        </div>
-                        
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Settings
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetSettings()">
-                                <i class="fas fa-undo"></i> Reset
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </section>
         </main>
     </div>
     
-    <!-- Modals -->
     <!-- Add Driver Modal -->
-    <div class="modal" id="addDriverModal">
+    <div id="addDriverModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add New Driver</h3>
-                <button class="close-modal" onclick="hideModal('addDriverModal')">&times;</button>
+            <h2>Add New Driver</h2>
+            
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="driverNameInput" class="form-control">
             </div>
-            <div class="modal-body">
-                <form id="addDriverForm" onsubmit="addDriver(event)">
-                    <div class="form-group">
-                        <label>Full Name *</label>
-                        <input type="text" id="driverName" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Email Address *</label>
-                        <input type="email" id="driverEmail" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Phone Number *</label>
-                        <input type="tel" id="driverPhone" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Vehicle Type *</label>
-                        <select id="vehicleType" class="form-control" required>
-                            <option value="">Select Vehicle</option>
-                            <option value="motorcycle">Motorcycle</option>
-                            <option value="car">Car</option>
-                            <option value="van">Van</option>
-                            <option value="bicycle">Bicycle</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Vehicle Details</label>
-                        <input type="text" id="vehicleDetails" class="form-control" placeholder="Make, Model, Color">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>License Plate *</label>
-                        <input type="text" id="licensePlate" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Rate per km (R) *</label>
-                        <select id="driverRate" class="form-control" required>
-                            <option value="5">R5/km (Economy)</option>
-                            <option value="10" selected>R10/km (Standard)</option>
-                            <option value="20">R20/km (Express)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="btn-group">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-user-plus"></i> Add Driver
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="hideModal('addDriverModal')">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+            
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="driverEmailInput" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="driverPhoneInput" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>Vehicle Type</label>
+                <select id="driverVehicleInput" class="form-control">
+                    <option value="motorcycle">Motorcycle</option>
+                    <option value="car">Car</option>
+                    <option value="van">Van</option>
+                    <option value="bicycle">Bicycle</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Vehicle Number</label>
+                <input type="text" id="driverVehicleNoInput" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>Rate per km</label>
+                <select id="driverRateInput" class="form-control">
+                    <option value="5">R5/km (Economy)</option>
+                    <option value="10" selected>R10/km (Standard)</option>
+                    <option value="20">R20/km (Express)</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn" onclick="saveDriver()" style="flex: 1;">
+                    <i class="fas fa-save"></i> Save Driver
+                </button>
+                <button class="btn" onclick="closeModal('addDriverModal')" style="background: #666; flex: 1;">
+                    Cancel
+                </button>
             </div>
         </div>
     </div>
-    
-    <!-- Driver Details Modal -->
-    <div class="modal" id="driverDetailsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Driver Details</h3>
-                <button class="close-modal" onclick="hideModal('driverDetailsModal')">&times;</button>
-            </div>
-            <div class="modal-body" id="driverDetailsContent">
-                <!-- Filled by JavaScript -->
-            </div>
-        </div>
-    </div>
-    
-    <!-- Delivery Details Modal -->
-    <div class="modal" id="deliveryDetailsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Delivery Details</h3>
-                <button class="close-modal" onclick="hideModal('deliveryDetailsModal')">&times;</button>
-            </div>
-            <div class="modal-body" id="deliveryDetailsContent">
-                <!-- Filled by JavaScript -->
-            </div>
-        </div>
-    </div>
-    
-    <!-- Notifications Modal -->
-    <div class="modal" id="notificationsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Notifications</h3>
-                <button class="close-modal" onclick="hideModal('notificationsModal')">&times;</button>
-            </div>
-            <div class="modal-body" id="notificationsList">
-                <!-- Filled by JavaScript -->
-            </div>
-        </div>
-    </div>
-    
-<!-- Scripts -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="./app.js"></script>
-<script src="./admin.js"></script>
 
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="app.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>
