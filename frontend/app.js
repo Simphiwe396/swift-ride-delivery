@@ -63,15 +63,11 @@ function initSocket() {
         });
         
         AppState.socket.on('new-trip', (data) => {
-            if (typeof showNotification === 'function') {
-                showNotification(`New trip: ${data.pickup?.address || 'Unknown'} to ${data.destination?.address || 'Unknown'}`, 'info');
-            }
+            showNotification(`New trip: ${data.pickup?.address || 'Unknown'} to ${data.destination?.address || 'Unknown'}`, 'info');
         });
         
         AppState.socket.on('trip-accepted', (data) => {
-            if (typeof showNotification === 'function') {
-                showNotification('Driver accepted your trip!', 'success');
-            }
+            showNotification('Driver accepted your trip!', 'success');
         });
         
         AppState.socket.on('trip-updated', (data) => {
@@ -96,11 +92,17 @@ function initSocket() {
 
 function initMap(elementId = 'map', center = APP_CONFIG.MAP_CENTER, zoom = APP_CONFIG.DEFAULT_ZOOM) {
     const mapElement = document.getElementById(elementId);
-    if (!mapElement) return null;
+    if (!mapElement) {
+        console.error('Map element not found:', elementId);
+        return null;
+    }
     
     try {
-        if (AppState.map) {
-            AppState.map.remove();
+        if (AppState.map && elementId !== 'map') {
+            const oldMap = AppState.map;
+            if (oldMap && oldMap.remove) {
+                oldMap.remove();
+            }
         }
         
         AppState.map = L.map(elementId).setView(center, zoom);
@@ -384,6 +386,7 @@ function requireLogin(userType = null, redirectTo = 'index.html') {
     return true;
 }
 
+// ===== MAKE ALL FUNCTIONS AVAILABLE GLOBALLY =====
 window.AppState = AppState;
 window.initMap = initMap;
 window.addMarker = addMarker;
@@ -402,3 +405,4 @@ window.logout = logout;
 window.getCurrentUser = getCurrentUser;
 window.isLoggedIn = isLoggedIn;
 window.requireLogin = requireLogin;
+window.updateDriverOnMap = updateDriverOnMap;

@@ -1,3 +1,5 @@
+// ===== DRIVER PAGE SPECIFIC FUNCTIONS =====
+
 let driverStatus = 'offline';
 let currentLocation = null;
 let watchId = null;
@@ -6,17 +8,19 @@ let activeTrip = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize driver dashboard
-    if (!AppState.user || AppState.user.type !== 'driver') {
+    if (!window.AppState || !window.AppState.user || window.AppState.user.type !== 'driver') {
         window.location.href = 'index.html';
         return;
     }
     
     // Update driver info
-    document.getElementById('driverName').textContent = AppState.user.name;
+    document.getElementById('driverName').textContent = window.AppState.user.name;
     updateStatusDisplay();
     
     // Initialize map
-    initMap('driverMap');
+    if (typeof window.initMap === 'function') {
+        window.initMap('driverMap');
+    }
     
     // Start tracking location
     startLocationTracking();
@@ -65,21 +69,27 @@ function goOnline() {
     driverStatus = 'online';
     updateStatusDisplay();
     updateLocationToServer();
-    showNotification('You are now online and visible to customers', 'success');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('You are now online and visible to customers', 'success');
+    }
 }
 
 function goBusy() {
     driverStatus = 'busy';
     updateStatusDisplay();
     updateLocationToServer();
-    showNotification('Status set to busy', 'info');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('Status set to busy', 'info');
+    }
 }
 
 function goOffline() {
     driverStatus = 'offline';
     updateStatusDisplay();
     updateLocationToServer();
-    showNotification('You are now offline', 'info');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('You are now offline', 'info');
+    }
 }
 
 function startLocationTracking() {
@@ -90,19 +100,23 @@ function startLocationTracking() {
                 currentLocation = { lat: latitude, lng: longitude };
                 
                 // Update marker on map
-                updateMarker('driver_location', [latitude, longitude]);
+                if (typeof window.updateMarker === 'function') {
+                    window.updateMarker('driver_location', [latitude, longitude]);
+                }
                 
                 // Update to server
                 updateLocationToServer();
                 
                 // Center map on location
-                if (AppState.map) {
-                    AppState.map.setView([latitude, longitude], 15);
+                if (window.AppState && window.AppState.map) {
+                    window.AppState.map.setView([latitude, longitude], 15);
                 }
             },
             (error) => {
                 console.error('Geolocation error:', error);
-                showNotification('Unable to get location: ' + error.message, 'error');
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification('Unable to get location: ' + error.message, 'error');
+                }
             },
             {
                 enableHighAccuracy: true,
@@ -111,15 +125,17 @@ function startLocationTracking() {
             }
         );
     } else {
-        showNotification('Geolocation is not supported by your browser', 'error');
+        if (typeof window.showNotification === 'function') {
+            window.showNotification('Geolocation is not supported by your browser', 'error');
+        }
     }
 }
 
 function updateLocationToServer() {
-    if (!currentLocation || !AppState.socket) return;
+    if (!currentLocation || !window.AppState || !window.AppState.socket) return;
     
-    AppState.socket.emit('driver-location', {
-        driverId: AppState.user.id,
+    window.AppState.socket.emit('driver-location', {
+        driverId: window.AppState.user.id,
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         status: driverStatus
@@ -127,8 +143,8 @@ function updateLocationToServer() {
 }
 
 function centerOnLocation() {
-    if (currentLocation && AppState.map) {
-        AppState.map.setView([currentLocation.lat, currentLocation.lng], 15);
+    if (currentLocation && window.AppState && window.AppState.map) {
+        window.AppState.map.setView([currentLocation.lat, currentLocation.lng], 15);
     }
 }
 
@@ -146,34 +162,36 @@ async function loadDriverData() {
 
 async function loadTripHistory() {
     try {
-        const trips = await getTripHistory(AppState.user.id, 'driver');
-        const tableBody = document.getElementById('driverTripHistory');
-        
-        // Show only last 50 trips
-        const recentTrips = trips.slice(0, 50);
-        
-        if (recentTrips.length === 0) {
-            tableBody.innerHTML = `
+        if (typeof window.getTripHistory === 'function') {
+            const trips = await window.getTripHistory(window.AppState.user.id, 'driver');
+            const tableBody = document.getElementById('driverTripHistory');
+            
+            // Show only last 50 trips
+            const recentTrips = trips.slice(0, 50);
+            
+            if (recentTrips.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                            No trip history yet
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = recentTrips.map(trip => `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
-                        No trip history yet
-                    </td>
+                    <td>${new Date(trip.createdAt).toLocaleDateString()}</td>
+                    <td>${trip.tripId?.substring(0, 8) || 'N/A'}</td>
+                    <td>${trip.pickup?.address?.substring(0, 15) || 'N/A'}...</td>
+                    <td>${trip.destination?.address?.substring(0, 15) || 'N/A'}...</td>
+                    <td>${trip.distance || 0} km</td>
+                    <td>R ${trip.fare?.toFixed(2) || '0.00'}</td>
+                    <td><span class="trip-status status-${trip.status}">${trip.status}</span></td>
                 </tr>
-            `;
-            return;
+            `).join('');
         }
-        
-        tableBody.innerHTML = recentTrips.map(trip => `
-            <tr>
-                <td>${new Date(trip.createdAt).toLocaleDateString()}</td>
-                <td>${trip.tripId?.substring(0, 8) || 'N/A'}</td>
-                <td>${trip.pickup?.address?.substring(0, 15) || 'N/A'}...</td>
-                <td>${trip.destination?.address?.substring(0, 15) || 'N/A'}...</td>
-                <td>${trip.distance || 0} km</td>
-                <td>R ${trip.fare?.toFixed(2) || '0.00'}</td>
-                <td><span class="trip-status status-${trip.status}">${trip.status}</span></td>
-            </tr>
-        `).join('');
     } catch (error) {
         console.error('Failed to load trip history:', error);
     }
@@ -181,13 +199,15 @@ async function loadTripHistory() {
 
 async function checkActiveTrip() {
     try {
-        const trips = await getTripHistory(AppState.user.id, 'driver');
-        activeTrip = trips.find(trip => 
-            ['accepted', 'in_progress', 'picked_up'].includes(trip.status)
-        );
-        
-        if (activeTrip) {
-            showActiveTrip();
+        if (typeof window.getTripHistory === 'function') {
+            const trips = await window.getTripHistory(window.AppState.user.id, 'driver');
+            activeTrip = trips.find(trip => 
+                ['accepted', 'in_progress', 'picked_up'].includes(trip.status)
+            );
+            
+            if (activeTrip) {
+                showActiveTrip();
+            }
         }
     } catch (error) {
         console.error('Failed to check active trip:', error);
@@ -224,38 +244,44 @@ function initCurrentTripMap() {
     if (!mapElement) return;
     
     // Remove existing map instance
-    if (AppState.map && mapElement._leaflet_id) {
-        AppState.map.remove();
+    if (window.AppState && window.AppState.map && mapElement._leaflet_id) {
+        window.AppState.map.remove();
     }
     
     // Initialize new map
-    initMap('currentTripMap');
+    if (typeof window.initMap === 'function') {
+        window.initMap('currentTripMap');
+    }
     
     if (activeTrip && activeTrip.pickup) {
         // Add pickup marker
-        addMarker('pickup', [activeTrip.pickup.lat, activeTrip.pickup.lng], {
-            title: 'Pickup',
-            icon: L.divIcon({
-                html: '<i class="fas fa-circle" style="color: green; font-size: 20px;"></i>',
-                className: 'pickup-marker'
-            })
-        });
+        if (typeof window.addMarker === 'function') {
+            window.addMarker('pickup', [activeTrip.pickup.lat, activeTrip.pickup.lng], {
+                title: 'Pickup',
+                icon: L.divIcon({
+                    html: '<i class="fas fa-circle" style="color: green; font-size: 20px;"></i>',
+                    className: 'pickup-marker'
+                })
+            });
+        }
     }
     
     if (activeTrip && activeTrip.destination) {
         // Add destination marker
-        addMarker('destination', [activeTrip.destination.lat, activeTrip.destination.lng], {
-            title: 'Destination',
-            icon: L.divIcon({
-                html: '<i class="fas fa-flag" style="color: red; font-size: 20px;"></i>',
-                className: 'destination-marker'
-            })
-        });
+        if (typeof window.addMarker === 'function') {
+            window.addMarker('destination', [activeTrip.destination.lat, activeTrip.destination.lng], {
+                title: 'Destination',
+                icon: L.divIcon({
+                    html: '<i class="fas fa-flag" style="color: red; font-size: 20px;"></i>',
+                    className: 'destination-marker'
+                })
+            });
+        }
     }
     
     // Add driver marker if location available
-    if (currentLocation) {
-        addMarker('driver', [currentLocation.lat, currentLocation.lng], {
+    if (currentLocation && typeof window.addMarker === 'function') {
+        window.addMarker('driver', [currentLocation.lat, currentLocation.lng], {
             title: 'You are here',
             icon: L.divIcon({
                 html: '<i class="fas fa-motorcycle" style="color: blue; font-size: 20px;"></i>',
@@ -265,26 +291,28 @@ function initCurrentTripMap() {
     }
     
     // Fit map to show all markers
-    const markers = Object.values(AppState.markers);
-    if (markers.length > 0) {
+    if (window.AppState && window.AppState.map && Object.keys(window.AppState.markers).length > 0) {
+        const markers = Object.values(window.AppState.markers);
         const group = new L.featureGroup(markers);
-        AppState.map.fitBounds(group.getBounds().pad(0.1));
+        window.AppState.map.fitBounds(group.getBounds().pad(0.1));
     }
 }
 
 function acceptTrip() {
     if (!pendingTrip) return;
     
-    AppState.socket.emit('accept-trip', {
+    window.AppState.socket.emit('accept-trip', {
         tripId: pendingTrip.tripId,
-        driverId: AppState.user.id
+        driverId: window.AppState.user.id
     });
     
     activeTrip = pendingTrip;
     pendingTrip = null;
     
     document.getElementById('newTripNotification').style.display = 'none';
-    showNotification('Trip accepted! Navigate to pickup location.', 'success');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('Trip accepted! Navigate to pickup location.', 'success');
+    }
     
     // Show current trip section
     showSection('current-trip');
@@ -296,13 +324,15 @@ function acceptTrip() {
 function declineTrip() {
     pendingTrip = null;
     document.getElementById('newTripNotification').style.display = 'none';
-    showNotification('Trip declined', 'info');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('Trip declined', 'info');
+    }
 }
 
 function markAsPickedUp() {
     if (!activeTrip) return;
     
-    AppState.socket.emit('update-trip', {
+    window.AppState.socket.emit('update-trip', {
         tripId: activeTrip._id,
         status: 'picked_up',
         location: currentLocation
@@ -310,13 +340,15 @@ function markAsPickedUp() {
     
     activeTrip.status = 'picked_up';
     showActiveTrip();
-    showNotification('Package picked up! Proceed to destination.', 'success');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('Package picked up! Proceed to destination.', 'success');
+    }
 }
 
 function markAsDelivered() {
     if (!activeTrip) return;
     
-    AppState.socket.emit('update-trip', {
+    window.AppState.socket.emit('update-trip', {
         tripId: activeTrip._id,
         status: 'completed',
         location: currentLocation
@@ -324,7 +356,9 @@ function markAsDelivered() {
     
     activeTrip.status = 'completed';
     showActiveTrip();
-    showNotification('Delivery completed! Payment received.', 'success');
+    if (typeof window.showNotification === 'function') {
+        window.showNotification('Delivery completed! Payment received.', 'success');
+    }
     
     // Update earnings
     const currentEarnings = parseFloat(document.getElementById('totalEarnings').textContent);
@@ -342,20 +376,22 @@ function cancelTrip() {
     if (!activeTrip) return;
     
     if (confirm('Are you sure you want to cancel this trip?')) {
-        AppState.socket.emit('update-trip', {
+        window.AppState.socket.emit('update-trip', {
             tripId: activeTrip._id,
             status: 'cancelled'
         });
         
         activeTrip = null;
-        showNotification('Trip cancelled', 'info');
+        if (typeof window.showNotification === 'function') {
+            window.showNotification('Trip cancelled', 'info');
+        }
         showSection('dashboard');
     }
 }
 
 // Socket event listeners
-if (AppState.socket) {
-    AppState.socket.on('new-trip', (data) => {
+if (window.AppState && window.AppState.socket) {
+    window.AppState.socket.on('new-trip', (data) => {
         pendingTrip = data;
         
         document.getElementById('tripPickup').textContent = data.pickup?.address || 'Unknown';
@@ -365,10 +401,12 @@ if (AppState.socket) {
         document.getElementById('newTripNotification').style.display = 'block';
         
         // Show notification sound/alert
-        showNotification('New trip request received!', 'success');
+        if (typeof window.showNotification === 'function') {
+            window.showNotification('New trip request received!', 'success');
+        }
     });
     
-    AppState.socket.on('trip-updated', (data) => {
+    window.AppState.socket.on('trip-updated', (data) => {
         if (activeTrip && activeTrip._id === data.tripId) {
             activeTrip = data.trip;
             showActiveTrip();
@@ -383,9 +421,9 @@ window.addEventListener('beforeunload', () => {
     }
     
     // Mark driver as offline
-    if (AppState.socket) {
-        AppState.socket.emit('driver-location', {
-            driverId: AppState.user.id,
+    if (window.AppState && window.AppState.socket) {
+        window.AppState.socket.emit('driver-location', {
+            driverId: window.AppState.user.id,
             status: 'offline'
         });
     }

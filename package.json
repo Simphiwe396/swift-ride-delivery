@@ -1,0 +1,9 @@
+{
+  "name": "swiftride",
+  "version": "1.0.0",
+  "description": "SwiftRide Delivery Application",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev"
+  }
+}

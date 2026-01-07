@@ -4,143 +4,332 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwiftRide - Premium Delivery Service</title>
-    <link rel="stylesheet" href="styles.css">
+    
+    <!-- PWA Configuration -->
+    <meta name="application-name" content="SwiftRide">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#6C63FF">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
+    <link rel="manifest" href="./site.webmanifest">
+    <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
+
+    <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icons/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./styles.css">
+    
+    <!-- Map Preview CSS -->
     <style>
-        .hero {
-            background: linear-gradient(135deg, #6C63FF, #4A43C8);
-            color: white;
-            padding: 4rem 2rem;
-            text-align: center;
-        }
-        
-        .user-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin: 3rem auto;
-            max-width: 800px;
-        }
-        
-        .user-card {
-            background: white;
-            border-radius: 15px;
-            padding: 2rem;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: transform 0.3s;
-        }
-        
-        .user-card:hover {
-            transform: translateY(-10px);
-        }
-        
-        .user-card i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        
-        .customer { color: #4CAF50; }
-        .driver { color: #2196F3; }
-        .admin { color: #9C27B0; }
+    /* Ensure map container has proper dimensions */
+    #previewMap {
+        height: 400px !important;
+        width: 100% !important;
+        min-height: 400px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Clear any existing map */
+    #previewMap.leaflet-container {
+        height: 400px !important;
+    }
     </style>
 </head>
-<body>
-    <div class="loading-screen" id="loadingScreen">
+<body data-page="home">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
         <h2>SwiftRide Delivery</h2>
+        <p>Loading your experience...</p>
     </div>
     
-    <nav class="navbar">
-        <div class="logo">
-            <i class="fas fa-bolt"></i>
-            <span>SwiftRide</span>
-        </div>
-        <div class="nav-links">
-            <a href="#home">Home</a>
-            <a href="#features">Features</a>
-            <a href="#pricing">Pricing</a>
-        </div>
-    </nav>
-    
-    <section class="hero" id="home">
-        <h1>Delivery in Minutes, Not Hours</h1>
-        <p>Track your packages in real-time with our premium delivery service</p>
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+                <h1>SwiftRide</h1>
+            </div>
+<nav class="main-nav">
+    <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+    <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
+    <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
+    <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
+</nav>
+        </header>
         
-        <div class="user-cards">
-            <div class="user-card customer" onclick="loginAs('customer')">
-                <i class="fas fa-shopping-bag"></i>
-                <h3>Customer</h3>
-                <p>Send packages instantly</p>
-                <button class="btn">Enter as Customer</button>
-            </div>
-            
-            <div class="user-card driver" onclick="loginAs('driver')">
-                <i class="fas fa-motorcycle"></i>
-                <h3>Driver</h3>
-                <p>Earn money delivering</p>
-                <button class="btn">Enter as Driver</button>
-            </div>
-            
-            <div class="user-card admin" onclick="loginAs('admin')">
-                <i class="fas fa-chart-line"></i>
-                <h3>Admin</h3>
-                <p>Manage deliveries</p>
-                <button class="btn">Enter as Admin</button>
-            </div>
-        </div>
-    </section>
-    
-    <section id="features" style="padding: 4rem 2rem; text-align: center;">
-        <h2>Why Choose SwiftRide?</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 3rem;">
-            <div class="feature">
-                <i class="fas fa-map-marked-alt" style="font-size: 2.5rem; color: #6C63FF;"></i>
-                <h3>Real-Time Tracking</h3>
-                <p>Watch your delivery move on live map</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-bolt" style="font-size: 2.5rem; color: #6C63FF;"></i>
-                <h3>Fast Delivery</h3>
-                <p>Average delivery time: 30 minutes</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-money-bill-wave" style="font-size: 2.5rem; color: #6C63FF;"></i>
-                <h3>Affordable Rates</h3>
-                <p>From R5/km with no hidden fees</p>
-            </div>
-        </div>
-    </section>
-    
-    <footer style="background: #333; color: white; padding: 2rem; text-align: center;">
-        <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
-    </footer>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Hero Section -->
+            <section id="home" class="hero-section">
+                <div class="hero-content">
+                    <h2>Delivery in Minutes, Not Hours</h2>
+                    <p>Track your packages in real-time with our premium delivery service</p>
+                    
+                    <!-- User Type Selection -->
+<div class="user-type-selector">
+    <div class="user-card" onclick="window.loginAs('customer')">
+        <i class="fas fa-shopping-bag"></i>
+        <h3>Customer</h3>
+        <p>Send packages</p>
+    </div>
+    <div class="user-card" onclick="window.loginAs('driver')">
+        <i class="fas fa-motorcycle"></i>
+        <h3>Driver</h3>
+        <p>Earn money</p>
+    </div>
+    <div class="user-card" onclick="window.loginAs('admin')">
+        <i class="fas fa-chart-line"></i>
+        <h3>Business</h3>
+        <p>Manage deliveries</p>
+    </div>
+</div>
 
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js"></script>
-    <script>
-        function loginAs(userType) {
-            localStorage.setItem('userType', userType);
-            localStorage.setItem('user', JSON.stringify({
-                id: `${userType}_${Date.now()}`,
-                name: `Test ${userType}`,
-                email: `${userType}@test.com`,
-                type: userType
-            }));
+
+<!-- ADD THIS AFTER THE USER TYPE SELECTOR (temporary for testing) -->
+<div style="margin: 20px auto; text-align: center; background: #f0f0f0; padding: 15px; border-radius: 10px; max-width: 500px;">
+    <h3 style="color: #666;">🛠️ TEST LOGINS (Temporary)</h3>
+    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+        <button onclick="window.loginAs('admin')" style="padding: 10px 20px; background: #9C27B0; color: white; border: none; border-radius: 5px;">
+            Login as Admin
+        </button>
+        <button onclick="window.loginAs('driver')" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 5px;">
+            Login as Driver
+        </button>
+        <button onclick="window.loginAs('customer')" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
+            Login as Customer
+        </button>
+        <button onclick="window.logout()" style="padding: 10px 20px; background: #F44336; color: white; border: none; border-radius: 5px;">
+            Logout
+        </button>
+    </div>
+</div>
+                    </div>
+                </div>
+                
+                <!-- Map Preview -->
+                <div class="map-preview">
+                    <div id="previewMap"></div>
+                </div>
+            </section>
             
-            window.location.href = userType + '.html';
+            <!-- Features Section -->
+            <section class="features-section">
+                <h2>Why Choose SwiftRide?</h2>
+                <div class="features-grid">
+                    <div class="feature">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <h3>Real-Time Tracking</h3>
+                        <p>Watch your delivery move on live map</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Fast Delivery</h3>
+                        <p>Average delivery time: 30 minutes</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Secure & Safe</h3>
+                        <p>All drivers verified and insured</p>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <h3>Affordable Rates</h3>
+                        <p>From R5/km with no hidden fees</p>
+                    </div>
+                </div>
+            </section>
+            
+<!-- Recent Tracking History Section -->
+<section id="tracking" class="tracking-history-section">
+    <h2>Recent Driver Tracking</h2>
+    <p class="section-subtitle">Track recent driver deliveries and status</p>
+    
+    <div class="tracking-history-container" id="trackingHistory">
+        <!-- Tracking history cards will be loaded here -->
+        <div class="loading-trackings">
+            <div class="loader"></div>
+            <p>Loading tracking history...</p>
+        </div>
+    </div>
+    
+    <div class="view-all-container">
+        <button class="view-all-btn" onclick="window.location.href='admin.html'">
+            <i class="fas fa-chart-line"></i> View All Trackings
+        </button>
+    </div>
+
+<!-- TEST BUTTONS (Add somewhere visible) -->
+<div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+    <strong>🛠️ DEBUG BUTTONS</strong><br>
+    <button onclick="window.loginAs('customer')" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Customer</button><br>
+    <button onclick="window.loginAs('driver')" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Driver</button><br>
+    <button onclick="window.loginAs('admin')" style="background: #9C27B0; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Admin</button><br>
+    <button onclick="window.logout()" style="background: #F44336; color: white; border: none; padding: 5px 10px; margin: 2px;">Logout</button>
+</div>
+
+    <!-- Load app.js after everything is ready -->
+    <script src="./app.js" defer></script>
+
+<script>
+    function testLogin(userType) {
+        const testUser = {
+            _id: 'test123',
+            name: 'Test ' + userType,
+            email: 'test@example.com',
+            userType: userType
+        };
+        
+        localStorage.setItem('swiftride_user', JSON.stringify(testUser));
+        
+        window.AppState.token = 'test-token-123';
+        window.AppState.user = testUser;
+        
+        alert('Logged in as ' + userType + '!\nRedirecting to ' + userType + '.html');
+        window.location.href = userType + '.html';
+    }
+</script>
+
+</section>
+            
+            <!-- CTA Section -->
+            <section class="cta-section">
+                <h2>Ready to Deliver?</h2>
+                <p>Join thousands of satisfied customers and drivers</p>
+                <div class="cta-buttons">
+                    <button class="cta-btn primary" onclick="window.location.href='customer.html'">
+                        <i class="fas fa-box"></i> Send a Package
+                    </button>
+                    <button class="cta-btn secondary" onclick="window.location.href='driver.html'">
+                        <i class="fas fa-motorcycle"></i> Become a Driver
+                    </button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>SwiftRide</h4>
+                    <p>Premium delivery service for businesses and individuals</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Download</h4>
+                    <button class="install-btn" onclick="installPWA()">
+                        <i class="fas fa-download"></i> Install App
+                    </button>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
+            });
         }
         
-        // Hide loading screen
-        setTimeout(() => {
-            document.getElementById('loadingScreen').style.display = 'none';
-        }, 1500);
+        // Rate selection function
+        function selectRate(rate) {
+            localStorage.setItem('selectedRate', rate);
+            window.location.href = 'customer.html';
+        }
+        
+        // PWA Installation
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install button if hidden
+            const installBtn = document.querySelector('.install-btn');
+            if (installBtn) {
+                installBtn.style.display = 'flex';
+            }
+        });
+        
+        function installPWA() {
+            if (!deferredPrompt) {
+                alert('PWA installation not available in this browser.');
+                return;
+            }
+            
+            deferredPrompt.prompt();
+            
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                } else {
+                    console.log('User dismissed the install prompt');
+                }
+                deferredPrompt = null;
+            });
+        }
     </script>
+<script>
+    // Debug all buttons
+    document.addEventListener('click', function(e) {
+        const button = e.target.closest('button');
+        if (button) {
+            console.log('🔄 BUTTON CLICKED:', button.textContent, button.onclick);
+            
+            // Check if it's a redirect button
+            if (button.onclick && button.onclick.toString().includes('redirectTo')) {
+                console.log('📤 REDIRECT BUTTON DETECTED');
+                e.preventDefault();
+                
+                const match = button.onclick.toString().match(/redirectTo\('([^']+)'\)/);
+                if (match) {
+                    const page = match[1];
+                    console.log('🎯 Redirecting to:', page);
+                    setTimeout(() => {
+                        window.location.href = page + '.html';
+                    }, 100);
+                }
+            }
+        }
+    });
+    
+    // Debug user type buttons
+    document.querySelectorAll('.user-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const page = this.getAttribute('onclick')?.match(/loginAs\('([^']+)'\)/)?.[1];
+            console.log('👤 User type selected:', page);
+            localStorage.setItem('debug_page', page);
+        });
+    });
+</script>    
+
 </body>
 </html>
