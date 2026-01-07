@@ -1,14 +1,14 @@
 // ===== GLOBAL APP CONFIGURATION =====
 const APP_CONFIG = {
-    API_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:10000/api'
-        : '/api',
+    // CRITICAL FIX: Updated API URL for Render deployment
+    API_URL: 'https://swift-ride.onrender.com/api',
+    
     // Updated warehouse location: 5 Zaria Cres, Birchleigh North, Kempton Park
     MAP_CENTER: [-26.0748, 28.2104],
     DEFAULT_ZOOM: 14,
-    SOCKET_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:10000'
-        : window.location.origin
+    
+    // CRITICAL FIX: Updated Socket URL for Render
+    SOCKET_URL: 'https://swift-ride.onrender.com'
 };
 
 let AppState = {
@@ -53,16 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSocket() {
     try {
         console.log('🔌 Initializing socket connection...');
+        console.log('🌐 Connecting to:', APP_CONFIG.SOCKET_URL);
         
         AppState.socket = io(APP_CONFIG.SOCKET_URL, {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionAttempts: 5,
-            reconnectionDelay: 1000
+            reconnectionDelay: 1000,
+            timeout: 10000
         });
         
         AppState.socket.on('connect', () => {
-            console.log('✅ Socket.io connected');
+            console.log('✅ Socket.io connected successfully');
             AppState.connected = true;
             
             if (AppState.user) {
@@ -107,6 +109,11 @@ function initSocket() {
             showNotification('Connection lost. Reconnecting...', 'warning');
         });
         
+        AppState.socket.on('disconnect', (reason) => {
+            console.log('🔌 Socket disconnected:', reason);
+            AppState.connected = false;
+        });
+        
     } catch (error) {
         console.error('❌ Failed to initialize socket:', error);
     }
@@ -138,7 +145,7 @@ function initMap(elementId = 'map', center = APP_CONFIG.MAP_CENTER, zoom = APP_C
         console.log('✅ Map created successfully');
         
         // Add warehouse marker for warehouse location
-        if (elementId === 'adminMap' || elementId === 'trackingMap') {
+        if (elementId === 'adminMap' || elementId === 'trackingMap' || elementId === 'driverMap') {
             L.marker(APP_CONFIG.MAP_CENTER).addTo(AppState.map)
                 .bindPopup('<strong>TV Stands Warehouse</strong><br>5 Zaria Cres, Birchleigh North')
                 .openPopup();

@@ -7,22 +7,40 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
+// ===== CRITICAL FIX: Updated CORS and Socket.io Configuration =====
 const io = socketIo(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: [
+            "https://swift-ride-frontend.onrender.com", // Your frontend
+            "https://swift-ride.onrender.com",          // Your backend (if serving frontend)
+            "http://localhost:3000",                    // For local testing
+            "http://localhost:10000"                    // For local testing
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
     },
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        "https://swift-ride-frontend.onrender.com",
+        "https://swift-ride.onrender.com",
+        "http://localhost:3000",
+        "http://localhost:10000"
+    ],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swiftride';
-console.log('Connecting to MongoDB:', MONGODB_URI.replace(/\/\/.*@/, '//***@'));
+console.log('Connecting to MongoDB...');
 
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
@@ -57,13 +75,13 @@ const tripSchema = new mongoose.Schema({
     driverName: String,
     pickup: { 
         address: String, 
-        lat: { type: Number, default: -26.195246 },
-        lng: { type: Number, default: 28.034088 }
+        lat: { type: Number, default: -26.0748 },
+        lng: { type: Number, default: 28.2104 }
     },
     destination: { 
         address: String, 
-        lat: { type: Number, default: -26.195246 },
-        lng: { type: Number, default: 28.034088 }
+        lat: { type: Number, default: -26.0748 },
+        lng: { type: Number, default: 28.2104 }
     },
     distance: { type: Number, default: 0 },
     fare: { type: Number, default: 0 },
@@ -79,9 +97,9 @@ const Trip = mongoose.model('Trip', tripSchema);
 
 // Mock data fallback
 let mockDrivers = [
-    { _id: 'driver1', name: 'John Driver', status: 'available', currentLocation: { lat: -26.195246, lng: 28.034088 }, vehicleType: 'van', phone: '0821112222' },
-    { _id: 'driver2', name: 'Mike Rider', status: 'available', currentLocation: { lat: -26.205246, lng: 28.044088 }, vehicleType: 'truck', phone: '0823334444' },
-    { _id: 'driver3', name: 'David Biker', status: 'busy', currentLocation: { lat: -26.185246, lng: 28.024088 }, vehicleType: 'motorcycle', phone: '0825556666' }
+    { _id: 'driver1', name: 'John Driver', status: 'available', currentLocation: { lat: -26.0748, lng: 28.2204 }, vehicleType: 'van', phone: '0821112222' },
+    { _id: 'driver2', name: 'Mike Rider', status: 'available', currentLocation: { lat: -26.0848, lng: 28.2004 }, vehicleType: 'truck', phone: '0823334444' },
+    { _id: 'driver3', name: 'David Biker', status: 'busy', currentLocation: { lat: -26.0648, lng: 28.1904 }, vehicleType: 'motorcycle', phone: '0825556666' }
 ];
 
 let mockTrips = [
@@ -90,10 +108,10 @@ let mockTrips = [
         tripId: 'TRIP001',
         customerName: 'TV Stands Customer', 
         driverName: 'John Driver',
-        pickup: { address: 'Warehouse 1, Johannesburg', lat: -26.195246, lng: 28.034088 },
+        pickup: { address: '5 Zaria Cres, Birchleigh North, Kempton Park', lat: -26.0748, lng: 28.2104 },
         destination: { address: 'Mall of Africa, Midrand', lat: -26.005246, lng: 28.124088 },
         distance: 25,
-        fare: 250,
+        fare: 500,
         status: 'completed',
         createdAt: new Date()
     },
@@ -102,10 +120,10 @@ let mockTrips = [
         tripId: 'TRIP002',
         customerName: 'Office Supplies Co', 
         driverName: 'Mike Rider',
-        pickup: { address: 'Factory District, Pretoria', lat: -25.745246, lng: 28.184088 },
+        pickup: { address: '5 Zaria Cres, Birchleigh North, Kempton Park', lat: -26.0748, lng: 28.2104 },
         destination: { address: 'Business Park, Sandton', lat: -26.105246, lng: 28.054088 },
         distance: 35,
-        fare: 350,
+        fare: 700,
         status: 'in_progress',
         createdAt: new Date()
     }
@@ -163,22 +181,22 @@ io.on('connection', (socket) => {
     
     socket.on('request-trip', async (data) => {
         console.log('📦 New trip request:', data);
-        const { customerId, pickup, destination, distance, customerName, rate = 10, packageDescription } = data;
-        const fare = Math.max(50, distance * rate); // R50 minimum for TV stands
+        const { customerId, pickup, destination, distance, customerName, rate = 20, packageDescription } = data;
+        const fare = Math.max(200, distance * rate); // R200 minimum for TV stands
         
         try {
             const trip = new Trip({
                 customerId,
                 customerName: customerName || 'TV Stands Customer',
                 pickup: {
-                    address: pickup.address || 'TV Stands Warehouse',
-                    lat: pickup.lat || -26.195246,
-                    lng: pickup.lng || 28.034088
+                    address: pickup.address || '5 Zaria Cres, Birchleigh North, Kempton Park',
+                    lat: pickup.lat || -26.0748,
+                    lng: pickup.lng || 28.2104
                 },
                 destination: {
                     address: destination.address || 'Customer Location',
-                    lat: destination.lat || -26.195246,
-                    lng: destination.lng || 28.034088
+                    lat: destination.lat || -26.0748,
+                    lng: destination.lng || 28.2104
                 },
                 distance: distance || 10,
                 fare: fare,
@@ -195,7 +213,7 @@ io.on('connection', (socket) => {
                 const driverSocket = connectedDrivers.get(driver._id.toString());
                 if (driverSocket) {
                     io.to(driverSocket.socketId).emit('new-trip', {
-                        tripId: trip._id,
+                        _id: trip._id,
                         tripId: trip.tripId,
                         pickup: trip.pickup,
                         destination: trip.destination,
@@ -330,6 +348,8 @@ app.get('/api/status', (req, res) => {
     res.json({ 
         status: 'online', 
         message: 'SwiftRide TV Stands Delivery API',
+        version: '1.0.0',
+        warehouse: '5 Zaria Cres, Birchleigh North, Kempton Park',
         connectedUsers: connectedUsers.size,
         connectedDrivers: connectedDrivers.size,
         timestamp: new Date() 

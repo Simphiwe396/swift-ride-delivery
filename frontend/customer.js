@@ -109,7 +109,10 @@ function showSection(sectionId) {
     }
     
     // Add active class to clicked menu item
-    event.target.closest('li').classList.add('active');
+    const clickedItem = event.target.closest('li');
+    if (clickedItem) {
+        clickedItem.classList.add('active');
+    }
     
     // If showing track delivery and have active trip, update it
     if (sectionId === 'track-delivery' && currentTrip) {
@@ -126,7 +129,10 @@ function selectRate(rate) {
     document.querySelectorAll('.rate-option').forEach(option => {
         option.classList.remove('selected');
     });
-    event.target.closest('.rate-option').classList.add('selected');
+    const clickedOption = event.target.closest('.rate-option');
+    if (clickedOption) {
+        clickedOption.classList.add('selected');
+    }
     
     // Update fare estimate
     updateFareEstimate();
@@ -355,16 +361,21 @@ function setupAddressAutocomplete() {
     const pickupInput = document.getElementById('pickupAddress');
     const destInput = document.getElementById('destinationAddress');
     
+    // FIXED: Make pickup address editable
     if (pickupInput) {
+        // Option 1: Keep warehouse address but allow editing
         pickupInput.value = '5 Zaria Cres, Birchleigh North, Kempton Park';
-        pickupInput.readOnly = true;
+        pickupInput.readOnly = false; // Allow editing
+        pickupInput.placeholder = 'Enter pickup address';
+        
+        // Option 2: Make it blank for customers to enter their own address
+        // pickupInput.placeholder = 'Enter your pickup address (e.g., home or office)';
+        // pickupInput.value = ''; // Empty field
     }
     
-    [destInput].forEach(input => {
-        if (input) {
-            input.addEventListener('input', updateFareEstimate);
-        }
-    });
+    if (destInput) {
+        destInput.addEventListener('input', updateFareEstimate);
+    }
 }
 
 // Listen for trip updates
