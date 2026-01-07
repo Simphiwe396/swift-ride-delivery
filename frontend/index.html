@@ -63,7 +63,6 @@
             </div>
 <nav class="main-nav">
     <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-    <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
     <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
     <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
 </nav>
@@ -74,47 +73,28 @@
             <!-- Hero Section -->
             <section id="home" class="hero-section">
                 <div class="hero-content">
-                    <h2>Delivery in Minutes, Not Hours</h2>
-                    <p>Track your packages in real-time with our premium delivery service</p>
+                    <h2>Track Your TV Stand Deliveries in Real-Time</h2>
+                    <p>Professional delivery service for your TV stands business</p>
                     
                     <!-- User Type Selection -->
 <div class="user-type-selector">
-    <div class="user-card" onclick="window.loginAs('customer')">
+    <div class="user-card" onclick="loginAs('customer')">
         <i class="fas fa-shopping-bag"></i>
         <h3>Customer</h3>
-        <p>Send packages</p>
+        <p>Track deliveries</p>
     </div>
-    <div class="user-card" onclick="window.loginAs('driver')">
+    <div class="user-card" onclick="loginAs('driver')">
         <i class="fas fa-motorcycle"></i>
         <h3>Driver</h3>
-        <p>Earn money</p>
+        <p>Deliver orders</p>
     </div>
-    <div class="user-card" onclick="window.loginAs('admin')">
+    <div class="user-card" onclick="loginAs('admin')">
         <i class="fas fa-chart-line"></i>
-        <h3>Business</h3>
+        <h3>Business Owner</h3>
         <p>Manage deliveries</p>
     </div>
 </div>
 
-
-<!-- ADD THIS AFTER THE USER TYPE SELECTOR (temporary for testing) -->
-<div style="margin: 20px auto; text-align: center; background: #f0f0f0; padding: 15px; border-radius: 10px; max-width: 500px;">
-    <h3 style="color: #666;">🛠️ TEST LOGINS (Temporary)</h3>
-    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-        <button onclick="window.loginAs('admin')" style="padding: 10px 20px; background: #9C27B0; color: white; border: none; border-radius: 5px;">
-            Login as Admin
-        </button>
-        <button onclick="window.loginAs('driver')" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 5px;">
-            Login as Driver
-        </button>
-        <button onclick="window.loginAs('customer')" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px;">
-            Login as Customer
-        </button>
-        <button onclick="window.logout()" style="padding: 10px 20px; background: #F44336; color: white; border: none; border-radius: 5px;">
-            Logout
-        </button>
-    </div>
-</div>
                     </div>
                 </div>
                 
@@ -131,12 +111,12 @@
                     <div class="feature">
                         <i class="fas fa-map-marked-alt"></i>
                         <h3>Real-Time Tracking</h3>
-                        <p>Watch your delivery move on live map</p>
+                        <p>Watch your TV stands move on live map</p>
                     </div>
                     <div class="feature">
                         <i class="fas fa-bolt"></i>
                         <h3>Fast Delivery</h3>
-                        <p>Average delivery time: 30 minutes</p>
+                        <p>Average delivery time: 2-4 hours</p>
                     </div>
                     <div class="feature">
                         <i class="fas fa-shield-alt"></i>
@@ -146,7 +126,7 @@
                     <div class="feature">
                         <i class="fas fa-money-bill-wave"></i>
                         <h3>Affordable Rates</h3>
-                        <p>From R5/km with no hidden fees</p>
+                        <p>From R50 per delivery with no hidden fees</p>
                     </div>
                 </div>
             </section>
@@ -169,50 +149,18 @@
             <i class="fas fa-chart-line"></i> View All Trackings
         </button>
     </div>
-
-<!-- TEST BUTTONS (Add somewhere visible) -->
-<div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
-    <strong>🛠️ DEBUG BUTTONS</strong><br>
-    <button onclick="window.loginAs('customer')" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Customer</button><br>
-    <button onclick="window.loginAs('driver')" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Driver</button><br>
-    <button onclick="window.loginAs('admin')" style="background: #9C27B0; color: white; border: none; padding: 5px 10px; margin: 2px;">Login as Admin</button><br>
-    <button onclick="window.logout()" style="background: #F44336; color: white; border: none; padding: 5px 10px; margin: 2px;">Logout</button>
-</div>
-
-    <!-- Load app.js after everything is ready -->
-    <script src="./app.js" defer></script>
-
-<script>
-    function testLogin(userType) {
-        const testUser = {
-            _id: 'test123',
-            name: 'Test ' + userType,
-            email: 'test@example.com',
-            userType: userType
-        };
-        
-        localStorage.setItem('swiftride_user', JSON.stringify(testUser));
-        
-        window.AppState.token = 'test-token-123';
-        window.AppState.user = testUser;
-        
-        alert('Logged in as ' + userType + '!\nRedirecting to ' + userType + '.html');
-        window.location.href = userType + '.html';
-    }
-</script>
-
 </section>
             
             <!-- CTA Section -->
             <section class="cta-section">
-                <h2>Ready to Deliver?</h2>
+                <h2>Ready to Track Your Deliveries?</h2>
                 <p>Join thousands of satisfied customers and drivers</p>
                 <div class="cta-buttons">
-                    <button class="cta-btn primary" onclick="window.location.href='customer.html'">
-                        <i class="fas fa-box"></i> Send a Package
+                    <button class="cta-btn primary" onclick="loginAs('customer')">
+                        <i class="fas fa-box"></i> Track a Delivery
                     </button>
-                    <button class="cta-btn secondary" onclick="window.location.href='driver.html'">
-                        <i class="fas fa-motorcycle"></i> Become a Driver
+                    <button class="cta-btn secondary" onclick="loginAs('driver')">
+                        <i class="fas fa-motorcycle"></i> Driver Login
                     </button>
                 </div>
             </section>
@@ -222,14 +170,14 @@
         <footer class="app-footer">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4>SwiftRide</h4>
-                    <p>Premium delivery service for businesses and individuals</p>
+                    <h4>SwiftRide TV Stands Delivery</h4>
+                    <p>Professional delivery service for TV stands business</p>
                 </div>
 
                 <div class="footer-section">
-                    <h4>Download</h4>
-                    <button class="install-btn" onclick="installPWA()">
-                        <i class="fas fa-download"></i> Install App
+                    <h4>Quick Access</h4>
+                    <button class="install-btn" onclick="loginAs('admin')">
+                        <i class="fas fa-user-shield"></i> Business Owner
                     </button>
                 </div>
             </div>
@@ -296,40 +244,30 @@
                 deferredPrompt = null;
             });
         }
-    </script>
-<script>
-    // Debug all buttons
-    document.addEventListener('click', function(e) {
-        const button = e.target.closest('button');
-        if (button) {
-            console.log('🔄 BUTTON CLICKED:', button.textContent, button.onclick);
-            
-            // Check if it's a redirect button
-            if (button.onclick && button.onclick.toString().includes('redirectTo')) {
-                console.log('📤 REDIRECT BUTTON DETECTED');
-                e.preventDefault();
+        
+        // Initialize map on homepage
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the map for preview
+            if (typeof L !== 'undefined') {
+                const previewMap = L.map('previewMap').setView([-26.195246, 28.034088], 13);
                 
-                const match = button.onclick.toString().match(/redirectTo\('([^']+)'\)/);
-                if (match) {
-                    const page = match[1];
-                    console.log('🎯 Redirecting to:', page);
-                    setTimeout(() => {
-                        window.location.href = page + '.html';
-                    }, 100);
-                }
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(previewMap);
+                
+                // Add some sample markers
+                L.marker([-26.195246, 28.034088]).addTo(previewMap)
+                    .bindPopup('TV Stands Warehouse')
+                    .openPopup();
+                    
+                L.marker([-26.205246, 28.044088]).addTo(previewMap)
+                    .bindPopup('Delivery in Progress');
+                    
+                L.marker([-26.185246, 28.024088]).addTo(previewMap)
+                    .bindPopup('Completed Delivery');
             }
-        }
-    });
-    
-    // Debug user type buttons
-    document.querySelectorAll('.user-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const page = this.getAttribute('onclick')?.match(/loginAs\('([^']+)'\)/)?.[1];
-            console.log('👤 User type selected:', page);
-            localStorage.setItem('debug_page', page);
         });
-    });
-</script>    
-
+    </script>   
 </body>
 </html>

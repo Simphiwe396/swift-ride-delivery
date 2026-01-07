@@ -1,44 +1,132 @@
-const APP_CONFIG = {
-    API_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:10000/api'
-        : '/api',
-    MAP_CENTER: [-26.195246, 28.034088],
-    DEFAULT_ZOOM: 13
-};
+// ===== GLOBAL APP CONFIGURATION =====
+if (typeof APP_CONFIG === 'undefined') {
+    const APP_CONFIG = {
+        API_URL: window.location.hostname === 'localhost' 
+            ? 'http://localhost:10000/api'
+            : '/api',
+        MAP_CENTER: [-26.195246, 28.034088],
+        DEFAULT_ZOOM: 13,
+        SOCKET_URL: window.location.hostname === 'localhost' 
+            ? 'http://localhost:10000'
+            : window.location.origin
+    };
+    window.APP_CONFIG = APP_CONFIG;
+}
 
 let AppState = {
     user: null,
     socket: null,
     map: null,
     markers: {},
-    connected: false
+    connected: false,
+    currentPage: 'home'
 };
 
+// ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 SwiftRide App Initializing...');
+    
     const userData = localStorage.getItem('swiftride_user');
     if (userData) {
         try {
             AppState.user = JSON.parse(userData);
+            console.log('✅ User found:', AppState.user.name);
         } catch (e) {
-            console.error('Failed to parse user data');
+            console.error('❌ Failed to parse user data');
+            localStorage.removeItem('swiftride_user');
         }
+    } else {
+        console.log('🔒 No user logged in');
     }
     
-    initSocket();
+    // Get current page
+    const body = document.body;
+    AppState.currentPage = body.getAttribute('data-page') || 'home';
     
+    // Initialize based on page
+    initializePage();
+    
+    // Hide loading screen
     setTimeout(() => {
         const loadingScreen = document.getElementById('loadingScreen');
-        if (loadingScreen) loadingScreen.style.display = 'none';
-    }, 1000);
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
+        }
+    }, 1500);
 });
 
+function initializePage() {
+    console.log(`Initializing page: ${AppState.currentPage}`);
+    
+    switch(AppState.currentPage) {
+        case 'home':
+            initHomePage();
+            break;
+        case 'customer':
+            if (!requireLogin('customer', 'index.html')) return;
+            break;
+        case 'driver':
+            if (!requireLogin('driver', 'index.html')) return;
+            break;
+        case 'admin':
+            if (!requireLogin('admin', 'index.html')) return;
+            break;
+    }
+    
+    // Initialize socket for all authenticated pages
+    if (AppState.user && AppState.user.type) {
+        initSocket();
+    }
+}
+
+function initHomePage() {
+    console.log('Initializing home page...');
+    
+    // If user is logged in, show appropriate page
+    if (AppState.user && AppState.user.type) {
+        console.log(`Redirecting ${AppState.user.type} to their dashboard`);
+        setTimeout(() => {
+            window.location.href = `${AppState.user.type}.html`;
+        }, 500);
+        return;
+    }
+    
+    // Initialize map if on homepage
+    const mapElement = document.getElementById('previewMap');
+    if (mapElement && typeof L !== 'undefined') {
+        console.log('🗺️ Map found, initializing...');
+        try {
+            const map = L.map('previewMap').setView([-26.195246, 28.034088], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Add sample markers
+            L.marker([-26.195246, 28.034088]).addTo(map)
+                .bindPopup('TV Stands Warehouse<br>Delivery Hub')
+                .openPopup();
+                
+            L.marker([-26.205246, 28.044088]).addTo(map)
+                .bindPopup('Delivery Driver #1<br>On Route');
+                
+            L.marker([-26.185246, 28.024088]).addTo(map)
+                .bindPopup('Delivery Driver #2<br>Available');
+                
+            console.log('✅ Map initialized successfully');
+        } catch (error) {
+            console.error('❌ Map initialization failed:', error);
+        }
+    }
+}
+
+// ===== SOCKET.IO FUNCTIONS =====
 function initSocket() {
     try {
-        const socketUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:10000'
-            : window.location.origin;
+        console.log('🔌 Initializing socket connection...');
         
-        AppState.socket = io(socketUrl, {
+        AppState.socket = io(APP_CONFIG.SOCKET_URL, {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionAttempts: 5,
@@ -46,7 +134,7 @@ function initSocket() {
         });
         
         AppState.socket.on('connect', () => {
-            console.log('✅ Socket.io connected to:', socketUrl);
+            console.log('✅ Socket.io connected');
             AppState.connected = true;
             
             if (AppState.user) {
@@ -59,52 +147,62 @@ function initSocket() {
         });
         
         AppState.socket.on('driver-update', (data) => {
-            updateDriverOnMap(data);
+            console.log('📍 Driver location update:', data);
+            if (typeof updateDriverOnMap === 'function') {
+                updateDriverOnMap(data);
+            }
         });
         
         AppState.socket.on('new-trip', (data) => {
-            showNotification(`New trip: ${data.pickup?.address || 'Unknown'} to ${data.destination?.address || 'Unknown'}`, 'info');
+            console.log('📦 New trip request:', data);
+            showNotification(`New delivery request!`, 'info');
         });
         
         AppState.socket.on('trip-accepted', (data) => {
-            showNotification('Driver accepted your trip!', 'success');
+            console.log('✅ Trip accepted:', data);
+            showNotification('Driver accepted your delivery!', 'success');
         });
         
         AppState.socket.on('trip-updated', (data) => {
+            console.log('🔄 Trip updated:', data);
             if (typeof window.handleTripUpdate === 'function') {
                 window.handleTripUpdate(data);
             }
         });
         
         AppState.socket.on('driver-offline', (data) => {
-            removeMarker(`driver_${data.driverId}`);
+            console.log('🔴 Driver offline:', data);
+            if (typeof removeMarker === 'function') {
+                removeMarker(`driver_${data.driverId}`);
+            }
         });
         
         AppState.socket.on('connect_error', (error) => {
-            console.log('Socket connection error:', error.message);
+            console.log('❌ Socket connection error:', error.message);
             AppState.connected = false;
+            showNotification('Connection lost. Reconnecting...', 'warning');
         });
         
     } catch (error) {
-        console.error('Failed to initialize socket:', error);
+        console.error('❌ Failed to initialize socket:', error);
     }
 }
 
+// ===== MAP FUNCTIONS =====
 function initMap(elementId = 'map', center = APP_CONFIG.MAP_CENTER, zoom = APP_CONFIG.DEFAULT_ZOOM) {
     const mapElement = document.getElementById(elementId);
     if (!mapElement) {
-        console.error('Map element not found:', elementId);
+        console.error('❌ Map element not found:', elementId);
         return null;
     }
     
     try {
-        if (AppState.map && elementId !== 'map') {
-            const oldMap = AppState.map;
-            if (oldMap && oldMap.remove) {
-                oldMap.remove();
-            }
+        // Remove existing map if any
+        if (AppState.map && mapElement._leaflet_id) {
+            AppState.map.remove();
         }
         
+        console.log(`🗺️ Creating map for ${elementId}`);
         AppState.map = L.map(elementId).setView(center, zoom);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -112,34 +210,43 @@ function initMap(elementId = 'map', center = APP_CONFIG.MAP_CENTER, zoom = APP_C
             maxZoom: 19
         }).addTo(AppState.map);
         
+        console.log('✅ Map created successfully');
         return AppState.map;
     } catch (error) {
-        console.error('Failed to initialize map:', error);
+        console.error('❌ Failed to initialize map:', error);
         return null;
     }
 }
 
 function addMarker(id, latlng, options = {}) {
-    if (!AppState.map) return null;
+    if (!AppState.map) {
+        console.error('❌ No map available');
+        return null;
+    }
     
     try {
+        console.log(`📍 Adding marker ${id} at`, latlng);
         const marker = L.marker(latlng, options).addTo(AppState.map);
         AppState.markers[id] = marker;
         return marker;
     } catch (error) {
-        console.error('Failed to add marker:', error);
+        console.error('❌ Failed to add marker:', error);
         return null;
     }
 }
 
 function updateMarker(id, latlng) {
     if (AppState.markers[id]) {
+        console.log(`📍 Updating marker ${id} to`, latlng);
         AppState.markers[id].setLatLng(latlng);
+    } else {
+        console.warn(`⚠️ Marker ${id} not found for update`);
     }
 }
 
 function removeMarker(id) {
     if (AppState.markers[id]) {
+        console.log(`🗑️ Removing marker ${id}`);
         AppState.map.removeLayer(AppState.markers[id]);
         delete AppState.markers[id];
     }
@@ -148,6 +255,8 @@ function removeMarker(id) {
 function updateDriverOnMap(data) {
     const { driverId, lat, lng, status } = data;
     const markerId = `driver_${driverId}`;
+    
+    console.log(`📍 Updating driver ${driverId} on map`);
     
     const iconColors = {
         'available': 'green',
@@ -170,14 +279,15 @@ function updateDriverOnMap(data) {
         } else {
             addMarker(markerId, [lat, lng], { 
                 icon,
-                title: `Driver ${driverId.substring(0, 8)}`
+                title: `Driver ${driverId?.substring(0, 8) || 'Unknown'}`
             });
         }
     } catch (error) {
-        console.error('Failed to update driver on map:', error);
+        console.error('❌ Failed to update driver on map:', error);
     }
 }
 
+// ===== UTILITY FUNCTIONS =====
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -187,26 +297,29 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
         Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    return Math.round(R * c * 10) / 10; // Round to 1 decimal
 }
 
 function calculateFare(distanceKm, ratePerKm = 10) {
-    const baseFare = 20;
+    const baseFare = 50; // R50 base for TV stand deliveries
     const calculated = distanceKm * ratePerKm;
     return Math.max(baseFare, Math.round(calculated * 100) / 100);
 }
 
 function showNotification(message, type = 'info', duration = 5000) {
-    console.log(`Notification (${type}): ${message}`);
+    console.log(`📢 Notification (${type}): ${message}`);
     
     try {
+        // Remove existing notifications
+        document.querySelectorAll('.notification').forEach(n => n.remove());
+        
         const notification = document.createElement('div');
         notification.className = 'notification';
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#F44336' : '#2196F3'};
+            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#F44336' : type === 'warning' ? '#FF9800' : '#2196F3'};
             color: white;
             padding: 15px 20px;
             border-radius: 8px;
@@ -214,12 +327,15 @@ function showNotification(message, type = 'info', duration = 5000) {
             z-index: 10000;
             animation: slideIn 0.3s;
             max-width: 300px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         `;
         
-        const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
+        const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠' : 'ℹ';
         notification.innerHTML = `
-            <strong>${icon} ${type.toUpperCase()}:</strong>
-            <div style="margin-top: 5px;">${message}</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">${icon}</span>
+                <span>${message}</span>
+            </div>
         `;
         
         document.body.appendChild(notification);
@@ -235,6 +351,7 @@ function showNotification(message, type = 'info', duration = 5000) {
             }
         }, duration);
         
+        // Add animation styles
         if (!document.querySelector('#notification-styles')) {
             const style = document.createElement('style');
             style.id = 'notification-styles';
@@ -251,13 +368,13 @@ function showNotification(message, type = 'info', duration = 5000) {
             document.head.appendChild(style);
         }
     } catch (error) {
-        console.error('Failed to show notification:', error);
-        alert(`${type}: ${message}`);
+        console.error('❌ Failed to show notification:', error);
     }
 }
 
 async function apiRequest(endpoint, options = {}) {
     const url = APP_CONFIG.API_URL + endpoint;
+    console.log(`🌐 API Request: ${url}`);
     
     try {
         const response = await fetch(url, {
@@ -268,82 +385,97 @@ async function apiRequest(endpoint, options = {}) {
             ...options
         });
         
+        console.log(`🌐 API Response status: ${response.status}`);
+        
         if (!response.ok) {
             throw new Error(`API Error: ${response.status}`);
         }
         
-        return response.json();
+        const data = await response.json();
+        console.log('🌐 API Response data:', data);
+        return data;
     } catch (error) {
-        console.error('API request failed:', error);
+        console.error('❌ API request failed:', error);
+        showNotification('Network error. Please check connection.', 'error');
         throw error;
     }
 }
 
 async function getAvailableDrivers() {
     try {
+        console.log('👥 Fetching available drivers...');
         return await apiRequest('/drivers/available');
     } catch (error) {
-        console.error('Failed to get drivers:', error);
+        console.error('❌ Failed to get drivers:', error);
+        showNotification('Failed to load drivers', 'error');
         return [];
     }
 }
 
 async function getTripHistory(userId, userType) {
     try {
+        console.log(`📋 Fetching trip history for ${userType} ${userId}`);
         const query = userType === 'driver' ? `driverId=${userId}` : `customerId=${userId}`;
         return await apiRequest(`/trips/history?${query}`);
     } catch (error) {
-        console.error('Failed to get trip history:', error);
+        console.error('❌ Failed to get trip history:', error);
+        showNotification('Failed to load trip history', 'error');
         return [];
     }
 }
 
 async function createTrip(tripData) {
     try {
+        console.log('📦 Creating new trip:', tripData);
         return await apiRequest('/trips', {
             method: 'POST',
             body: JSON.stringify(tripData)
         });
     } catch (error) {
-        console.error('Failed to create trip:', error);
+        console.error('❌ Failed to create trip:', error);
+        showNotification('Failed to create delivery request', 'error');
         throw error;
     }
 }
 
 async function updateTripStatus(tripId, status, location = null) {
     try {
+        console.log(`🔄 Updating trip ${tripId} to ${status}`);
         return await apiRequest(`/trips/${tripId}`, {
             method: 'PUT',
             body: JSON.stringify({ status, ...(location && { driverLocation: location }) })
         });
     } catch (error) {
-        console.error('Failed to update trip:', error);
+        console.error('❌ Failed to update trip:', error);
+        showNotification('Failed to update delivery status', 'error');
         throw error;
     }
 }
 
+// ===== AUTH FUNCTIONS =====
 function loginAs(userType) {
+    console.log(`👤 Logging in as ${userType}`);
+    
     const userId = `${userType}_${Date.now()}`;
     const user = {
         id: userId,
-        name: `Test ${userType.charAt(0).toUpperCase() + userType.slice(1)}`,
-        email: `${userType}@test.com`,
+        name: userType === 'admin' ? 'Business Owner' : `Test ${userType.charAt(0).toUpperCase() + userType.slice(1)}`,
+        email: `${userType}@tvstands.com`,
         type: userType,
         phone: '0821234567'
     };
     
+    // For admin, use proper credentials
+    if (userType === 'admin') {
+        user.id = 'admin_001';
+        user.name = 'Business Owner';
+        user.email = 'owner@tvstands.com';
+    }
+    
     localStorage.setItem('swiftride_user', JSON.stringify(user));
     AppState.user = user;
     
-    if (AppState.socket && AppState.socket.connected) {
-        AppState.socket.emit('user-connected', {
-            userId: user.id,
-            userType: user.type,
-            name: user.name
-        });
-    }
-    
-    showNotification(`Logged in as ${userType}`, 'success');
+    showNotification(`Logged in as ${user.name}`, 'success');
     
     setTimeout(() => {
         window.location.href = userType + '.html';
@@ -351,6 +483,8 @@ function loginAs(userType) {
 }
 
 function logout() {
+    console.log('👤 Logging out...');
+    
     localStorage.removeItem('swiftride_user');
     AppState.user = null;
     
@@ -386,7 +520,7 @@ function requireLogin(userType = null, redirectTo = 'index.html') {
     return true;
 }
 
-// ===== MAKE ALL FUNCTIONS AVAILABLE GLOBALLY =====
+// ===== GLOBAL EXPORTS =====
 window.AppState = AppState;
 window.initMap = initMap;
 window.addMarker = addMarker;

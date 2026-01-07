@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "SwiftRide Delivery Application",
   "scripts": {
-    "start": "cd backend && npm start",
-    "dev": "cd backend && npm run dev"
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && nodemon server.js",
+    "install-all": "cd backend && npm install"
   }
 }
