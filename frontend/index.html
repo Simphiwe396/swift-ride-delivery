@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftRide - Premium Delivery Service</title>
+    <title>SwiftRide - TV Stands Delivery Service</title>
     
     <!-- PWA Configuration -->
     <meta name="application-name" content="SwiftRide">
@@ -30,7 +30,6 @@
     
     <!-- Map Preview CSS -->
     <style>
-    /* Ensure map container has proper dimensions */
     #previewMap {
         height: 400px !important;
         width: 100% !important;
@@ -39,13 +38,12 @@
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
     
-    /* Clear any existing map */
     #previewMap.leaflet-container {
         height: 400px !important;
     }
     </style>
 </head>
-<body data-page="home">
+<body>
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
@@ -61,11 +59,11 @@
                 <i class="fas fa-bolt"></i>
                 <h1>SwiftRide</h1>
             </div>
-<nav class="main-nav">
-    <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
-    <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
-    <a href="#login" class="nav-link"><i class="fas fa-user"></i> Login</a>
-</nav>
+            <nav class="main-nav">
+                <a href="#home" class="nav-link active"><i class="fas fa-home"></i> Home</a>
+                <a href="#features" class="nav-link"><i class="fas fa-star"></i> Features</a>
+                <a href="#tracking" class="nav-link"><i class="fas fa-map-marker-alt"></i> Tracking</a>
+            </nav>
         </header>
         
         <!-- Main Content -->
@@ -74,38 +72,38 @@
             <section id="home" class="hero-section">
                 <div class="hero-content">
                     <h2>Track Your TV Stand Deliveries in Real-Time</h2>
-                    <p>Professional delivery service for your TV stands business</p>
+                    <p>Professional delivery service for TV stands business in Johannesburg & Pretoria</p>
                     
                     <!-- User Type Selection -->
-<div class="user-type-selector">
-    <div class="user-card" onclick="loginAs('customer')">
-        <i class="fas fa-shopping-bag"></i>
-        <h3>Customer</h3>
-        <p>Track deliveries</p>
-    </div>
-    <div class="user-card" onclick="loginAs('driver')">
-        <i class="fas fa-motorcycle"></i>
-        <h3>Driver</h3>
-        <p>Deliver orders</p>
-    </div>
-    <div class="user-card" onclick="loginAs('admin')">
-        <i class="fas fa-chart-line"></i>
-        <h3>Business Owner</h3>
-        <p>Manage deliveries</p>
-    </div>
-</div>
-
+                    <div class="user-type-selector">
+                        <div class="user-card" data-user-type="customer">
+                            <i class="fas fa-shopping-bag"></i>
+                            <h3>Customer</h3>
+                            <p>Track deliveries</p>
+                        </div>
+                        <div class="user-card" data-user-type="driver">
+                            <i class="fas fa-motorcycle"></i>
+                            <h3>Driver</h3>
+                            <p>Deliver orders</p>
+                        </div>
+                        <div class="user-card" data-user-type="admin">
+                            <i class="fas fa-chart-line"></i>
+                            <h3>Business Owner</h3>
+                            <p>Manage deliveries</p>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Map Preview -->
                 <div class="map-preview">
+                    <h3>Our Warehouse Location</h3>
+                    <p>5 Zaria Cres, Birchleigh North, Kempton Park, 1618</p>
                     <div id="previewMap"></div>
                 </div>
             </section>
             
             <!-- Features Section -->
-            <section class="features-section">
+            <section id="features" class="features-section">
                 <h2>Why Choose SwiftRide?</h2>
                 <div class="features-grid">
                     <div class="feature">
@@ -116,7 +114,7 @@
                     <div class="feature">
                         <i class="fas fa-bolt"></i>
                         <h3>Fast Delivery</h3>
-                        <p>Average delivery time: 2-4 hours</p>
+                        <p>Same-day delivery across Gauteng</p>
                     </div>
                     <div class="feature">
                         <i class="fas fa-shield-alt"></i>
@@ -126,40 +124,20 @@
                     <div class="feature">
                         <i class="fas fa-money-bill-wave"></i>
                         <h3>Affordable Rates</h3>
-                        <p>From R50 per delivery with no hidden fees</p>
+                        <p>From R200 per delivery, no hidden fees</p>
                     </div>
                 </div>
             </section>
             
-<!-- Recent Tracking History Section -->
-<section id="tracking" class="tracking-history-section">
-    <h2>Recent Driver Tracking</h2>
-    <p class="section-subtitle">Track recent driver deliveries and status</p>
-    
-    <div class="tracking-history-container" id="trackingHistory">
-        <!-- Tracking history cards will be loaded here -->
-        <div class="loading-trackings">
-            <div class="loader"></div>
-            <p>Loading tracking history...</p>
-        </div>
-    </div>
-    
-    <div class="view-all-container">
-        <button class="view-all-btn" onclick="window.location.href='admin.html'">
-            <i class="fas fa-chart-line"></i> View All Trackings
-        </button>
-    </div>
-</section>
-            
             <!-- CTA Section -->
             <section class="cta-section">
                 <h2>Ready to Track Your Deliveries?</h2>
-                <p>Join thousands of satisfied customers and drivers</p>
+                <p>Join hundreds of satisfied TV stand customers</p>
                 <div class="cta-buttons">
-                    <button class="cta-btn primary" onclick="loginAs('customer')">
+                    <button class="cta-btn primary" data-user-type="customer">
                         <i class="fas fa-box"></i> Track a Delivery
                     </button>
-                    <button class="cta-btn secondary" onclick="loginAs('driver')">
+                    <button class="cta-btn secondary" data-user-type="driver">
                         <i class="fas fa-motorcycle"></i> Driver Login
                     </button>
                 </div>
@@ -171,18 +149,20 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>SwiftRide TV Stands Delivery</h4>
-                    <p>Professional delivery service for TV stands business</p>
+                    <p>5 Zaria Cres, Birchleigh North, Kempton Park, 1618</p>
+                    <p>Email: info@swiftride.co.za</p>
+                    <p>Phone: 011 123 4567</p>
                 </div>
 
                 <div class="footer-section">
-                    <h4>Quick Access</h4>
-                    <button class="install-btn" onclick="loginAs('admin')">
-                        <i class="fas fa-user-shield"></i> Business Owner
+                    <h4>Quick Login</h4>
+                    <button class="install-btn" data-user-type="admin">
+                        <i class="fas fa-user-shield"></i> Business Owner Login
                     </button>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 SwiftRide Delivery. All rights reserved.</p>
+                <p>&copy; 2025 SwiftRide TV Stands Delivery. All rights reserved.</p>
             </div>
         </footer>
     </div>
@@ -205,12 +185,6 @@
                         console.error('❌ Service Worker registration failed:', error);
                     });
             });
-        }
-        
-        // Rate selection function
-        function selectRate(rate) {
-            localStorage.setItem('selectedRate', rate);
-            window.location.href = 'customer.html';
         }
         
         // PWA Installation
@@ -249,25 +223,48 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize the map for preview
             if (typeof L !== 'undefined') {
-                const previewMap = L.map('previewMap').setView([-26.195246, 28.034088], 13);
+                // Warehouse coordinates: 5 Zaria Cres, Birchleigh North, Kempton Park
+                const warehouseCoords = [-26.0748, 28.2104];
+                const previewMap = L.map('previewMap').setView(warehouseCoords, 14);
                 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
                     maxZoom: 19
                 }).addTo(previewMap);
                 
-                // Add some sample markers
-                L.marker([-26.195246, 28.034088]).addTo(previewMap)
-                    .bindPopup('TV Stands Warehouse')
+                // Add warehouse marker
+                L.marker(warehouseCoords).addTo(previewMap)
+                    .bindPopup('<strong>TV Stands Warehouse</strong><br>5 Zaria Cres, Birchleigh North<br>Kempton Park, 1618')
                     .openPopup();
                     
-                L.marker([-26.205246, 28.044088]).addTo(previewMap)
-                    .bindPopup('Delivery in Progress');
+                // Add some sample delivery markers
+                L.marker([-26.0548, 28.2304]).addTo(previewMap)
+                    .bindPopup('Delivery in Progress<br>Customer: Sandton City');
                     
-                L.marker([-26.185246, 28.024088]).addTo(previewMap)
-                    .bindPopup('Completed Delivery');
+                L.marker([-26.0948, 28.1904]).addTo(previewMap)
+                    .bindPopup('Completed Delivery<br>Customer: Kempton Park');
             }
+            
+            // Add click event listeners to all login buttons
+            document.querySelectorAll('[data-user-type]').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userType = this.getAttribute('data-user-type');
+                    if (window.loginAs) {
+                        window.loginAs(userType);
+                    } else {
+                        alert('Please wait for the app to load completely');
+                    }
+                });
+            });
+            
+            // Hide loading screen
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+            }, 1000);
         });
-    </script>   
+    </script>
 </body>
 </html>
