@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const user = JSON.parse(userData);
         if (user.type !== 'customer') {
-            window.location.href = index.html;
+            window.location.href = 'index.html';
             return;
         }
         
@@ -87,6 +87,7 @@ function setupEventListeners() {
     // Request delivery button
     const requestBtn = document.querySelector('button[onclick="requestDelivery()"]');
     if (requestBtn) {
+        requestBtn.removeAttribute('onclick');
         requestBtn.addEventListener('click', requestDelivery);
     }
 }
@@ -129,9 +130,12 @@ function selectRate(rate) {
     document.querySelectorAll('.rate-option').forEach(option => {
         option.classList.remove('selected');
     });
-    const clickedOption = event.target.closest('.rate-option');
-    if (clickedOption) {
-        clickedOption.classList.add('selected');
+    
+    if (event && event.target) {
+        const clickedOption = event.target.closest('.rate-option');
+        if (clickedOption) {
+            clickedOption.classList.add('selected');
+        }
     }
     
     // Update fare estimate
@@ -363,18 +367,19 @@ function setupAddressAutocomplete() {
     
     // FIXED: Make pickup address editable
     if (pickupInput) {
-        // Option 1: Keep warehouse address but allow editing
         pickupInput.value = '5 Zaria Cres, Birchleigh North, Kempton Park';
-        pickupInput.readOnly = false; // Allow editing
+        pickupInput.readOnly = false; // ALLOWS EDITING - THIS WAS THE PROBLEM
         pickupInput.placeholder = 'Enter pickup address';
-        
-        // Option 2: Make it blank for customers to enter their own address
-        // pickupInput.placeholder = 'Enter your pickup address (e.g., home or office)';
-        // pickupInput.value = ''; // Empty field
     }
     
     if (destInput) {
         destInput.addEventListener('input', updateFareEstimate);
+        destInput.placeholder = 'Enter delivery address';
+    }
+    
+    // Also listen to pickup input changes
+    if (pickupInput) {
+        pickupInput.addEventListener('input', updateFareEstimate);
     }
 }
 

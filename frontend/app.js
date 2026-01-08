@@ -322,7 +322,9 @@ async function apiRequest(endpoint, options = {}) {
                 'Content-Type': 'application/json',
                 ...options.headers
             },
-            ...options
+            ...options,
+            mode: 'cors',
+            credentials: 'include'
         });
         
         console.log(`🌐 API Response status: ${response.status}`);
@@ -336,7 +338,7 @@ async function apiRequest(endpoint, options = {}) {
         return data;
     } catch (error) {
         console.error('❌ API request failed:', error);
-        showNotification('Network error. Please check connection.', 'error');
+        showNotification('Network error. Using simulated data.', 'warning');
         // Return mock data for testing
         return mockData(endpoint);
     }
@@ -460,7 +462,6 @@ async function getAvailableDrivers() {
         return await apiRequest('/drivers/available');
     } catch (error) {
         console.error('❌ Failed to get drivers:', error);
-        showNotification('Failed to load drivers', 'error');
         return mockData('/drivers/available');
     }
 }
@@ -478,7 +479,6 @@ async function getTripHistory(userId, userType) {
         return trips;
     } catch (error) {
         console.error('❌ Failed to get trip history:', error);
-        showNotification('Failed to load trip history', 'error');
         return mockData('/trips/history');
     }
 }

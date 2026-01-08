@@ -8,16 +8,39 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// ===== CRITICAL FIX: Updated CORS and Socket.io Configuration =====
+// ===== FIXED CORS CONFIGURATION =====
+const corsOptions = {
+    origin: [
+        'https://swift-ride-frontend.onrender.com',
+        'https://swift-ride.onrender.com',
+        'http://localhost:3000',
+        'http://localhost:10000',
+        'http://localhost:8080',
+        'http://localhost:5500'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+// ===== SOCKET.IO CONFIGURATION =====
 const io = socketIo(server, {
     cors: {
         origin: [
-            "https://swift-ride-frontend.onrender.com", // Your frontend
-            "https://swift-ride.onrender.com",          // Your backend (if serving frontend)
-            "http://localhost:3000",                    // For local testing
-            "http://localhost:10000"                    // For local testing
+            'https://swift-ride-frontend.onrender.com',
+            'https://swift-ride.onrender.com',
+            'http://localhost:3000',
+            'http://localhost:10000'
         ],
-        methods: ["GET", "POST"],
+        methods: ['GET', 'POST'],
         credentials: true
     },
     transports: ['websocket', 'polling'],
@@ -25,22 +48,8 @@ const io = socketIo(server, {
     pingInterval: 25000
 });
 
-// Middleware
-app.use(cors({
-    origin: [
-        "https://swift-ride-frontend.onrender.com",
-        "https://swift-ride.onrender.com",
-        "http://localhost:3000",
-        "http://localhost:10000"
-    ],
-    credentials: true
-}));
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend')));
-
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swiftride';
-console.log('Connecting to MongoDB...');
 
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
