@@ -1,13 +1,8 @@
 // ===== GLOBAL APP CONFIGURATION =====
 const APP_CONFIG = {
-    // CRITICAL FIX: Updated API URL for Render deployment
     API_URL: 'https://swift-ride.onrender.com/api',
-    
-    // Updated warehouse location: 5 Zaria Cres, Birchleigh North, Kempton Park
     MAP_CENTER: [-26.0748, 28.2104],
     DEFAULT_ZOOM: 14,
-    
-    // CRITICAL FIX: Updated Socket URL for Render
     SOCKET_URL: 'https://swift-ride.onrender.com'
 };
 
@@ -16,7 +11,8 @@ let AppState = {
     socket: null,
     map: null,
     markers: {},
-    connected: false
+    connected: false,
+    onlineDrivers: []
 };
 
 // ===== INITIALIZATION =====
@@ -71,19 +67,80 @@ function initSocket() {
                 AppState.socket.emit('user-connected', {
                     userId: AppState.user.id,
                     userType: AppState.user.type,
-                    name: AppState.user.name
+                    name: AppState.user.name,
+                    currentLocation: AppState.user.currentLocation
                 });
             }
         });
         
+        // ===== REAL-TIME DRIVER UPDATES =====
         AppState.socket.on('driver-update', (data) => {
-            console.log('📍 Driver location update:', data);
-            updateDriverOnMap(data);
+            console.log('📍 Driver update received:', data);
+            
+            // Add to online drivers list
+            updateOnlineDriver(data);
+            
+            // Update on map
+            if (data.lat && data.lng) {
+                updateDriverOnMap(data);
+            }
+            
+            // If on admin page, refresh the UI
+            if (window.location.pathname.includes('admin.html')) {
+                if (typeof window.updateOnlineDriversUI === 'function') {
+                    window.updateOnlineDriversUI();
+                }
+            }
         });
         
+        AppState.socket.on('driver-status', (data) => {
+            console.log('🔄 Driver status:', data);
+            
+            // Update driver status
+            updateOnlineDriver(data);
+            
+            // Show notification if admin
+            if (AppState.user && AppState.user.type === 'admin' && data.name) {
+                showNotification(`Driver ${data.name} is now ${data.status}`, 'info');
+            }
+        });
+        
+        AppState.socket.on('driver-online', (data) => {
+            console.log('🟢 Driver online:', data);
+            
+            // Add to online drivers
+            updateOnlineDriver({ ...data, status: 'online' });
+            
+            // Show notification if admin
+            if (AppState.user && AppState.user.type === 'admin') {
+                showNotification(`Driver ${data.name} is now online`, 'success');
+            }
+        });
+        
+        AppState.socket.on('driver-offline', (data) => {
+            console.log('🔴 Driver offline:', data);
+            
+            // Remove from online drivers
+            AppState.onlineDrivers = AppState.onlineDrivers.filter(d => d.driverId !== data.driverId);
+            
+            // Remove from map
+            removeMarker(`driver_${data.driverId}`);
+            
+            // Show notification if admin
+            if (AppState.user && AppState.user.type === 'admin') {
+                showNotification(`Driver ${data.name} went offline`, 'warning');
+            }
+        });
+        
+        // ===== TRIP UPDATES =====
         AppState.socket.on('new-trip', (data) => {
-            console.log('📦 New trip request:', data);
+            console.log('📦 New trip:', data);
             showNotification(`New delivery request!`, 'info');
+        });
+        
+        AppState.socket.on('trip-assigned', (data) => {
+            console.log('✅ Trip assigned:', data);
+            showNotification(`Driver ${data.driverName} assigned to your delivery!`, 'success');
         });
         
         AppState.socket.on('trip-accepted', (data) => {
@@ -93,16 +150,21 @@ function initSocket() {
         
         AppState.socket.on('trip-updated', (data) => {
             console.log('🔄 Trip updated:', data);
+            
+            // Handle trip update
             if (typeof window.handleTripUpdate === 'function') {
                 window.handleTripUpdate(data);
             }
+            
+            // Refresh admin trip list if on admin page
+            if (window.location.pathname.includes('admin.html')) {
+                if (typeof window.loadAllTrips === 'function') {
+                    setTimeout(window.loadAllTrips, 1000);
+                }
+            }
         });
         
-        AppState.socket.on('driver-offline', (data) => {
-            console.log('🔴 Driver offline:', data);
-            removeMarker(`driver_${data.driverId}`);
-        });
-        
+        // ===== CONNECTION ERRORS =====
         AppState.socket.on('connect_error', (error) => {
             console.log('❌ Socket connection error:', error.message);
             AppState.connected = false;
@@ -114,8 +176,70 @@ function initSocket() {
             AppState.connected = false;
         });
         
+        // ===== GET INITIAL ONLINE DRIVERS =====
+        setTimeout(() => {
+            if (AppState.socket && AppState.connected) {
+                AppState.socket.emit('get-online-drivers');
+            }
+        }, 2000);
+        
+        // Listen for online drivers list
+        AppState.socket.on('online-drivers-list', (drivers) => {
+            console.log('👥 Online drivers received:', drivers.length);
+            AppState.onlineDrivers = drivers;
+            
+            // Update map with all online drivers
+            drivers.forEach(driver => {
+                if (driver.location) {
+                    updateDriverOnMap({
+                        driverId: driver.driverId,
+                        name: driver.name,
+                        lat: driver.location.lat,
+                        lng: driver.location.lng,
+                        status: driver.status
+                    });
+                }
+            });
+            
+            // Update admin UI if on admin page
+            if (window.location.pathname.includes('admin.html')) {
+                if (typeof window.updateOnlineDriversUI === 'function') {
+                    window.updateOnlineDriversUI();
+                }
+            }
+        });
+        
     } catch (error) {
         console.error('❌ Failed to initialize socket:', error);
+    }
+}
+
+// Update online driver in global list
+function updateOnlineDriver(data) {
+    const { driverId, lat, lng, status, name } = data;
+    
+    const existingIndex = AppState.onlineDrivers.findIndex(d => d.driverId === driverId);
+    
+    if (existingIndex >= 0) {
+        // Update existing driver
+        AppState.onlineDrivers[existingIndex] = {
+            ...AppState.onlineDrivers[existingIndex],
+            lat,
+            lng,
+            status: status || AppState.onlineDrivers[existingIndex].status,
+            name: name || AppState.onlineDrivers[existingIndex].name,
+            lastUpdate: new Date()
+        };
+    } else if (status !== 'offline') {
+        // Add new driver (if not offline)
+        AppState.onlineDrivers.push({
+            driverId,
+            name: name || `Driver ${driverId?.substring(0, 6) || 'Unknown'}`,
+            lat,
+            lng,
+            status: status || 'online',
+            lastUpdate: new Date()
+        });
     }
 }
 
@@ -144,12 +268,10 @@ function initMap(elementId = 'map', center = APP_CONFIG.MAP_CENTER, zoom = APP_C
         
         console.log('✅ Map created successfully');
         
-        // Add warehouse marker for warehouse location
-        if (elementId === 'adminMap' || elementId === 'trackingMap' || elementId === 'driverMap') {
-            L.marker(APP_CONFIG.MAP_CENTER).addTo(AppState.map)
-                .bindPopup('<strong>TV Stands Warehouse</strong><br>5 Zaria Cres, Birchleigh North')
-                .openPopup();
-        }
+        // Add warehouse marker
+        L.marker(APP_CONFIG.MAP_CENTER).addTo(AppState.map)
+            .bindPopup('<strong>TV Stands Warehouse</strong><br>5 Zaria Cres, Birchleigh North')
+            .openPopup();
         
         return AppState.map;
     } catch (error) {
@@ -193,25 +315,31 @@ function removeMarker(id) {
 }
 
 function updateDriverOnMap(data) {
-    const { driverId, lat, lng, status } = data;
+    const { driverId, lat, lng, status, name } = data;
     const markerId = `driver_${driverId}`;
     
-    console.log(`📍 Updating driver ${driverId} on map`);
+    if (!lat || !lng) return;
+    
+    console.log(`📍 Updating driver ${name || driverId} on map (${status})`);
     
     const iconColors = {
+        'online': 'green',
         'available': 'green',
         'busy': 'orange',
         'offline': 'gray',
-        'online': 'blue'
+        'on_trip': 'blue'
     };
     
     try {
         const icon = L.divIcon({
-            html: `<div style="background: ${iconColors[status] || 'blue'}; 
-                   width: 20px; height: 20px; border-radius: 50%; 
-                   border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>`,
+            html: `<div style="background: ${iconColors[status] || 'green'}; 
+                   width: 25px; height: 25px; border-radius: 50%; 
+                   border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5);
+                   display: flex; align-items: center; justify-content: center;">
+                   <span style="color: white; font-weight: bold; font-size: 12px;">
+                   ${name ? name.charAt(0).toUpperCase() : 'D'}</span></div>`,
             className: 'driver-marker',
-            iconSize: [20, 20]
+            iconSize: [25, 25]
         });
         
         if (AppState.markers[markerId]) {
@@ -219,8 +347,12 @@ function updateDriverOnMap(data) {
         } else {
             addMarker(markerId, [lat, lng], { 
                 icon,
-                title: `Driver ${driverId?.substring(0, 8) || 'Unknown'}`
-            });
+                title: `${name || 'Driver'} (${status || 'online'})`
+            }).bindPopup(`
+                <strong>${name || 'Driver'}</strong><br>
+                Status: ${status || 'online'}<br>
+                Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}
+            `);
         }
     } catch (error) {
         console.error('❌ Failed to update driver on map:', error);
@@ -241,7 +373,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 function calculateFare(distanceKm, ratePerKm = 20) {
-    const baseFare = 200; // R200 base for TV stand deliveries
+    const baseFare = 200;
     const calculated = distanceKm * ratePerKm;
     return Math.max(baseFare, Math.round(calculated * 100) / 100);
 }
@@ -339,7 +471,6 @@ async function apiRequest(endpoint, options = {}) {
     } catch (error) {
         console.error('❌ API request failed:', error);
         showNotification('Network error. Using simulated data.', 'warning');
-        // Return mock data for testing
         return mockData(endpoint);
     }
 }
@@ -353,18 +484,10 @@ function mockData(endpoint) {
                 { 
                     _id: 'driver_001', 
                     name: 'John Driver', 
-                    status: 'available', 
+                    status: 'online', 
                     currentLocation: { lat: -26.0748, lng: 28.2204 },
                     vehicleType: 'van',
                     phone: '082 111 2222'
-                },
-                { 
-                    _id: 'driver_002', 
-                    name: 'Mike Rider', 
-                    status: 'available', 
-                    currentLocation: { lat: -26.0848, lng: 28.2004 },
-                    vehicleType: 'truck',
-                    phone: '082 333 4444'
                 }
             ];
             
@@ -373,32 +496,12 @@ function mockData(endpoint) {
                 { 
                     _id: 'driver_001', 
                     name: 'John Driver', 
-                    status: 'available', 
+                    status: 'online', 
                     currentLocation: { lat: -26.0748, lng: 28.2204 },
                     vehicleType: 'van',
                     phone: '082 111 2222',
                     totalTrips: 15,
                     totalEarnings: 4500
-                },
-                { 
-                    _id: 'driver_002', 
-                    name: 'Mike Rider', 
-                    status: 'busy', 
-                    currentLocation: { lat: -26.0848, lng: 28.2004 },
-                    vehicleType: 'truck',
-                    phone: '082 333 4444',
-                    totalTrips: 22,
-                    totalEarnings: 6600
-                },
-                { 
-                    _id: 'driver_003', 
-                    name: 'David Biker', 
-                    status: 'offline', 
-                    currentLocation: { lat: -26.0648, lng: 28.1904 },
-                    vehicleType: 'motorcycle',
-                    phone: '082 555 6666',
-                    totalTrips: 8,
-                    totalEarnings: 2400
                 }
             ];
             
@@ -416,30 +519,6 @@ function mockData(endpoint) {
                     fare: 500,
                     status: 'completed',
                     createdAt: new Date(Date.now() - 86400000)
-                },
-                { 
-                    _id: 'trip_002',
-                    tripId: 'TRIP002',
-                    customerName: 'Menlyn Maine', 
-                    driverName: 'Mike Rider',
-                    pickup: { address: '5 Zaria Cres, Birchleigh North', lat: -26.0748, lng: 28.2104 },
-                    destination: { address: 'Menlyn Maine, Pretoria', lat: -25.7750, lng: 28.2750 },
-                    distance: 35,
-                    fare: 700,
-                    status: 'in_progress',
-                    createdAt: new Date()
-                },
-                { 
-                    _id: 'trip_003',
-                    tripId: 'TRIP003',
-                    customerName: 'Kempton Park Store', 
-                    driverName: 'David Biker',
-                    pickup: { address: '5 Zaria Cres, Birchleigh North', lat: -26.0748, lng: 28.2104 },
-                    destination: { address: 'Kempton Park CBD', lat: -26.0900, lng: 28.2300 },
-                    distance: 8,
-                    fare: 200,
-                    status: 'pending',
-                    createdAt: new Date(Date.now() - 3600000)
                 }
             ];
             
@@ -470,7 +549,6 @@ async function getTripHistory(userId, userType) {
     try {
         console.log(`📋 Fetching trip history for ${userType} ${userId}`);
         const trips = await apiRequest('/trips/history');
-        // Filter by user type
         if (userType === 'driver') {
             return trips.filter(trip => trip.driverId === userId || trip.driverName?.includes('Driver'));
         } else if (userType === 'customer') {
@@ -493,7 +571,6 @@ async function createTrip(tripData) {
     } catch (error) {
         console.error('❌ Failed to create trip:', error);
         showNotification('Failed to create delivery request', 'error');
-        // Return mock response
         return { 
             _id: 'mock_trip_' + Date.now(),
             ...tripData,
@@ -603,17 +680,6 @@ function isLoggedIn(userType = null) {
     return true;
 }
 
-function requireLogin(userType = null, redirectTo = 'index.html') {
-    if (!isLoggedIn(userType)) {
-        showNotification(`Please login as ${userType || 'user'} first`, 'error');
-        setTimeout(() => {
-            window.location.href = redirectTo;
-        }, 1500);
-        return false;
-    }
-    return true;
-}
-
 // ===== GLOBAL EXPORTS =====
 window.AppState = AppState;
 window.APP_CONFIG = APP_CONFIG;
@@ -633,5 +699,4 @@ window.loginAs = loginAs;
 window.logout = logout;
 window.getCurrentUser = getCurrentUser;
 window.isLoggedIn = isLoggedIn;
-window.requireLogin = requireLogin;
 window.updateDriverOnMap = updateDriverOnMap;

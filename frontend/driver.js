@@ -1,7 +1,7 @@
 // ===== DRIVER PAGE SPECIFIC FUNCTIONS =====
 
 let driverStatus = 'offline';
-let currentLocation = { lat: -26.0748, lng: 28.2204 }; // Start near warehouse
+let currentLocation = { lat: -26.0748, lng: 28.2204 };
 let watchId = null;
 let pendingTrip = null;
 let activeTrip = null;
@@ -56,9 +56,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check for active trip
     await checkActiveTrip();
     
-    // Add event listeners
-    setupEventListeners();
-    
     // Hide loading screen
     setTimeout(() => {
         const loadingScreen = document.getElementById('loadingScreen');
@@ -67,74 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, 1000);
 });
-
-function setupEventListeners() {
-    // Sidebar menu
-    document.querySelectorAll('.sidebar-menu li').forEach(item => {
-        item.addEventListener('click', function() {
-            const sectionId = this.getAttribute('onclick')?.match(/showSection\('([^']+)'\)/)?.[1];
-            if (sectionId) {
-                showSection(sectionId);
-            }
-        });
-    });
-    
-    // Status buttons
-    const statusButtons = {
-        'goOnline': goOnline,
-        'goBusy': goBusy,
-        'goOffline': goOffline
-    };
-    
-    Object.keys(statusButtons).forEach(btnId => {
-        const btn = document.querySelector(`[onclick="${btnId}()"]`);
-        if (btn) {
-            btn.addEventListener('click', statusButtons[btnId]);
-        }
-    });
-    
-    // Center on location button
-    const centerBtn = document.querySelector('[onclick="centerOnLocation()"]');
-    if (centerBtn) {
-        centerBtn.addEventListener('click', centerOnLocation);
-    }
-    
-    // Trip action buttons
-    document.querySelectorAll('[onclick^="acceptTrip"], [onclick^="declineTrip"], [onclick^="markAsPickedUp"], [onclick^="markAsDelivered"], [onclick^="cancelTrip"]').forEach(btn => {
-        const funcName = btn.getAttribute('onclick').replace('()', '');
-        if (window[funcName]) {
-            btn.addEventListener('click', window[funcName]);
-        }
-    });
-}
-
-function showSection(sectionId) {
-    // Hide all sections
-    document.querySelectorAll('.section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Remove active class from all menu items
-    document.querySelectorAll('.sidebar-menu li').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    // Show selected section
-    const section = document.getElementById(sectionId);
-    if (section) {
-        section.style.display = 'block';
-    }
-    
-    // Add active class to clicked menu item
-    event.target.closest('li').classList.add('active');
-    
-    // If showing current trip, initialize map
-    if (sectionId === 'current-trip' && activeTrip) {
-        setTimeout(() => {
-            initCurrentTripMap();
-        }, 100);
-    }
-}
 
 function updateStatusDisplay() {
     const statusElement = document.getElementById('statusDisplay');
@@ -146,16 +75,46 @@ function updateStatusDisplay() {
     }
 }
 
+// ===== DRIVER STATUS FUNCTIONS =====
 function goOnline() {
     driverStatus = 'online';
     updateStatusDisplay();
+    
+    // Broadcast to ALL clients
+    if (window.AppState && window.AppState.socket) {
+        window.AppState.socket.emit('driver-status-change', {
+            driverId: window.AppState.user.id,
+            name: window.AppState.user.name,
+            status: 'online'
+        });
+        
+        // Send current location
+        window.AppState.socket.emit('driver-location', {
+            driverId: window.AppState.user.id,
+            name: window.AppState.user.name,
+            lat: currentLocation.lat,
+            lng: currentLocation.lng,
+            status: 'online'
+        });
+    }
+    
     updateLocationToServer();
-    showNotification('You are now online and visible to customers', 'success');
+    showNotification('You are now online and visible to customers!', 'success');
 }
 
 function goBusy() {
     driverStatus = 'busy';
     updateStatusDisplay();
+    
+    // Broadcast status change
+    if (window.AppState && window.AppState.socket) {
+        window.AppState.socket.emit('driver-status-change', {
+            driverId: window.AppState.user.id,
+            name: window.AppState.user.name,
+            status: 'busy'
+        });
+    }
+    
     updateLocationToServer();
     showNotification('Status set to busy', 'info');
 }
@@ -163,7 +122,16 @@ function goBusy() {
 function goOffline() {
     driverStatus = 'offline';
     updateStatusDisplay();
-    updateLocationToServer();
+    
+    // Broadcast status change
+    if (window.AppState && window.AppState.socket) {
+        window.AppState.socket.emit('driver-status-change', {
+            driverId: window.AppState.user.id,
+            name: window.AppState.user.name,
+            status: 'offline'
+        });
+    }
+    
     showNotification('You are now offline', 'info');
 }
 
@@ -184,20 +152,16 @@ function startLocationTracking() {
                     // Add new marker
                     window.AppState.markers['driver_location'] = L.marker([latitude, longitude], {
                         icon: L.divIcon({
-                            html: '<i class="fas fa-motorcycle" style="color: blue; font-size: 20px;"></i>',
+                            html: '<i class="fas fa-motorcycle" style="color: blue; font-size: 24px;"></i>',
                             className: 'driver-location-marker'
                         })
                     }).addTo(window.AppState.map)
-                    .bindPopup('<strong>Your Location</strong>');
+                    .bindPopup('<strong>Your Location</strong><br>Click "Go Online" to appear on admin map');
                 }
                 
-                // Update to server
+                // Update to server (broadcast to all)
                 updateLocationToServer();
                 
-                // Center map on location
-                if (window.AppState && window.AppState.map) {
-                    window.AppState.map.setView([latitude, longitude], 15);
-                }
             },
             (error) => {
                 console.error('Geolocation error:', error);
@@ -229,8 +193,10 @@ function startLocationTracking() {
 function updateLocationToServer() {
     if (!currentLocation || !window.AppState || !window.AppState.socket) return;
     
+    // Send location AND status to ALL connected clients
     window.AppState.socket.emit('driver-location', {
         driverId: window.AppState.user.id,
+        name: window.AppState.user.name,
         lat: currentLocation.lat,
         lng: currentLocation.lng,
         status: driverStatus
@@ -267,7 +233,6 @@ async function loadTripHistory() {
         
         if (!tableBody) return;
         
-        // Show only last 50 trips
         const recentTrips = trips.slice(0, 50);
         
         if (recentTrips.length === 0) {
@@ -351,70 +316,14 @@ function showActiveTrip() {
     }
 }
 
-function initCurrentTripMap() {
-    const mapElement = document.getElementById('currentTripMap');
-    if (!mapElement) return;
-    
-    // Initialize new map
-    if (typeof window.initMap === 'function') {
-        window.initMap('currentTripMap');
-        
-        if (activeTrip && activeTrip.pickup) {
-            // Add pickup marker
-            L.marker([activeTrip.pickup.lat, activeTrip.pickup.lng], {
-                icon: L.divIcon({
-                    html: '<i class="fas fa-warehouse" style="color: blue; font-size: 20px;"></i>',
-                    className: 'pickup-marker'
-                })
-            }).addTo(window.AppState.map)
-            .bindPopup('<strong>Pickup</strong><br>TV Stands Warehouse');
-        }
-        
-        if (activeTrip && activeTrip.destination) {
-            // Add destination marker
-            L.marker([activeTrip.destination.lat, activeTrip.destination.lng], {
-                icon: L.divIcon({
-                    html: '<i class="fas fa-flag" style="color: red; font-size: 20px;"></i>',
-                    className: 'destination-marker'
-                })
-            }).addTo(window.AppState.map)
-            .bindPopup('<strong>Destination</strong><br>' + (activeTrip.destination.address || 'Customer Location'));
-        }
-        
-        // Add driver marker if location available
-        if (currentLocation && window.AppState && window.AppState.map) {
-            L.marker([currentLocation.lat, currentLocation.lng], {
-                icon: L.divIcon({
-                    html: '<i class="fas fa-motorcycle" style="color: green; font-size: 20px;"></i>',
-                    className: 'driver-marker'
-                })
-            }).addTo(window.AppState.map)
-            .bindPopup('<strong>Your Location</strong>');
-        }
-        
-        // Fit map to show all markers
-        if (window.AppState && window.AppState.map) {
-            const markers = [];
-            
-            if (activeTrip.pickup) markers.push([activeTrip.pickup.lat, activeTrip.pickup.lng]);
-            if (activeTrip.destination) markers.push([activeTrip.destination.lat, activeTrip.destination.lng]);
-            if (currentLocation) markers.push([currentLocation.lat, currentLocation.lng]);
-            
-            if (markers.length > 0) {
-                const bounds = L.latLngBounds(markers);
-                window.AppState.map.fitBounds(bounds);
-            }
-        }
-    }
-}
-
 function acceptTrip() {
     if (!pendingTrip) return;
     
     if (window.AppState.socket) {
         window.AppState.socket.emit('accept-trip', {
             tripId: pendingTrip.tripId,
-            driverId: window.AppState.user.id
+            driverId: window.AppState.user.id,
+            driverName: window.AppState.user.name
         });
     }
     
@@ -428,11 +337,8 @@ function acceptTrip() {
     
     showNotification('Delivery accepted! Navigate to warehouse.', 'success');
     
-    // Show current trip section
-    showSection('current-trip');
-    setTimeout(() => {
-        initCurrentTripMap();
-    }, 100);
+    // Update status to busy
+    goBusy();
 }
 
 function declineTrip() {
@@ -451,7 +357,8 @@ function markAsPickedUp() {
         window.AppState.socket.emit('update-trip', {
             tripId: activeTrip._id,
             status: 'picked_up',
-            location: currentLocation
+            location: currentLocation,
+            driverId: window.AppState.user.id
         });
     }
     
@@ -467,7 +374,8 @@ function markAsDelivered() {
         window.AppState.socket.emit('update-trip', {
             tripId: activeTrip._id,
             status: 'completed',
-            location: currentLocation
+            location: currentLocation,
+            driverId: window.AppState.user.id
         });
     }
     
@@ -483,10 +391,10 @@ function markAsDelivered() {
         earningsElement.textContent = (currentEarnings + tripFare).toFixed(2);
     }
     
-    // Reset after delay
+    // Go back online after delivery
     setTimeout(() => {
         activeTrip = null;
-        showSection('dashboard');
+        goOnline();
     }, 3000);
 }
 
@@ -497,17 +405,18 @@ function cancelTrip() {
         if (window.AppState.socket) {
             window.AppState.socket.emit('update-trip', {
                 tripId: activeTrip._id,
-                status: 'cancelled'
+                status: 'cancelled',
+                driverId: window.AppState.user.id
             });
         }
         
         activeTrip = null;
         showNotification('Delivery cancelled', 'info');
-        showSection('dashboard');
+        goOnline();
     }
 }
 
-// Socket event listeners
+// Socket event listeners for driver page
 if (window.AppState && window.AppState.socket) {
     window.AppState.socket.on('new-trip', (data) => {
         pendingTrip = data;
@@ -524,15 +433,12 @@ if (window.AppState && window.AppState.socket) {
             notificationElement.style.display = 'block';
         }
         
-        // Show notification sound/alert
+        // Play notification sound
         showNotification('New delivery request received!', 'success');
     });
     
-    window.AppState.socket.on('trip-updated', (data) => {
-        if (activeTrip && activeTrip._id === data.tripId) {
-            activeTrip = data.trip;
-            showActiveTrip();
-        }
+    window.AppState.socket.on('trip-assigned-driver', (data) => {
+        showNotification(`You've been assigned to deliver to ${data.customerName}`, 'success');
     });
 }
 
@@ -544,9 +450,46 @@ window.addEventListener('beforeunload', () => {
     
     // Mark driver as offline
     if (window.AppState && window.AppState.socket) {
-        window.AppState.socket.emit('driver-location', {
+        window.AppState.socket.emit('driver-status-change', {
             driverId: window.AppState.user.id,
+            name: window.AppState.user.name,
             status: 'offline'
         });
     }
 });
+
+// Make functions globally available for HTML onclick
+window.goOnline = goOnline;
+window.goBusy = goBusy;
+window.goOffline = goOffline;
+window.centerOnLocation = centerOnLocation;
+window.acceptTrip = acceptTrip;
+window.declineTrip = declineTrip;
+window.markAsPickedUp = markAsPickedUp;
+window.markAsDelivered = markAsDelivered;
+window.cancelTrip = cancelTrip;
+
+// Section switching
+window.showSection = function(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Remove active class from all menu items
+    document.querySelectorAll('.sidebar-menu li').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Show selected section
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.style.display = 'block';
+    }
+    
+    // Add active class to clicked menu item
+    const clickedItem = event.target.closest('li');
+    if (clickedItem) {
+        clickedItem.classList.add('active');
+    }
+};
