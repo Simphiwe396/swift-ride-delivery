@@ -46,167 +46,108 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== SOCKET.IO FUNCTIONS =====
+// Replace JUST the initSocket function in your app.js with this:
+
 function initSocket() {
     try {
         console.log('🔌 Initializing socket connection...');
-        console.log('🌐 Connecting to:', APP_CONFIG.SOCKET_URL);
         
-        AppState.socket = io(APP_CONFIG.SOCKET_URL, {
-            transports: ['websocket', 'polling'],
+        // Use polling only for Render compatibility
+        AppState.socket = io('https://swift-ride.onrender.com', {
+            transports: ['polling'], // Use polling only - works on Render
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: 10,
             reconnectionDelay: 1000,
-            timeout: 10000
+            timeout: 20000
         });
         
         AppState.socket.on('connect', () => {
             console.log('✅ Socket.io connected successfully');
             AppState.connected = true;
             
+            // Identify user type
             if (AppState.user) {
-                AppState.socket.emit('user-connected', {
-                    userId: AppState.user.id,
-                    userType: AppState.user.type,
-                    name: AppState.user.name,
-                    currentLocation: AppState.user.currentLocation
-                });
-            }
-        });
-        
-        // ===== REAL-TIME DRIVER UPDATES =====
-        AppState.socket.on('driver-update', (data) => {
-            console.log('📍 Driver update received:', data);
-            
-            // Add to online drivers list
-            updateOnlineDriver(data);
-            
-            // Update on map
-            if (data.lat && data.lng) {
-                updateDriverOnMap(data);
-            }
-            
-            // If on admin page, refresh the UI
-            if (window.location.pathname.includes('admin.html')) {
-                if (typeof window.updateOnlineDriversUI === 'function') {
-                    window.updateOnlineDriversUI();
+                if (AppState.user.type === 'driver') {
+                    AppState.socket.emit('driver-online', {
+                        driverId: AppState.user.id,
+                        name: AppState.user.name,
+                        lat: AppState.user.currentLocation?.lat || -26.0748,
+                        lng: AppState.user.currentLocation?.lng || 28.2204,
+                        status: 'online'
+                    });
+                } else if (AppState.user.type === 'admin') {
+                    AppState.socket.emit('admin-connected');
                 }
             }
         });
         
-        AppState.socket.on('driver-status', (data) => {
-            console.log('🔄 Driver status:', data);
-            
-            // Update driver status
+        // ===== DRIVER UPDATES =====
+        AppState.socket.on('driver-update', (data) => {
+            console.log('📍 Driver update:', data);
+            updateDriverOnMap(data);
             updateOnlineDriver(data);
-            
-            // Show notification if admin
-            if (AppState.user && AppState.user.type === 'admin' && data.name) {
-                showNotification(`Driver ${data.name} is now ${data.status}`, 'info');
-            }
         });
         
-        AppState.socket.on('driver-online', (data) => {
-            console.log('🟢 Driver online:', data);
-            
-            // Add to online drivers
+        AppState.socket.on('driver-connected', (data) => {
+            console.log('🟢 New driver connected:', data);
             updateOnlineDriver({ ...data, status: 'online' });
+            updateDriverOnMap(data);
             
-            // Show notification if admin
             if (AppState.user && AppState.user.type === 'admin') {
                 showNotification(`Driver ${data.name} is now online`, 'success');
             }
         });
         
+        AppState.socket.on('driver-status', (data) => {
+            console.log('🔄 Driver status:', data);
+            updateOnlineDriver(data);
+        });
+        
         AppState.socket.on('driver-offline', (data) => {
             console.log('🔴 Driver offline:', data);
-            
-            // Remove from online drivers
             AppState.onlineDrivers = AppState.onlineDrivers.filter(d => d.driverId !== data.driverId);
-            
-            // Remove from map
             removeMarker(`driver_${data.driverId}`);
             
-            // Show notification if admin
             if (AppState.user && AppState.user.type === 'admin') {
                 showNotification(`Driver ${data.name} went offline`, 'warning');
             }
         });
         
-        // ===== TRIP UPDATES =====
-        AppState.socket.on('new-trip', (data) => {
-            console.log('📦 New trip:', data);
-            showNotification(`New delivery request!`, 'info');
-        });
-        
-        AppState.socket.on('trip-assigned', (data) => {
-            console.log('✅ Trip assigned:', data);
-            showNotification(`Driver ${data.driverName} assigned to your delivery!`, 'success');
-        });
-        
-        AppState.socket.on('trip-accepted', (data) => {
-            console.log('✅ Trip accepted:', data);
-            showNotification('Driver accepted your delivery!', 'success');
-        });
-        
-        AppState.socket.on('trip-updated', (data) => {
-            console.log('🔄 Trip updated:', data);
-            
-            // Handle trip update
-            if (typeof window.handleTripUpdate === 'function') {
-                window.handleTripUpdate(data);
-            }
-            
-            // Refresh admin trip list if on admin page
-            if (window.location.pathname.includes('admin.html')) {
-                if (typeof window.loadAllTrips === 'function') {
-                    setTimeout(window.loadAllTrips, 1000);
-                }
-            }
-        });
-        
-        // ===== CONNECTION ERRORS =====
-        AppState.socket.on('connect_error', (error) => {
-            console.log('❌ Socket connection error:', error.message);
-            AppState.connected = false;
-            showNotification('Connection lost. Reconnecting...', 'warning');
-        });
-        
-        AppState.socket.on('disconnect', (reason) => {
-            console.log('🔌 Socket disconnected:', reason);
-            AppState.connected = false;
-        });
-        
-        // ===== GET INITIAL ONLINE DRIVERS =====
-        setTimeout(() => {
-            if (AppState.socket && AppState.connected) {
-                AppState.socket.emit('get-online-drivers');
-            }
-        }, 2000);
-        
-        // Listen for online drivers list
-        AppState.socket.on('online-drivers-list', (drivers) => {
-            console.log('👥 Online drivers received:', drivers.length);
+        AppState.socket.on('online-drivers', (drivers) => {
+            console.log('👥 Received online drivers:', drivers.length);
             AppState.onlineDrivers = drivers;
             
-            // Update map with all online drivers
+            // Add all to map
             drivers.forEach(driver => {
-                if (driver.location) {
+                if (driver.lat && driver.lng) {
                     updateDriverOnMap({
                         driverId: driver.driverId,
                         name: driver.name,
-                        lat: driver.location.lat,
-                        lng: driver.location.lng,
+                        lat: driver.lat,
+                        lng: driver.lng,
                         status: driver.status
                     });
                 }
             });
             
-            // Update admin UI if on admin page
+            // Update admin UI
             if (window.location.pathname.includes('admin.html')) {
                 if (typeof window.updateOnlineDriversUI === 'function') {
-                    window.updateOnlineDriversUI();
+                    setTimeout(window.updateOnlineDriversUI, 500);
                 }
             }
+        });
+        
+        // ===== ERROR HANDLING =====
+        AppState.socket.on('connect_error', (error) => {
+            console.log('❌ Socket connection error:', error.message);
+            AppState.connected = false;
+            showNotification('Connecting via polling...', 'warning');
+        });
+        
+        AppState.socket.on('disconnect', (reason) => {
+            console.log('🔌 Socket disconnected:', reason);
+            AppState.connected = false;
         });
         
     } catch (error) {

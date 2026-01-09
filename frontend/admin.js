@@ -50,33 +50,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1000);
 });
 
+// Replace the setupSocketListeners function in admin.js with this:
+
 function setupSocketListeners() {
     if (window.AppState && window.AppState.socket) {
-        window.AppState.socket.on('driver-status', (data) => {
-            console.log('🔄 Admin: Driver status:', data);
-            updateOnlineDriverList(data);
-            
-            if (data.name) {
-                showNotification(`Driver ${data.name} is now ${data.status}`, 'info');
-            }
+        window.AppState.socket.on('driver-connected', (data) => {
+            console.log('🟢 Admin: Driver connected:', data);
+            updateOnlineDriverList({ ...data, status: 'online' });
+            updateDriverOnMap(data);
+            showNotification(`Driver ${data.name} is now online`, 'success');
         });
         
         window.AppState.socket.on('driver-update', (data) => {
             console.log('📍 Admin: Driver location:', data);
             updateOnlineDriverList(data);
-            
-            if (window.AppState && window.AppState.map && data.lat && data.lng) {
-                updateDriverOnMap(data);
-            }
+            updateDriverOnMap(data);
         });
         
-        window.AppState.socket.on('driver-online', (data) => {
-            console.log('🟢 Admin: Driver online:', data);
-            updateOnlineDriverList({ ...data, status: 'online' });
-            
-            if (data.name) {
-                showNotification(`Driver ${data.name} is now online`, 'success');
-            }
+        window.AppState.socket.on('driver-status', (data) => {
+            console.log('🔄 Admin: Driver status:', data);
+            updateOnlineDriverList(data);
         });
         
         window.AppState.socket.on('driver-offline', (data) => {
@@ -84,47 +77,21 @@ function setupSocketListeners() {
             onlineDrivers = onlineDrivers.filter(d => d.driverId !== data.driverId);
             updateOnlineDriversUI();
             removeMarker(`driver_${data.driverId}`);
-            
-            if (data.name) {
-                showNotification(`Driver ${data.name} went offline`, 'warning');
-            }
+            showNotification(`Driver ${data.name} went offline`, 'warning');
         });
         
-        window.AppState.socket.on('trip-updated', (data) => {
-            console.log('📦 Trip updated:', data);
-            setTimeout(loadAllTrips, 1000);
-            
-            if (data.status === 'completed') {
-                showNotification(`Trip completed by ${data.driverName || 'driver'}`, 'success');
-            }
-        });
-        
-        setTimeout(() => {
-            if (window.AppState.socket) {
-                window.AppState.socket.emit('get-online-drivers');
-            }
-        }, 2000);
-        
-        window.AppState.socket.on('online-drivers-list', (drivers) => {
-            console.log('👥 Online drivers list received:', drivers.length);
-            onlineDrivers = drivers.map(d => ({
-                driverId: d.driverId,
-                name: d.name,
-                status: d.status,
-                lat: d.location?.lat,
-                lng: d.location?.lng,
-                lastUpdate: d.lastUpdate
-            }));
-            
+        window.AppState.socket.on('online-drivers', (drivers) => {
+            console.log('👥 Admin received online drivers:', drivers.length);
+            onlineDrivers = drivers;
             updateOnlineDriversUI();
             
             drivers.forEach(driver => {
-                if (driver.location && driver.status !== 'offline') {
+                if (driver.lat && driver.lng) {
                     updateDriverOnMap({
                         driverId: driver.driverId,
                         name: driver.name,
-                        lat: driver.location.lat,
-                        lng: driver.location.lng,
+                        lat: driver.lat,
+                        lng: driver.lng,
                         status: driver.status
                     });
                 }

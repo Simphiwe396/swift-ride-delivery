@@ -190,17 +190,46 @@ function startLocationTracking() {
     }
 }
 
+// Replace JUST the updateLocationToServer function in driver.js with this:
+
 function updateLocationToServer() {
     if (!currentLocation || !window.AppState || !window.AppState.socket) return;
     
-    // Send location AND status to ALL connected clients
-    window.AppState.socket.emit('driver-location', {
-        driverId: window.AppState.user.id,
-        name: window.AppState.user.name,
-        lat: currentLocation.lat,
-        lng: currentLocation.lng,
-        status: driverStatus
-    });
+    // Send location update
+    if (window.AppState.socket.connected) {
+        window.AppState.socket.emit('driver-location', {
+            driverId: window.AppState.user.id,
+            name: window.AppState.user.name,
+            lat: currentLocation.lat,
+            lng: currentLocation.lng,
+            status: driverStatus
+        });
+    } else {
+        console.log('Socket not connected, trying to reconnect...');
+        window.AppState.socket.connect();
+    }
+}
+
+// Also update goOnline function:
+function goOnline() {
+    driverStatus = 'online';
+    updateStatusDisplay();
+    
+    if (window.AppState && window.AppState.socket) {
+        if (window.AppState.socket.connected) {
+            window.AppState.socket.emit('driver-online', {
+                driverId: window.AppState.user.id,
+                name: window.AppState.user.name,
+                lat: currentLocation.lat,
+                lng: currentLocation.lng,
+                status: 'online'
+            });
+        } else {
+            console.log('Socket not connected, will send when connected');
+        }
+    }
+    
+    showNotification('You are now online and visible to customers!', 'success');
 }
 
 function centerOnLocation() {
