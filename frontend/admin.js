@@ -3,6 +3,7 @@
 let allDrivers = [];
 let allTrips = [];
 let onlineDrivers = [];
+let trackingHistory = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize admin dashboard
@@ -35,8 +36,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDashboardData();
     await loadAllDrivers();
     await loadAllTrips();
+    await loadDriverFilterOptions();
     
-    // Setup socket listeners for real-time updates
+    // Setup socket listeners
     setupSocketListeners();
     
     // Hide loading screen
@@ -50,7 +52,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupSocketListeners() {
     if (window.AppState && window.AppState.socket) {
-        // Listen for driver status changes
         window.AppState.socket.on('driver-status', (data) => {
             console.log('🔄 Admin: Driver status:', data);
             updateOnlineDriverList(data);
@@ -60,18 +61,15 @@ function setupSocketListeners() {
             }
         });
         
-        // Listen for driver location updates
         window.AppState.socket.on('driver-update', (data) => {
             console.log('📍 Admin: Driver location:', data);
             updateOnlineDriverList(data);
             
-            // Update on map
             if (window.AppState && window.AppState.map && data.lat && data.lng) {
                 updateDriverOnMap(data);
             }
         });
         
-        // Listen for driver online
         window.AppState.socket.on('driver-online', (data) => {
             console.log('🟢 Admin: Driver online:', data);
             updateOnlineDriverList({ ...data, status: 'online' });
@@ -81,7 +79,6 @@ function setupSocketListeners() {
             }
         });
         
-        // Listen for driver offline
         window.AppState.socket.on('driver-offline', (data) => {
             console.log('🔴 Admin: Driver offline:', data);
             onlineDrivers = onlineDrivers.filter(d => d.driverId !== data.driverId);
@@ -93,11 +90,8 @@ function setupSocketListeners() {
             }
         });
         
-        // Listen for trip updates
         window.AppState.socket.on('trip-updated', (data) => {
             console.log('📦 Trip updated:', data);
-            
-            // Refresh trip list
             setTimeout(loadAllTrips, 1000);
             
             if (data.status === 'completed') {
@@ -105,14 +99,12 @@ function setupSocketListeners() {
             }
         });
         
-        // Request initial online drivers
         setTimeout(() => {
             if (window.AppState.socket) {
                 window.AppState.socket.emit('get-online-drivers');
             }
         }, 2000);
         
-        // Receive online drivers list
         window.AppState.socket.on('online-drivers-list', (drivers) => {
             console.log('👥 Online drivers list received:', drivers.length);
             onlineDrivers = drivers.map(d => ({
@@ -126,7 +118,6 @@ function setupSocketListeners() {
             
             updateOnlineDriversUI();
             
-            // Add all to map
             drivers.forEach(driver => {
                 if (driver.location && driver.status !== 'offline') {
                     updateDriverOnMap({
@@ -148,10 +139,8 @@ function updateOnlineDriverList(data) {
     const existingIndex = onlineDrivers.findIndex(d => d.driverId === driverId);
     
     if (status === 'offline') {
-        // Remove from list
         onlineDrivers = onlineDrivers.filter(d => d.driverId !== driverId);
     } else if (existingIndex >= 0) {
-        // Update existing
         onlineDrivers[existingIndex] = {
             ...onlineDrivers[existingIndex],
             name: name || onlineDrivers[existingIndex].name,
@@ -161,7 +150,6 @@ function updateOnlineDriverList(data) {
             lastUpdate: new Date()
         };
     } else if (status === 'online' || status === 'busy' || status === 'available') {
-        // Add new
         onlineDrivers.push({
             driverId,
             name: name || `Driver ${driverId?.substring(0, 6) || 'Unknown'}`,
@@ -207,36 +195,34 @@ function updateOnlineDriversUI() {
 }
 
 window.showSection = function(sectionId) {
-    // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
     
-    // Remove active class from all menu items
     document.querySelectorAll('.sidebar-menu li').forEach(item => {
         item.classList.remove('active');
     });
     
-    // Show selected section
     const section = document.getElementById(sectionId);
     if (section) {
         section.style.display = 'block';
     }
     
-    // Add active class to clicked menu item
     event.target.closest('li').classList.add('active');
     
-    // Initialize map if showing tracking
     if (sectionId === 'tracking') {
         setTimeout(() => {
             initTrackingMap();
+        }, 100);
+    } else if (sectionId === 'history') {
+        setTimeout(() => {
+            loadTrackingHistory();
         }, 100);
     }
 }
 
 async function loadDashboardData() {
     try {
-        // Load stats
         if (typeof window.apiRequest === 'function') {
             const stats = await window.apiRequest('/admin/stats');
             
@@ -272,7 +258,7 @@ async function loadAllDrivers() {
             if (drivers.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">
+                        <td colspan="9" style="text-align: center; padding: 2rem; color: #666;">
                             No drivers registered
                         </td>
                     </tr>
@@ -285,7 +271,7 @@ async function loadAllDrivers() {
                     <td>${(driver._id || driver.id)?.substring(0, 8) || 'N/A'}</td>
                     <td><strong>${driver.name || 'Unknown'}</strong></td>
                     <td>${driver.phone || 'N/A'}</td>
-                    <td>${driver.vehicleType || 'N/A'}</td>
+                    <td>${driver.vehicleType || 'N/A'} (${driver.vehicleNumber || 'N/A'})</td>
                     <td>
                         <span class="trip-status status-${driver.status || 'offline'}">
                             ${driver.status || 'offline'}
@@ -293,8 +279,12 @@ async function loadAllDrivers() {
                     </td>
                     <td>${driver.totalTrips || 0}</td>
                     <td>R ${driver.totalEarnings?.toFixed(2) || '0.00'}</td>
+                    <td>${driver.rating || '5.0'}</td>
                     <td>
-                        <button class="btn" onclick="trackDriver('${driver._id || driver.id}')" style="padding: 0.3rem 0.8rem; font-size: 0.9rem;">
+                        <button class="btn" onclick="viewDriverDetails('${driver._id || driver.id}')" style="padding: 0.3rem 0.8rem; font-size: 0.9rem; margin: 0.2rem;">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn" onclick="trackDriver('${driver._id || driver.id}')" style="padding: 0.3rem 0.8rem; font-size: 0.9rem; margin: 0.2rem;">
                             <i class="fas fa-map-marker-alt"></i> Track
                         </button>
                     </td>
@@ -354,6 +344,390 @@ async function loadAllTrips() {
     }
 }
 
+async function loadTrackingHistory() {
+    try {
+        const driverId = document.getElementById('historyDriverFilter')?.value;
+        const date = document.getElementById('historyDateFilter')?.value;
+        
+        let url = 'https://swift-ride.onrender.com/api/tracking/history?limit=100';
+        if (driverId && driverId !== 'all') url += `&driverId=${driverId}`;
+        if (date) url += `&date=${date}`;
+        
+        const response = await fetch(url);
+        trackingHistory = await response.json();
+        
+        const tableBody = document.getElementById('trackingHistoryTable');
+        if (!tableBody) return;
+        
+        if (trackingHistory.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem; color: #666;">
+                        No tracking history found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tableBody.innerHTML = trackingHistory.map(track => `
+            <tr>
+                <td>${new Date(track.timestamp).toLocaleString()}</td>
+                <td><strong>${track.driverName}</strong></td>
+                <td>${track.location?.lat?.toFixed(4)}, ${track.location?.lng?.toFixed(4)}</td>
+                <td>${track.speed || 0} km/h</td>
+                <td><span class="trip-status status-${track.status}">${track.status}</span></td>
+                <td>${track.batteryLevel || 100}%</td>
+            </tr>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading tracking history:', error);
+        showNotification('Failed to load tracking history', 'error');
+    }
+}
+
+async function loadDriverFilterOptions() {
+    try {
+        const drivers = await window.apiRequest('/drivers/all');
+        const filterSelect = document.getElementById('historyDriverFilter');
+        
+        if (filterSelect && drivers.length > 0) {
+            // Keep "All Drivers" option
+            const allOption = filterSelect.querySelector('option[value="all"]');
+            filterSelect.innerHTML = '';
+            filterSelect.appendChild(allOption);
+            
+            // Add driver options
+            drivers.forEach(driver => {
+                const option = document.createElement('option');
+                option.value = driver._id || driver.id;
+                option.textContent = driver.name || `Driver ${(driver._id || driver.id).substring(0, 8)}`;
+                filterSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading driver filter options:', error);
+    }
+}
+
+window.showAddDriverModal = function() {
+    const modal = document.getElementById('addDriverModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+};
+
+window.closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+};
+
+window.saveDriver = async function() {
+    // Get all form values
+    const driverData = {
+        name: document.getElementById('driverNameInput').value.trim(),
+        email: document.getElementById('driverEmailInput').value.trim(),
+        phone: document.getElementById('driverPhoneInput').value.trim(),
+        idNumber: document.getElementById('driverIdInput').value.trim(),
+        vehicleType: document.getElementById('driverVehicleInput').value,
+        vehicleNumber: document.getElementById('driverVehicleNoInput').value.trim(),
+        ratePerKm: parseInt(document.getElementById('driverRateInput').value),
+        rating: parseFloat(document.getElementById('driverRatingInput').value),
+        address: document.getElementById('driverAddressInput').value.trim(),
+        emergencyContact: document.getElementById('driverEmergencyInput').value.trim(),
+        notes: document.getElementById('driverNotesInput').value.trim(),
+        status: 'offline'
+    };
+    
+    // Validation
+    if (!driverData.name || !driverData.email || !driverData.phone || !driverData.idNumber || 
+        !driverData.vehicleType || !driverData.vehicleNumber || !driverData.ratePerKm) {
+        showNotification('Please fill in all required fields (*)', 'error');
+        return;
+    }
+    
+    if (!driverData.email.includes('@')) {
+        showNotification('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    if (driverData.phone.length < 10) {
+        showNotification('Please enter a valid phone number', 'error');
+        return;
+    }
+    
+    try {
+        showNotification('Adding driver...', 'info');
+        
+        const response = await fetch('https://swift-ride.onrender.com/api/drivers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(driverData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showNotification('Driver added successfully!', 'success');
+            closeModal('addDriverModal');
+            
+            // Clear form
+            document.getElementById('driverNameInput').value = '';
+            document.getElementById('driverEmailInput').value = '';
+            document.getElementById('driverPhoneInput').value = '';
+            document.getElementById('driverIdInput').value = '';
+            document.getElementById('driverVehicleInput').value = '';
+            document.getElementById('driverVehicleNoInput').value = '';
+            document.getElementById('driverAddressInput').value = '';
+            document.getElementById('driverEmergencyInput').value = '';
+            document.getElementById('driverNotesInput').value = '';
+            
+            // Reload drivers list
+            await loadAllDrivers();
+            await loadDriverFilterOptions();
+            
+        } else {
+            showNotification(result.error || 'Failed to add driver', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Failed to add driver:', error);
+        showNotification('Failed to add driver: ' + error.message, 'error');
+    }
+};
+
+window.viewDriverDetails = async function(driverId) {
+    try {
+        const driver = allDrivers.find(d => (d._id || d.id) === driverId);
+        if (!driver) {
+            showNotification('Driver not found', 'error');
+            return;
+        }
+        
+        const modal = document.getElementById('viewDriverModal');
+        const content = document.getElementById('driverDetailsContent');
+        
+        content.innerHTML = `
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="color: #333; margin-bottom: 1rem;">${driver.name}</h3>
+                <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
+                    <div>
+                        <p><strong>Status:</strong> <span class="trip-status status-${driver.status || 'offline'}">${driver.status || 'offline'}</span></p>
+                        <p><strong>Phone:</strong> ${driver.phone || 'N/A'}</p>
+                        <p><strong>Email:</strong> ${driver.email || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p><strong>Vehicle:</strong> ${driver.vehicleType || 'N/A'} (${driver.vehicleNumber || 'N/A'})</p>
+                        <p><strong>Rate:</strong> R${driver.ratePerKm || 10}/km</p>
+                        <p><strong>Rating:</strong> ${driver.rating || '5.0'}/5.0</p>
+                    </div>
+                </div>
+                
+                <div style="background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p><strong>Performance Stats:</strong></p>
+                    <div style="display: flex; gap: 1.5rem;">
+                        <div>
+                            <p style="color: #666;">Total Trips</p>
+                            <p style="font-size: 1.5rem; font-weight: bold; color: #6C63FF;">${driver.totalTrips || 0}</p>
+                        </div>
+                        <div>
+                            <p style="color: #666;">Total Earnings</p>
+                            <p style="font-size: 1.5rem; font-weight: bold; color: #4CAF50;">R${driver.totalEarnings?.toFixed(2) || '0.00'}</p>
+                        </div>
+                        <div>
+                            <p style="color: #666;">Joined Date</p>
+                            <p style="font-size: 1rem; color: #666;">${new Date(driver.joinedDate).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                ${driver.address ? `<p><strong>Address:</strong> ${driver.address}</p>` : ''}
+                ${driver.emergencyContact ? `<p><strong>Emergency Contact:</strong> ${driver.emergencyContact}</p>` : ''}
+                ${driver.notes ? `<p><strong>Notes:</strong> ${driver.notes}</p>` : ''}
+            </div>
+        `;
+        
+        modal.classList.add('active');
+        
+    } catch (error) {
+        console.error('Error viewing driver details:', error);
+        showNotification('Failed to load driver details', 'error');
+    }
+};
+
+window.exportTrackingHistory = function() {
+    if (trackingHistory.length === 0) {
+        showNotification('No tracking history to export', 'warning');
+        return;
+    }
+    
+    const csv = convertTrackingToCSV(trackingHistory);
+    downloadCSV(csv, `swiftride_tracking_${new Date().toISOString().split('T')[0]}.csv`);
+    showNotification('Tracking history exported to CSV', 'success');
+};
+
+function convertTrackingToCSV(data) {
+    const headers = ['Timestamp', 'Driver Name', 'Driver ID', 'Latitude', 'Longitude', 'Speed (km/h)', 'Status', 'Battery Level'];
+    const rows = data.map(track => [
+        new Date(track.timestamp).toLocaleString(),
+        track.driverName,
+        track.driverId,
+        track.location?.lat || 0,
+        track.location?.lng || 0,
+        track.speed || 0,
+        track.status,
+        track.batteryLevel || 100
+    ]);
+    
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+}
+
+// Keep existing functions for tracking, trips, etc.
+window.trackDriver = function(driverId) {
+    const driver = allDrivers.find(d => (d._id || d.id) === driverId) || 
+                  onlineDrivers.find(d => d.driverId === driverId);
+    
+    if (driver) {
+        showSection('tracking');
+        
+        setTimeout(() => {
+            initTrackingMap();
+            
+            if (driver.currentLocation || (driver.lat && driver.lng)) {
+                const lat = driver.currentLocation?.lat || driver.lat;
+                const lng = driver.currentLocation?.lng || driver.lng;
+                
+                if (window.AppState && window.AppState.map) {
+                    window.AppState.map.setView([lat, lng], 15);
+                }
+                
+                showDriverDetails(driver);
+            } else {
+                if (window.AppState && window.AppState.map) {
+                    window.AppState.map.setView(APP_CONFIG.MAP_CENTER, 15);
+                }
+                showDriverDetails(driver);
+            }
+        }, 100);
+    } else {
+        showNotification('Driver not found', 'warning');
+    }
+};
+
+window.initTrackingMap = function() {
+    const mapElement = document.getElementById('trackingMap');
+    if (!mapElement) return;
+    
+    if (window.AppState && window.AppState.map && mapElement._leaflet_id) {
+        window.AppState.map.remove();
+    }
+    
+    if (typeof window.initMap === 'function') {
+        window.initMap('trackingMap');
+    }
+    
+    const allDriversToShow = [...allDrivers, ...onlineDrivers.map(od => ({
+        _id: od.driverId,
+        id: od.driverId,
+        name: od.name,
+        status: od.status,
+        currentLocation: od.lat && od.lng ? { lat: od.lat, lng: od.lng } : null
+    }))];
+    
+    allDriversToShow.forEach(driver => {
+        if ((driver.currentLocation || (driver.lat && driver.lng)) && typeof window.addMarker === 'function') {
+            const lat = driver.currentLocation?.lat || driver.lat;
+            const lng = driver.currentLocation?.lng || driver.lng;
+            
+            const marker = window.addMarker(`track_${driver._id || driver.id}`, 
+                [lat, lng],
+                {
+                    title: `${driver.name} (${driver.status})`,
+                    icon: L.divIcon({
+                        html: `<div style="background: ${driver.status === 'online' || driver.status === 'available' ? 'green' : 
+                               driver.status === 'busy' ? 'orange' : 'gray'}; 
+                               width: 30px; height: 30px; border-radius: 50%; border: 3px solid white;
+                               display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                               ${driver.name?.charAt(0) || 'D'}</div>`,
+                        className: 'tracking-marker'
+                    })
+                }
+            );
+            
+            if (marker) {
+                marker.on('click', () => {
+                    showDriverDetails(driver);
+                });
+            }
+        }
+    });
+    
+    if (window.AppState && window.AppState.map && Object.keys(window.AppState.markers).length > 0) {
+        const markers = Object.values(window.AppState.markers);
+        const group = new L.featureGroup(markers);
+        window.AppState.map.fitBounds(group.getBounds().pad(0.1));
+    }
+};
+
+window.centerAllDrivers = function() {
+    if (window.AppState && window.AppState.map && Object.keys(window.AppState.markers).length > 0) {
+        const markers = Object.values(window.AppState.markers);
+        const group = new L.featureGroup(markers);
+        window.AppState.map.fitBounds(group.getBounds().pad(0.1));
+    }
+};
+
+window.showDriverDetails = function(driver) {
+    const infoElement = document.getElementById('selectedDriverInfo');
+    if (!infoElement) return;
+    
+    const onlineDriver = onlineDrivers.find(d => d.driverId === (driver._id || driver.id));
+    
+    infoElement.innerHTML = `
+        <h4>${driver.name || 'Unknown Driver'}</h4>
+        <p><strong>Status:</strong> <span class="trip-status status-${onlineDriver?.status || driver.status || 'offline'}">
+            ${onlineDriver?.status || driver.status || 'offline'}
+        </span></p>
+        <p><strong>Phone:</strong> ${driver.phone || 'N/A'}</p>
+        <p><strong>Vehicle:</strong> ${driver.vehicleType || 'N/A'}</p>
+        <p><strong>Total Trips:</strong> ${driver.totalTrips || 0}</p>
+        <p><strong>Total Earnings:</strong> R${driver.totalEarnings?.toFixed(2) || '0.00'}</p>
+        <p><strong>Current Location:</strong> ${(driver.currentLocation || (driver.lat && driver.lng)) ? '📍 Live Tracking' : 'Not available'}</p>
+        <p><strong>Last Update:</strong> ${new Date(driver.lastActive || Date.now()).toLocaleTimeString()}</p>
+        
+        <div style="margin-top: 1rem;">
+            <button class="btn" onclick="viewDriverDetails('${driver._id || driver.id}')">
+                <i class="fas fa-eye"></i> Full Details
+            </button>
+            <button class="btn" onclick="sendMessageToDriver('${driver._id || driver.id}')">
+                <i class="fas fa-comment"></i> Message
+            </button>
+        </div>
+    `;
+};
+
+window.viewTripDetails = function(tripId) {
+    const trip = allTrips.find(t => (t._id || t.id) === tripId);
+    if (trip) {
+        alert(`Trip Details:\n
+ID: ${trip.tripId}\n
+Customer: ${trip.customerName}\n
+Driver: ${trip.driverName || 'Not assigned'}\n
+From: ${trip.pickup?.address || 'N/A'}\n
+To: ${trip.destination?.address || 'N/A'}\n
+Distance: ${trip.distance} km\n
+Fare: R${trip.fare?.toFixed(2)}\n
+Status: ${trip.status}\n
+Created: ${new Date(trip.createdAt).toLocaleString()}
+${trip.tripDuration ? `\nDuration: ${trip.tripDuration} minutes` : ''}`);
+    }
+};
+
 window.filterTrips = function() {
     const filter = document.getElementById('tripFilter')?.value;
     if (!filter || filter === 'all') {
@@ -397,239 +771,7 @@ window.filterTrips = function() {
             </td>
         </tr>
     `).join('');
-}
-
-window.trackDriver = function(driverId) {
-    console.log(`Tracking driver: ${driverId}`);
-    
-    // Find driver
-    const driver = allDrivers.find(d => (d._id || d.id) === driverId) || 
-                  onlineDrivers.find(d => d.driverId === driverId);
-    
-    if (driver) {
-        showSection('tracking');
-        
-        setTimeout(() => {
-            initTrackingMap();
-            
-            // Center on driver if location exists
-            if (driver.currentLocation || (driver.lat && driver.lng)) {
-                const lat = driver.currentLocation?.lat || driver.lat;
-                const lng = driver.currentLocation?.lng || driver.lng;
-                
-                if (window.AppState && window.AppState.map) {
-                    window.AppState.map.setView([lat, lng], 15);
-                }
-                
-                // Show driver details
-                showDriverDetails(driver);
-            } else {
-                // Show warehouse as default
-                if (window.AppState && window.AppState.map) {
-                    window.AppState.map.setView(APP_CONFIG.MAP_CENTER, 15);
-                }
-                showDriverDetails(driver);
-            }
-        }, 100);
-    } else {
-        showNotification('Driver not found', 'warning');
-    }
-}
-
-window.initTrackingMap = function() {
-    const mapElement = document.getElementById('trackingMap');
-    if (!mapElement) return;
-    
-    // Remove existing map instance
-    if (window.AppState && window.AppState.map && mapElement._leaflet_id) {
-        window.AppState.map.remove();
-    }
-    
-    // Initialize new map
-    if (typeof window.initMap === 'function') {
-        window.initMap('trackingMap');
-    }
-    
-    // Add all drivers to map
-    const allDriversToShow = [...allDrivers, ...onlineDrivers.map(od => ({
-        _id: od.driverId,
-        id: od.driverId,
-        name: od.name,
-        status: od.status,
-        currentLocation: od.lat && od.lng ? { lat: od.lat, lng: od.lng } : null
-    }))];
-    
-    allDriversToShow.forEach(driver => {
-        if ((driver.currentLocation || (driver.lat && driver.lng)) && typeof window.addMarker === 'function') {
-            const lat = driver.currentLocation?.lat || driver.lat;
-            const lng = driver.currentLocation?.lng || driver.lng;
-            
-            const marker = window.addMarker(`track_${driver._id || driver.id}`, 
-                [lat, lng],
-                {
-                    title: `${driver.name} (${driver.status})`,
-                    icon: L.divIcon({
-                        html: `<div style="background: ${driver.status === 'online' || driver.status === 'available' ? 'green' : 
-                               driver.status === 'busy' ? 'orange' : 'gray'}; 
-                               width: 30px; height: 30px; border-radius: 50%; border: 3px solid white;
-                               display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
-                               ${driver.name?.charAt(0) || 'D'}</div>`,
-                        className: 'tracking-marker'
-                    })
-                }
-            );
-            
-            // Add click event to show driver details
-            if (marker) {
-                marker.on('click', () => {
-                    showDriverDetails(driver);
-                });
-            }
-        }
-    });
-    
-    // Fit map to show all drivers
-    if (window.AppState && window.AppState.map && Object.keys(window.AppState.markers).length > 0) {
-        const markers = Object.values(window.AppState.markers);
-        const group = new L.featureGroup(markers);
-        window.AppState.map.fitBounds(group.getBounds().pad(0.1));
-    }
-}
-
-window.centerAllDrivers = function() {
-    if (window.AppState && window.AppState.map && Object.keys(window.AppState.markers).length > 0) {
-        const markers = Object.values(window.AppState.markers);
-        const group = new L.featureGroup(markers);
-        window.AppState.map.fitBounds(group.getBounds().pad(0.1));
-    }
-}
-
-window.showDriverDetails = function(driver) {
-    const infoElement = document.getElementById('selectedDriverInfo');
-    if (!infoElement) return;
-    
-    // Find if driver is online
-    const onlineDriver = onlineDrivers.find(d => d.driverId === (driver._id || driver.id));
-    
-    infoElement.innerHTML = `
-        <h4>${driver.name || 'Unknown Driver'}</h4>
-        <p><strong>Status:</strong> <span class="trip-status status-${onlineDriver?.status || driver.status || 'offline'}">
-            ${onlineDriver?.status || driver.status || 'offline'}
-        </span></p>
-        <p><strong>Phone:</strong> ${driver.phone || 'N/A'}</p>
-        <p><strong>Vehicle:</strong> ${driver.vehicleType || 'N/A'}</p>
-        <p><strong>Total Trips:</strong> ${driver.totalTrips || 0}</p>
-        <p><strong>Total Earnings:</strong> R${driver.totalEarnings?.toFixed(2) || '0.00'}</p>
-        <p><strong>Current Location:</strong> ${(driver.currentLocation || (driver.lat && driver.lng)) ? '📍 Live Tracking' : 'Not available'}</p>
-        <p><strong>Last Update:</strong> ${new Date(driver.lastUpdate || Date.now()).toLocaleTimeString()}</p>
-        
-        <div style="margin-top: 1rem;">
-            <button class="btn" onclick="sendMessageToDriver('${driver._id || driver.id}')">
-                <i class="fas fa-comment"></i> Send Message
-            </button>
-            <button class="btn" onclick="viewDriverTrips('${driver._id || driver.id}')">
-                <i class="fas fa-history"></i> View Trips
-            </button>
-        </div>
-    `;
-}
-
-window.showAddDriverModal = function() {
-    const modal = document.getElementById('addDriverModal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
-
-window.closeModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-window.saveDriver = async function() {
-    const driverData = {
-        name: document.getElementById('driverNameInput').value,
-        email: document.getElementById('driverEmailInput').value,
-        phone: document.getElementById('driverPhoneInput').value,
-        vehicleType: document.getElementById('driverVehicleInput').value,
-        vehicleNumber: document.getElementById('driverVehicleNoInput').value,
-        ratePerKm: parseInt(document.getElementById('driverRateInput').value),
-        status: 'offline'
-    };
-    
-    if (!driverData.name || !driverData.email || !driverData.phone) {
-        showNotification('Please fill all required fields', 'error');
-        return;
-    }
-    
-    try {
-        if (typeof window.apiRequest === 'function') {
-            await window.apiRequest('/drivers', {
-                method: 'POST',
-                body: JSON.stringify(driverData)
-            });
-            
-            showNotification('Driver added successfully', 'success');
-            closeModal('addDriverModal');
-            
-            // Clear form
-            document.getElementById('driverNameInput').value = '';
-            document.getElementById('driverEmailInput').value = '';
-            document.getElementById('driverPhoneInput').value = '';
-            document.getElementById('driverVehicleNoInput').value = '';
-            
-            // Reload drivers list
-            await loadAllDrivers();
-        }
-        
-    } catch (error) {
-        console.error('Failed to add driver:', error);
-        showNotification('Failed to add driver', 'error');
-    }
-}
-
-window.viewTripDetails = function(tripId) {
-    const trip = allTrips.find(t => (t._id || t.id) === tripId);
-    if (trip) {
-        alert(`Trip Details:\n
-ID: ${trip.tripId}\n
-Customer: ${trip.customerName}\n
-Driver: ${trip.driverName || 'Not assigned'}\n
-From: ${trip.pickup?.address || 'N/A'}\n
-To: ${trip.destination?.address || 'N/A'}\n
-Distance: ${trip.distance} km\n
-Fare: R${trip.fare?.toFixed(2)}\n
-Status: ${trip.status}\n
-Created: ${new Date(trip.createdAt).toLocaleString()}`);
-    }
-}
-
-window.sendMessageToDriver = function(driverId) {
-    const message = prompt('Enter message to send to driver:');
-    if (message) {
-        showNotification(`Message sent to driver: "${message}"`, 'success');
-    }
-}
-
-window.viewDriverTrips = function(driverId) {
-    const driverTrips = allTrips.filter(trip => trip.driverId === driverId);
-    
-    let message = `Driver Trips (${driverTrips.length}):\n\n`;
-    driverTrips.forEach((trip, index) => {
-        message += `${index + 1}. ${trip.tripId}: ${trip.status} - R${trip.fare?.toFixed(2)}\n`;
-    });
-    
-    alert(message);
-}
-
-window.refreshData = function() {
-    loadDashboardData();
-    loadAllDrivers();
-    loadAllTrips();
-    showNotification('Data refreshed', 'success');
-}
+};
 
 window.exportTrips = function() {
     if (allTrips.length === 0) {
@@ -640,7 +782,7 @@ window.exportTrips = function() {
     const csv = convertToCSV(allTrips);
     downloadCSV(csv, 'swiftride_trips.csv');
     showNotification('Trips exported to CSV', 'success');
-}
+};
 
 function convertToCSV(data) {
     const headers = ['Trip ID', 'Customer', 'Driver', 'Pickup', 'Destination', 'Distance', 'Fare', 'Status', 'Date'];
@@ -670,6 +812,14 @@ function downloadCSV(csv, filename) {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 }
+
+window.refreshData = function() {
+    loadDashboardData();
+    loadAllDrivers();
+    loadAllTrips();
+    loadTrackingHistory();
+    showNotification('All data refreshed', 'success');
+};
 
 window.logout = function() {
     localStorage.removeItem('swiftride_user');

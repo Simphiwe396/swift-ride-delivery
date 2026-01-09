@@ -79,6 +79,49 @@
         .status-online { background: #4CAF50; }
         .status-busy { background: #FF9800; }
         .status-offline { background: #ccc; }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .required::after {
+            content: " *";
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -113,8 +156,8 @@
                 <li onclick="showSection('tracking')">
                     <i class="fas fa-map-marker-alt"></i> Live Tracking
                 </li>
-                <li onclick="showSection('analytics')">
-                    <i class="fas fa-chart-bar"></i> Analytics
+                <li onclick="showSection('history')">
+                    <i class="fas fa-history"></i> Tracking History
                 </li>
                 <li onclick="showSection('settings')">
                     <i class="fas fa-cog"></i> Settings
@@ -176,7 +219,7 @@
                 <div class="admin-header">
                     <h1>Driver Management</h1>
                     <button class="btn" onclick="showAddDriverModal()">
-                        <i class="fas fa-plus"></i> Add Driver
+                        <i class="fas fa-plus"></i> Add New Driver
                     </button>
                 </div>
                 
@@ -191,6 +234,7 @@
                                 <th>Status</th>
                                 <th>Trips</th>
                                 <th>Earnings</th>
+                                <th>Rating</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -261,6 +305,41 @@
                     </div>
                 </div>
             </section>
+            
+            <!-- Tracking History Section -->
+            <section id="history" class="section" style="display: none;">
+                <div class="admin-header">
+                    <h1>Tracking History</h1>
+                    <div style="display: flex; gap: 1rem;">
+                        <select id="historyDriverFilter" class="form-control" onchange="loadTrackingHistory()">
+                            <option value="all">All Drivers</option>
+                            <!-- Driver options will be loaded here -->
+                        </select>
+                        <input type="date" id="historyDateFilter" class="form-control" onchange="loadTrackingHistory()">
+                        <button class="btn" onclick="exportTrackingHistory()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Driver</th>
+                                <th>Location</th>
+                                <th>Speed</th>
+                                <th>Status</th>
+                                <th>Battery</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trackingHistoryTable">
+                            <!-- Tracking history will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
     
@@ -268,58 +347,115 @@
     <div id="addDriverModal" class="modal">
         <div class="modal-content">
             <h2>Add New Driver</h2>
+            <p style="color: #666; margin-bottom: 1.5rem;">Fill in all driver details below. Fields marked with * are required.</p>
             
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="driverNameInput" class="form-control">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">Full Name</label>
+                    <input type="text" id="driverNameInput" class="form-control" placeholder="John Driver" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="required">Email</label>
+                    <input type="email" id="driverEmailInput" class="form-control" placeholder="driver@swiftride.co.za" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">Phone Number</label>
+                    <input type="tel" id="driverPhoneInput" class="form-control" placeholder="082 123 4567" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="required">ID Number</label>
+                    <input type="text" id="driverIdInput" class="form-control" placeholder="901215 1234 567" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">Vehicle Type</label>
+                    <select id="driverVehicleInput" class="form-control" required>
+                        <option value="">Select Vehicle</option>
+                        <option value="motorcycle">Motorcycle</option>
+                        <option value="car">Car</option>
+                        <option value="van">Van</option>
+                        <option value="truck">Truck</option>
+                        <option value="bicycle">Bicycle</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="required">Vehicle Number</label>
+                    <input type="text" id="driverVehicleNoInput" class="form-control" placeholder="CA 123-456" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">Rate per km</label>
+                    <select id="driverRateInput" class="form-control" required>
+                        <option value="5">R5/km (Economy)</option>
+                        <option value="10" selected>R10/km (Standard)</option>
+                        <option value="15">R15/km (Premium)</option>
+                        <option value="20">R20/km (Express)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Driver Rating</label>
+                    <select id="driverRatingInput" class="form-control">
+                        <option value="5.0">5.0 (Excellent)</option>
+                        <option value="4.5">4.5 (Very Good)</option>
+                        <option value="4.0">4.0 (Good)</option>
+                        <option value="3.5">3.5 (Average)</option>
+                        <option value="3.0">3.0 (Below Average)</option>
+                    </select>
+                </div>
             </div>
             
             <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="driverEmailInput" class="form-control">
+                <label>Driver Address</label>
+                <input type="text" id="driverAddressInput" class="form-control" placeholder="123 Main Street, Johannesburg">
             </div>
             
             <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" id="driverPhoneInput" class="form-control">
+                <label>Emergency Contact</label>
+                <input type="text" id="driverEmergencyInput" class="form-control" placeholder="Next of kin name and number">
             </div>
             
             <div class="form-group">
-                <label>Vehicle Type</label>
-                <select id="driverVehicleInput" class="form-control">
-                    <option value="motorcycle">Motorcycle</option>
-                    <option value="car">Car</option>
-                    <option value="van">Van</option>
-                    <option value="bicycle">Bicycle</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Vehicle Number</label>
-                <input type="text" id="driverVehicleNoInput" class="form-control">
-            </div>
-            
-            <div class="form-group">
-                <label>Rate per km</label>
-                <select id="driverRateInput" class="form-control">
-                    <option value="5">R5/km (Economy)</option>
-                    <option value="10" selected>R10/km (Standard)</option>
-                    <option value="20">R20/km (Express)</option>
-                </select>
+                <label>Notes/Additional Info</label>
+                <textarea id="driverNotesInput" class="form-control" rows="3" placeholder="Any additional information about the driver"></textarea>
             </div>
             
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button class="btn" onclick="saveDriver()" style="flex: 1;">
+                <button class="btn" onclick="saveDriver()" style="flex: 1; background: #4CAF50;">
                     <i class="fas fa-save"></i> Save Driver
                 </button>
                 <button class="btn" onclick="closeModal('addDriverModal')" style="background: #666; flex: 1;">
-                    Cancel
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Driver Details Modal -->
+    <div id="viewDriverModal" class="modal">
+        <div class="modal-content">
+            <h2>Driver Details</h2>
+            <div id="driverDetailsContent">
+                <!-- Driver details will be loaded here -->
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <button class="btn" onclick="closeModal('viewDriverModal')">
+                    <i class="fas fa-times"></i> Close
                 </button>
             </div>
         </div>
     </div>
 
-    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script src="app.js"></script>

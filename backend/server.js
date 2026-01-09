@@ -59,7 +59,7 @@ mongoose.connect(MONGODB_URI, {
     console.log('⚠️ Using mock data mode');
 });
 
-// Simple schemas
+// ===== SCHEMAS =====
 const driverSchema = new mongoose.Schema({
     name: String,
     email: String,
@@ -71,7 +71,10 @@ const driverSchema = new mongoose.Schema({
     ratePerKm: { type: Number, default: 10 },
     totalTrips: { type: Number, default: 0 },
     totalEarnings: { type: Number, default: 0 },
-    lastActive: { type: Date, default: Date.now }
+    rating: { type: Number, default: 5.0 },
+    joinedDate: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: Date.now },
+    notes: String
 });
 
 const tripSchema = new mongoose.Schema({
@@ -96,15 +99,29 @@ const tripSchema = new mongoose.Schema({
     driverLocation: { lat: Number, lng: Number },
     packageDescription: String,
     createdAt: { type: Date, default: Date.now },
-    completedAt: Date
+    completedAt: Date,
+    tripDuration: Number // in minutes
+});
+
+// ===== NEW: TRACKING HISTORY SCHEMA =====
+const trackingHistorySchema = new mongoose.Schema({
+    driverId: String,
+    driverName: String,
+    tripId: String,
+    location: { lat: Number, lng: Number },
+    speed: { type: Number, default: 0 },
+    status: String,
+    timestamp: { type: Date, default: Date.now },
+    batteryLevel: { type: Number, default: 100 }
 });
 
 const Driver = mongoose.model('Driver', driverSchema);
 const Trip = mongoose.model('Trip', tripSchema);
+const TrackingHistory = mongoose.model('TrackingHistory', trackingHistorySchema);
 
 // ===== REAL-TIME TRACKING SYSTEM =====
-let onlineDrivers = new Map(); // Map of driverId -> {socketId, data}
-let connectedUsers = new Map(); // Map of socketId -> userData
+let onlineDrivers = new Map();
+let connectedUsers = new Map();
 
 // Socket.io
 io.on('connection', (socket) => {
@@ -116,7 +133,6 @@ io.on('connection', (socket) => {
         connectedUsers.set(socket.id, data);
         
         if (data.userType === 'driver') {
-            // Add driver to online list
             onlineDrivers.set(data.userId, {
                 socketId: socket.id,
                 driverId: data.userId,
@@ -126,7 +142,6 @@ io.on('connection', (socket) => {
                 lastUpdate: new Date()
             });
             
-            // Broadcast to ALL admin users
             io.emit('driver-online', {
                 driverId: data.userId,
                 name: data.name,
@@ -140,8 +155,8 @@ io.on('connection', (socket) => {
     });
     
     // ===== DRIVER LOCATION UPDATE =====
-    socket.on('driver-location', (data) => {
-        const { driverId, lat, lng, status, name } = data;
+    socket.on('driver-location', async (data) => {
+        const { driverId, lat, lng, status, name, speed } = data;
         console.log(`📍 Driver location: ${name || driverId} at ${lat},${lng} (${status})`);
         
         // Update driver data
@@ -156,7 +171,23 @@ io.on('connection', (socket) => {
         
         onlineDrivers.set(driverId, driverData);
         
-        // Broadcast to ALL clients (admin, customers)
+        // ===== SAVE TO TRACKING HISTORY =====
+        try {
+            const trackingRecord = new TrackingHistory({
+                driverId,
+                driverName: name || `Driver ${driverId.substring(0, 6)}`,
+                location: { lat, lng },
+                speed: speed || 0,
+                status: status || 'online',
+                timestamp: new Date()
+            });
+            await trackingRecord.save();
+            console.log(`📝 Saved tracking history for driver ${driverId}`);
+        } catch (error) {
+            console.error('Error saving tracking history:', error);
+        }
+        
+        // Broadcast to ALL clients
         io.emit('driver-update', {
             driverId,
             name: name || `Driver ${driverId.substring(0, 6)}`,
@@ -166,7 +197,7 @@ io.on('connection', (socket) => {
             timestamp: new Date()
         });
         
-        // Also update database
+        // Update database
         updateDriverInDB(driverId, { lat, lng, status });
     });
     
@@ -175,7 +206,6 @@ io.on('connection', (socket) => {
         const { driverId, name, status } = data;
         console.log(`🔄 Driver status: ${name} -> ${status}`);
         
-        // Update in memory
         const currentDriver = onlineDrivers.get(driverId);
         if (currentDriver) {
             currentDriver.status = status;
@@ -183,7 +213,6 @@ io.on('connection', (socket) => {
             onlineDrivers.set(driverId, currentDriver);
         }
         
-        // Broadcast to ALL clients
         io.emit('driver-status', {
             driverId,
             name,
@@ -191,10 +220,8 @@ io.on('connection', (socket) => {
             timestamp: new Date()
         });
         
-        // Update database
         updateDriverInDB(driverId, { status });
         
-        // If going offline, notify
         if (status === 'offline') {
             io.emit('driver-offline', { driverId, name });
             console.log(`🔴 Driver ${name} went offline`);
@@ -206,7 +233,6 @@ io.on('connection', (socket) => {
         console.log('📦 New trip request:', data.customerName);
         
         try {
-            // Create trip
             const trip = new Trip({
                 customerId: data.customerId,
                 customerName: data.customerName || 'TV Stands Customer',
@@ -224,13 +250,11 @@ io.on('connection', (socket) => {
             
             await trip.save();
             
-            // Find available drivers
             const drivers = Array.from(onlineDrivers.values()).filter(d => 
                 d.status === 'online' || d.status === 'available'
             );
             
             if (drivers.length > 0) {
-                // Notify all available drivers
                 drivers.forEach(driver => {
                     io.to(driver.socketId).emit('new-trip', {
                         tripId: trip._id,
@@ -243,14 +267,12 @@ io.on('connection', (socket) => {
                     });
                 });
                 
-                // Assign to first available driver
                 const assignedDriver = drivers[0];
                 trip.driverId = assignedDriver.driverId;
                 trip.driverName = assignedDriver.name;
                 trip.status = 'assigned';
                 await trip.save();
                 
-                // Notify customer
                 socket.emit('trip-assigned', {
                     tripId: trip._id,
                     driverId: assignedDriver.driverId,
@@ -258,7 +280,6 @@ io.on('connection', (socket) => {
                     eta: '30-60 mins'
                 });
                 
-                // Notify driver
                 io.to(assignedDriver.socketId).emit('trip-assigned-driver', {
                     tripId: trip._id,
                     customerName: data.customerName,
@@ -267,14 +288,12 @@ io.on('connection', (socket) => {
                     fare: data.fare || 200
                 });
                 
-                // Broadcast update
                 io.emit('trip-updated', {
                     tripId: trip._id,
                     status: 'assigned',
                     driverName: assignedDriver.name
                 });
             } else {
-                // No drivers available
                 socket.emit('no-drivers-available', {
                     message: 'No drivers available at the moment'
                 });
@@ -297,7 +316,6 @@ io.on('connection', (socket) => {
                 driverName
             });
             
-            // Notify customer
             const trip = await Trip.findById(tripId);
             if (trip && trip.customerId) {
                 io.emit('trip-accepted', {
@@ -308,7 +326,6 @@ io.on('connection', (socket) => {
                 });
             }
             
-            // Broadcast update
             io.emit('trip-updated', {
                 tripId,
                 status: 'accepted',
@@ -327,11 +344,18 @@ io.on('connection', (socket) => {
         try {
             const updateData = { status };
             if (location) updateData.driverLocation = location;
-            if (status === 'completed') updateData.completedAt = new Date();
+            if (status === 'completed') {
+                updateData.completedAt = new Date();
+                // Calculate trip duration
+                const trip = await Trip.findById(tripId);
+                if (trip) {
+                    const duration = Math.round((new Date() - trip.createdAt) / 60000);
+                    updateData.tripDuration = duration;
+                }
+            }
             
             await Trip.findByIdAndUpdate(tripId, updateData);
             
-            // Broadcast to all clients
             io.emit('trip-updated', {
                 tripId,
                 status,
@@ -353,14 +377,11 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('❌ Disconnected:', socket.id);
         
-        // Find user
         const user = connectedUsers.get(socket.id);
         if (user) {
-            // If driver, mark as offline
             if (user.userType === 'driver') {
                 onlineDrivers.delete(user.userId);
                 
-                // Notify all clients
                 io.emit('driver-offline', {
                     driverId: user.userId,
                     name: user.name
@@ -386,7 +407,7 @@ async function updateDriverInDB(driverId, data) {
     }
 }
 
-// API Routes
+// ===== API ROUTES =====
 app.get('/api/status', (req, res) => {
     res.json({ 
         status: 'online', 
@@ -399,6 +420,7 @@ app.get('/api/status', (req, res) => {
     });
 });
 
+// ===== DRIVER ROUTES =====
 app.get('/api/drivers/available', async (req, res) => {
     try {
         const drivers = await Driver.find({ 
@@ -406,7 +428,6 @@ app.get('/api/drivers/available', async (req, res) => {
         });
         res.json(drivers);
     } catch (error) {
-        // Return in-memory drivers if DB fails
         const drivers = Array.from(onlineDrivers.values()).map(d => ({
             _id: d.driverId,
             name: d.name,
@@ -424,7 +445,6 @@ app.get('/api/drivers/all', async (req, res) => {
         const drivers = await Driver.find();
         res.json(drivers);
     } catch (error) {
-        // Return in-memory + some mock drivers
         const onlineDriversList = Array.from(onlineDrivers.values()).map(d => ({
             _id: d.driverId,
             name: d.name,
@@ -445,7 +465,9 @@ app.get('/api/drivers/all', async (req, res) => {
                 vehicleType: 'van',
                 phone: '082 111 2222',
                 totalTrips: 45,
-                totalEarnings: 12500
+                totalEarnings: 12500,
+                rating: 4.8,
+                joinedDate: new Date('2024-01-15')
             },
             {
                 _id: 'driver_002',
@@ -455,7 +477,9 @@ app.get('/api/drivers/all', async (req, res) => {
                 vehicleType: 'truck',
                 phone: '082 333 4444',
                 totalTrips: 32,
-                totalEarnings: 9800
+                totalEarnings: 9800,
+                rating: 4.5,
+                joinedDate: new Date('2024-02-20')
             }
         ];
         
@@ -463,23 +487,73 @@ app.get('/api/drivers/all', async (req, res) => {
     }
 });
 
+// ===== ADD NEW DRIVER (ADMIN) =====
 app.post('/api/drivers', async (req, res) => {
     try {
-        const driver = new Driver(req.body);
+        console.log('Creating new driver:', req.body);
+        
+        const driverData = {
+            ...req.body,
+            status: 'offline',
+            totalTrips: 0,
+            totalEarnings: 0,
+            rating: 5.0,
+            joinedDate: new Date(),
+            lastActive: new Date()
+        };
+        
+        const driver = new Driver(driverData);
         await driver.save();
-        res.json(driver);
+        
+        console.log('✅ Driver created:', driver._id);
+        res.json({
+            success: true,
+            message: 'Driver added successfully',
+            driver: driver
+        });
     } catch (error) {
-        console.error('Error creating driver:', error);
-        res.status(500).json({ error: 'Failed to create driver' });
+        console.error('❌ Error creating driver:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to create driver',
+            details: error.message 
+        });
     }
 });
 
+// ===== GET DRIVER BY ID =====
+app.get('/api/drivers/:id', async (req, res) => {
+    try {
+        const driver = await Driver.findById(req.params.id);
+        if (driver) {
+            res.json(driver);
+        } else {
+            res.status(404).json({ error: 'Driver not found' });
+        }
+    } catch (error) {
+        console.log('⚠️ Using mock driver data');
+        const driver = Array.from(onlineDrivers.values()).find(d => d.driverId === req.params.id);
+        if (driver) {
+            res.json({
+                _id: driver.driverId,
+                name: driver.name,
+                status: driver.status,
+                currentLocation: driver.location,
+                vehicleType: 'motorcycle',
+                phone: '082 111 2222'
+            });
+        } else {
+            res.status(404).json({ error: 'Driver not found' });
+        }
+    }
+});
+
+// ===== TRIP ROUTES =====
 app.get('/api/trips', async (req, res) => {
     try {
         const trips = await Trip.find().sort({ createdAt: -1 }).limit(50);
         res.json(trips);
     } catch (error) {
-        // Mock trips
         const mockTrips = [
             { 
                 _id: 'trip_001',
@@ -491,7 +565,8 @@ app.get('/api/trips', async (req, res) => {
                 distance: 25,
                 fare: 500,
                 status: 'completed',
-                createdAt: new Date(Date.now() - 86400000)
+                createdAt: new Date(Date.now() - 86400000),
+                tripDuration: 45
             },
             { 
                 _id: 'trip_002',
@@ -503,20 +578,206 @@ app.get('/api/trips', async (req, res) => {
                 distance: 35,
                 fare: 700,
                 status: 'in_progress',
-                createdAt: new Date()
+                createdAt: new Date(),
+                tripDuration: 25
             }
         ];
         res.json(mockTrips);
     }
 });
 
-app.get('/api/admin/stats', (req, res) => {
-    res.json({
-        totalDrivers: onlineDrivers.size + 2, // Add some mock drivers
-        activeDeliveries: Math.floor(Math.random() * 5) + 1,
-        todayRevenue: Math.floor(Math.random() * 5000) + 1000,
-        totalCustomers: Math.floor(Math.random() * 50) + 20
-    });
+app.get('/api/trips/history', async (req, res) => {
+    const { customerId, driverId } = req.query;
+    
+    try {
+        let query = {};
+        if (customerId) query.customerId = customerId;
+        if (driverId) query.driverId = driverId;
+        
+        const trips = await Trip.find(query).sort({ createdAt: -1 }).limit(50);
+        res.json(trips);
+    } catch (error) {
+        console.log('⚠️ Using mock trips data for history');
+        let filteredTrips = [
+            { 
+                _id: 'trip_001',
+                tripId: 'TRIP001',
+                customerName: 'Sandton City Mall', 
+                driverName: 'John Driver',
+                pickup: { address: '5 Zaria Cres, Birchleigh North', lat: -26.0748, lng: 28.2104 },
+                destination: { address: 'Sandton City, Johannesburg', lat: -26.1070, lng: 28.0530 },
+                distance: 25,
+                fare: 500,
+                status: 'completed',
+                createdAt: new Date(Date.now() - 86400000)
+            }
+        ];
+        res.json(filteredTrips);
+    }
+});
+
+// ===== TRACKING HISTORY ROUTES =====
+app.get('/api/tracking/history', async (req, res) => {
+    try {
+        const { driverId, limit = 100, date } = req.query;
+        let query = {};
+        
+        if (driverId) query.driverId = driverId;
+        if (date) {
+            const startDate = new Date(date);
+            const endDate = new Date(date);
+            endDate.setDate(endDate.getDate() + 1);
+            query.timestamp = { $gte: startDate, $lt: endDate };
+        }
+        
+        const history = await TrackingHistory.find(query)
+            .sort({ timestamp: -1 })
+            .limit(parseInt(limit));
+        
+        res.json(history);
+    } catch (error) {
+        console.error('Error fetching tracking history:', error);
+        
+        // Mock data for testing
+        const mockHistory = [
+            {
+                _id: 'track_001',
+                driverId: 'driver_001',
+                driverName: 'John Driver',
+                location: { lat: -26.0748, lng: 28.2204 },
+                speed: 45,
+                status: 'online',
+                timestamp: new Date(Date.now() - 60000),
+                batteryLevel: 85
+            },
+            {
+                _id: 'track_002',
+                driverId: 'driver_001',
+                driverName: 'John Driver',
+                location: { lat: -26.0750, lng: 28.2210 },
+                speed: 50,
+                status: 'online',
+                timestamp: new Date(Date.now() - 120000),
+                batteryLevel: 82
+            },
+            {
+                _id: 'track_003',
+                driverId: 'driver_002',
+                driverName: 'Mike Rider',
+                location: { lat: -26.0848, lng: 28.2004 },
+                speed: 35,
+                status: 'busy',
+                timestamp: new Date(Date.now() - 180000),
+                batteryLevel: 90
+            }
+        ];
+        
+        res.json(mockHistory.filter(h => !driverId || h.driverId === driverId).slice(0, parseInt(limit)));
+    }
+});
+
+// ===== ADMIN STATS =====
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+        const totalDrivers = await Driver.countDocuments();
+        const activeTrips = await Trip.countDocuments({ 
+            status: { $in: ['pending', 'accepted', 'in_progress', 'picked_up'] } 
+        });
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTrips = await Trip.find({
+            createdAt: { $gte: today },
+            status: 'completed'
+        });
+        const todayRevenue = todayTrips.reduce((sum, trip) => sum + (trip.fare || 0), 0);
+        
+        const totalCustomers = await Trip.distinct('customerId').then(ids => ids.length);
+        
+        res.json({
+            totalDrivers,
+            activeDeliveries: activeTrips,
+            todayRevenue,
+            totalCustomers: totalCustomers || 25,
+            totalTrips: await Trip.countDocuments(),
+            todayTrips: todayTrips.length
+        });
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        res.json({
+            totalDrivers: 3,
+            activeDeliveries: 2,
+            todayRevenue: 1200,
+            totalCustomers: 25,
+            totalTrips: 150,
+            todayTrips: 8
+        });
+    }
+});
+
+// ===== HOME PAGE STATS =====
+app.get('/api/home/stats', async (req, res) => {
+    try {
+        // Today's stats
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const todayTrips = await Trip.find({
+            createdAt: { $gte: today }
+        });
+        
+        const todayCompletedTrips = todayTrips.filter(t => t.status === 'completed');
+        const todayRevenue = todayCompletedTrips.reduce((sum, t) => sum + (t.fare || 0), 0);
+        
+        // Recent tracking activity
+        const recentTracking = await TrackingHistory.find()
+            .sort({ timestamp: -1 })
+            .limit(20);
+        
+        // Active drivers
+        const onlineDriversCount = Array.from(onlineDrivers.values()).filter(d => 
+            d.status === 'online' || d.status === 'available'
+        ).length;
+        
+        res.json({
+            todayTrips: todayTrips.length,
+            todayCompletedTrips: todayCompletedTrips.length,
+            todayRevenue,
+            onlineDrivers: onlineDriversCount,
+            recentTracking: recentTracking.map(track => ({
+                driverName: track.driverName,
+                location: track.location,
+                time: track.timestamp,
+                status: track.status
+            })),
+            totalDrivers: await Driver.countDocuments(),
+            totalCustomers: await Trip.distinct('customerId').then(ids => ids.length) || 45
+        });
+    } catch (error) {
+        console.error('Error getting home stats:', error);
+        res.json({
+            todayTrips: 8,
+            todayCompletedTrips: 6,
+            todayRevenue: 2400,
+            onlineDrivers: 2,
+            recentTracking: [
+                {
+                    driverName: 'John Driver',
+                    location: { lat: -26.0748, lng: 28.2204 },
+                    time: new Date(Date.now() - 300000),
+                    status: 'online'
+                },
+                {
+                    driverName: 'Mike Rider',
+                    location: { lat: -26.0848, lng: 28.2004 },
+                    time: new Date(Date.now() - 600000),
+                    status: 'busy'
+                }
+            ],
+            totalDrivers: 3,
+            totalCustomers: 45
+        });
+    }
 });
 
 // Serve frontend
@@ -531,4 +792,5 @@ server.listen(PORT, () => {
     console.log(`📡 Socket.io: ws://localhost:${PORT}`);
     console.log(`📊 API: http://localhost:${PORT}/api/status`);
     console.log(`👥 Online drivers tracking ready`);
+    console.log(`📝 Tracking history system ready`);
 });
