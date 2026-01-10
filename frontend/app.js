@@ -46,14 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== SOCKET.IO FUNCTIONS =====
-// Replace JUST the initSocket function in your app.js with this:
-
 function initSocket() {
     try {
         console.log('🔌 Initializing socket connection...');
         
         // Use polling only for Render compatibility
-        AppState.socket = io('https://swift-ride.onrender.com', {
+        AppState.socket = io(APP_CONFIG.SOCKET_URL, {
             transports: ['polling'], // Use polling only - works on Render
             reconnection: true,
             reconnectionAttempts: 10,
@@ -136,6 +134,18 @@ function initSocket() {
                     setTimeout(window.updateOnlineDriversUI, 500);
                 }
             }
+        });
+        
+        // ===== TRIP UPDATES =====
+        AppState.socket.on('new-trip', (data) => {
+            console.log('📦 New trip request:', data);
+            if (AppState.user && AppState.user.type === 'driver') {
+                showNotification('New delivery request received!', 'success');
+            }
+        });
+        
+        AppState.socket.on('trip-updated', (data) => {
+            console.log('🔄 Trip updated:', data);
         });
         
         // ===== ERROR HANDLING =====
@@ -324,7 +334,11 @@ function showNotification(message, type = 'info', duration = 5000) {
     
     try {
         // Remove existing notifications
-        document.querySelectorAll('.notification').forEach(n => n.remove());
+        document.querySelectorAll('.notification').forEach(n => {
+            if (n.style.animation !== 'slideOut 0.3s') {
+                n.remove();
+            }
+        });
         
         const notification = document.createElement('div');
         notification.className = 'notification';
@@ -443,6 +457,15 @@ function mockData(endpoint) {
                     phone: '082 111 2222',
                     totalTrips: 15,
                     totalEarnings: 4500
+                },
+                { 
+                    _id: 'driver_002', 
+                    name: 'Mike Rider', 
+                    status: 'offline', 
+                    vehicleType: 'motorcycle',
+                    phone: '082 333 4444',
+                    totalTrips: 8,
+                    totalEarnings: 2400
                 }
             ];
             
@@ -460,6 +483,18 @@ function mockData(endpoint) {
                     fare: 500,
                     status: 'completed',
                     createdAt: new Date(Date.now() - 86400000)
+                },
+                { 
+                    _id: 'trip_002',
+                    tripId: 'TRIP002',
+                    customerName: 'Kempton Park Shop', 
+                    driverName: 'Mike Rider',
+                    pickup: { address: '5 Zaria Cres, Birchleigh North', lat: -26.0748, lng: 28.2104 },
+                    destination: { address: 'Kempton Park Mall', lat: -26.0900, lng: 28.2200 },
+                    distance: 5,
+                    fare: 100,
+                    status: 'completed',
+                    createdAt: new Date(Date.now() - 172800000)
                 }
             ];
             
@@ -467,7 +502,7 @@ function mockData(endpoint) {
             return {
                 totalDrivers: 3,
                 activeDeliveries: 2,
-                todayRevenue: 1200,
+                todayRevenue: 2400,
                 totalCustomers: 25
             };
             

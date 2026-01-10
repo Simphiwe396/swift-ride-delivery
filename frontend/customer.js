@@ -87,8 +87,19 @@ function setupEventListeners() {
     // Request delivery button
     const requestBtn = document.querySelector('button[onclick="requestDelivery()"]');
     if (requestBtn) {
-        requestBtn.removeAttribute('onclick');
         requestBtn.addEventListener('click', requestDelivery);
+    }
+    
+    // Address inputs for fare calculation
+    const pickupInput = document.getElementById('pickupAddress');
+    const destInput = document.getElementById('destinationAddress');
+    
+    if (pickupInput) {
+        pickupInput.addEventListener('input', updateFareEstimate);
+    }
+    
+    if (destInput) {
+        destInput.addEventListener('input', updateFareEstimate);
     }
 }
 
@@ -131,11 +142,9 @@ function selectRate(rate) {
         option.classList.remove('selected');
     });
     
-    if (event && event.target) {
-        const clickedOption = event.target.closest('.rate-option');
-        if (clickedOption) {
-            clickedOption.classList.add('selected');
-        }
+    const clickedOption = event.target.closest('.rate-option');
+    if (clickedOption) {
+        clickedOption.classList.add('selected');
     }
     
     // Update fare estimate
@@ -153,9 +162,9 @@ async function updateFareEstimate() {
         const warehouseLat = APP_CONFIG.MAP_CENTER[0];
         const warehouseLng = APP_CONFIG.MAP_CENTER[1];
         
-        // Simulated destination coordinates
-        const destLat = warehouseLat + (Math.random() * 0.05 - 0.025);
-        const destLng = warehouseLng + (Math.random() * 0.05 - 0.025);
+        // Simulated destination coordinates (random within 50km radius)
+        const destLat = warehouseLat + (Math.random() * 0.5 - 0.25);
+        const destLng = warehouseLng + (Math.random() * 0.5 - 0.25);
         
         const distance = calculateDistance(warehouseLat, warehouseLng, destLat, destLng);
         
@@ -188,8 +197,8 @@ async function requestDelivery() {
         // Calculate distance
         const warehouseLat = APP_CONFIG.MAP_CENTER[0];
         const warehouseLng = APP_CONFIG.MAP_CENTER[1];
-        const destLat = warehouseLat + (Math.random() * 0.05 - 0.025);
-        const destLng = warehouseLng + (Math.random() * 0.05 - 0.025);
+        const destLat = warehouseLat + (Math.random() * 0.5 - 0.25);
+        const destLng = warehouseLng + (Math.random() * 0.5 - 0.25);
         const distance = calculateDistance(warehouseLat, warehouseLng, destLat, destLng);
         
         const fare = calculateFare(distance, selectedRate);
@@ -209,28 +218,29 @@ async function requestDelivery() {
             },
             distance: distance,
             fare: fare,
+            ratePerKm: selectedRate,
             packageDescription: packageDesc,
             status: 'pending'
         };
         
         // Send trip request
-        if (window.AppState.socket) {
-            window.AppState.socket.emit('request-trip', tripData);
+        const result = await createTrip(tripData);
+        
+        if (result.success) {
+            currentTrip = result.trip;
+            showNotification('Delivery request sent! Looking for drivers...', 'success');
+            
+            // Clear form
+            document.getElementById('pickupAddress').value = '5 Zaria Cres, Birchleigh North, Kempton Park';
+            document.getElementById('destinationAddress').value = '';
+            document.getElementById('packageDesc').value = '';
+            
+            // Show tracking section
+            showSection('track-delivery');
+            showActiveTrip(currentTrip);
+        } else {
+            showNotification('Failed to request delivery. Please try again.', 'error');
         }
-        
-        showNotification('Delivery request sent! Looking for drivers...', 'success');
-        
-        // Clear form
-        const pickupInput = document.getElementById('pickupAddress');
-        const destInput = document.getElementById('destinationAddress');
-        const descInput = document.getElementById('packageDesc');
-        
-        if (pickupInput) pickupInput.value = '';
-        if (destInput) destInput.value = '';
-        if (descInput) descInput.value = '';
-        
-        // Show tracking section
-        showSection('track-delivery');
         
     } catch (error) {
         console.error('Error requesting delivery:', error);
@@ -245,13 +255,23 @@ async function loadAvailableDrivers() {
         // Add driver markers to map
         drivers.forEach(driver => {
             if (driver.currentLocation && window.AppState && window.AppState.map) {
-                L.marker([driver.currentLocation.lat, driver.currentLocation.lng], {
+                const marker = L.marker([driver.currentLocation.lat, driver.currentLocation.lng], {
                     icon: L.divIcon({
-                        html: `<div style="background: green; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>`,
-                        className: 'driver-marker'
+                        html: `<div style="background: green; width: 25px; height: 25px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${driver.name?.charAt(0) || 'D'}</div>`,
+                        className: 'driver-marker',
+                        iconSize: [25, 25]
                     })
                 }).addTo(window.AppState.map)
-                .bindPopup(`<strong>${driver.name}</strong><br>${driver.vehicleType || 'Vehicle'}`);
+                .bindPopup(`<strong>${driver.name}</strong><br>${driver.vehicleType || 'Vehicle'}<br>Status: ${driver.status}`);
+                
+                // Add navigate button
+                marker.bindPopup(`<strong>${driver.name}</strong><br>
+                    ${driver.vehicleType || 'Vehicle'}<br>
+                    Status: ${driver.status}<br>
+                    <button onclick="navigateToDriver(${driver.currentLocation.lat}, ${driver.currentLocation.lng})" 
+                            style="background: #6C63FF; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 5px;">
+                        <i class="fas fa-directions"></i> Navigate
+                    </button>`);
             }
         });
     } catch (error) {
@@ -287,9 +307,12 @@ function showActiveTrip(trip) {
     const driverName = document.getElementById('driverName');
     const eta = document.getElementById('eta');
     
-    if (tripStatus) tripStatus.textContent = trip.status;
+    if (tripStatus) {
+        tripStatus.textContent = trip.status;
+        tripStatus.className = `trip-status status-${trip.status}`;
+    }
     if (driverName) driverName.textContent = trip.driverName || 'Not assigned';
-    if (eta) eta.textContent = '30-60 minutes';
+    if (eta) eta.textContent = calculateETA(trip.distance || 0);
     
     // Initialize tracking map
     if (typeof initMap === 'function') {
@@ -299,18 +322,20 @@ function showActiveTrip(trip) {
         if (trip.pickup && window.AppState && window.AppState.map) {
             L.marker([trip.pickup.lat, trip.pickup.lng], {
                 icon: L.divIcon({
-                    html: '<i class="fas fa-warehouse" style="color: blue; font-size: 20px;"></i>',
-                    className: 'pickup-marker'
+                    html: '<i class="fas fa-warehouse" style="color: blue; font-size: 24px;"></i>',
+                    className: 'pickup-marker',
+                    iconSize: [30, 30]
                 })
             }).addTo(window.AppState.map)
-            .bindPopup('<strong>Pickup</strong><br>TV Stands Warehouse');
+            .bindPopup('<strong>Pickup</strong><br>TV Stands Warehouse<br>5 Zaria Cres, Birchleigh North');
         }
         
         if (trip.destination && window.AppState && window.AppState.map) {
             L.marker([trip.destination.lat, trip.destination.lng], {
                 icon: L.divIcon({
-                    html: '<i class="fas fa-flag" style="color: red; font-size: 20px;"></i>',
-                    className: 'destination-marker'
+                    html: '<i class="fas fa-flag" style="color: red; font-size: 24px;"></i>',
+                    className: 'destination-marker',
+                    iconSize: [30, 30]
                 })
             }).addTo(window.AppState.map)
             .bindPopup('<strong>Destination</strong><br>' + (trip.destination.address || 'Customer Location'));
@@ -324,6 +349,44 @@ function showActiveTrip(trip) {
             );
             window.AppState.map.fitBounds(bounds);
         }
+        
+        // Add driver marker if driver is assigned
+        if (trip.driverId && trip.status !== 'pending') {
+            // Find driver location from online drivers
+            if (window.AppState && window.AppState.onlineDrivers) {
+                const driver = window.AppState.onlineDrivers.find(d => d.driverId === trip.driverId);
+                if (driver && driver.lat && driver.lng) {
+                    L.marker([driver.lat, driver.lng], {
+                        icon: L.divIcon({
+                            html: `<div style="background: orange; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${trip.driverName?.charAt(0) || 'D'}</div>`,
+                            className: 'driver-marker',
+                            iconSize: [30, 30]
+                        })
+                    }).addTo(window.AppState.map)
+                    .bindPopup(`<strong>Driver: ${trip.driverName}</strong><br>Status: ${trip.status}<br>
+                        <button onclick="navigateToDriver(${driver.lat}, ${driver.lng})" 
+                                style="background: #6C63FF; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 5px;">
+                            <i class="fas fa-directions"></i> Navigate to Driver
+                        </button>`);
+                }
+            }
+        }
+    }
+}
+
+function calculateETA(distanceKm) {
+    // Assume average speed of 40 km/h in city traffic
+    const travelTimeMinutes = Math.round((distanceKm / 40) * 60);
+    const bufferTime = 15; // 15 minutes buffer for loading/unloading
+    
+    const totalMinutes = travelTimeMinutes + bufferTime;
+    
+    if (totalMinutes < 60) {
+        return `${totalMinutes} minutes`;
+    } else {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours}h ${minutes}m`;
     }
 }
 
@@ -365,42 +428,67 @@ function setupAddressAutocomplete() {
     const pickupInput = document.getElementById('pickupAddress');
     const destInput = document.getElementById('destinationAddress');
     
-    // FIXED: Make pickup address editable
+    // Set default pickup address (warehouse)
     if (pickupInput) {
         pickupInput.value = '5 Zaria Cres, Birchleigh North, Kempton Park';
-        pickupInput.readOnly = false; // ALLOWS EDITING - THIS WAS THE PROBLEM
+        pickupInput.readOnly = false;
         pickupInput.placeholder = 'Enter pickup address';
     }
     
     if (destInput) {
-        destInput.addEventListener('input', updateFareEstimate);
         destInput.placeholder = 'Enter delivery address';
     }
-    
-    // Also listen to pickup input changes
-    if (pickupInput) {
-        pickupInput.addEventListener('input', updateFareEstimate);
-    }
+}
+
+function navigateToDriver(lat, lng) {
+    // Open Google Maps with directions to driver
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    window.open(url, '_blank');
+    showNotification('Opening Google Maps with directions to driver...', 'info');
 }
 
 // Listen for trip updates
 if (window.AppState && window.AppState.socket) {
     window.AppState.socket.on('trip-assigned', (data) => {
-        showNotification(`Driver ${data.driverName} assigned to your delivery!`, 'success');
-        
-        if (document.getElementById('track-delivery')?.style.display !== 'none') {
-            showActiveTrip({ ...currentTrip, ...data });
+        if (currentTrip && currentTrip.tripId === data.tripId) {
+            showNotification(`Driver ${data.driverName} assigned to your delivery!`, 'success');
+            currentTrip.driverName = data.driverName;
+            currentTrip.driverId = data.driverId;
+            currentTrip.status = 'accepted';
+            
+            if (document.getElementById('track-delivery')?.style.display !== 'none') {
+                showActiveTrip(currentTrip);
+            }
         }
     });
     
     window.AppState.socket.on('trip-accepted', (data) => {
-        showNotification('Driver has accepted your delivery!', 'success');
-    });
-    
-    window.AppState.socket.on('trip-updated', (data) => {
-        if (currentTrip && currentTrip._id === data.tripId) {
-            currentTrip = data.trip;
+        if (currentTrip && currentTrip.tripId === data.tripId) {
+            showNotification('Driver has accepted your delivery!', 'success');
+            currentTrip.status = 'accepted';
             showActiveTrip(currentTrip);
         }
     });
+    
+    window.AppState.socket.on('trip-updated', (data) => {
+        if (currentTrip && (currentTrip._id === data.tripId || currentTrip.tripId === data.tripId)) {
+            currentTrip = { ...currentTrip, ...data.trip };
+            showActiveTrip(currentTrip);
+        }
+    });
+    
+    window.AppState.socket.on('driver-update', (data) => {
+        if (currentTrip && currentTrip.driverId === data.driverId) {
+            // Update driver location on map
+            if (document.getElementById('track-delivery')?.style.display !== 'none') {
+                showActiveTrip(currentTrip);
+            }
+        }
+    });
 }
+
+// Make functions globally available
+window.showSection = showSection;
+window.selectRate = selectRate;
+window.requestDelivery = requestDelivery;
+window.navigateToDriver = navigateToDriver;

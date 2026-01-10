@@ -27,6 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             driverNameElement.textContent = user.name;
         }
         
+        // Set initial location if available
+        if (user.currentLocation) {
+            currentLocation = user.currentLocation;
+        }
+        
     } catch (error) {
         window.location.href = 'index.html';
         return;
@@ -190,8 +195,6 @@ function startLocationTracking() {
     }
 }
 
-// Replace JUST the updateLocationToServer function in driver.js with this:
-
 function updateLocationToServer() {
     if (!currentLocation || !window.AppState || !window.AppState.socket) return;
     
@@ -208,28 +211,6 @@ function updateLocationToServer() {
         console.log('Socket not connected, trying to reconnect...');
         window.AppState.socket.connect();
     }
-}
-
-// Also update goOnline function:
-function goOnline() {
-    driverStatus = 'online';
-    updateStatusDisplay();
-    
-    if (window.AppState && window.AppState.socket) {
-        if (window.AppState.socket.connected) {
-            window.AppState.socket.emit('driver-online', {
-                driverId: window.AppState.user.id,
-                name: window.AppState.user.name,
-                lat: currentLocation.lat,
-                lng: currentLocation.lng,
-                status: 'online'
-            });
-        } else {
-            console.log('Socket not connected, will send when connected');
-        }
-    }
-    
-    showNotification('You are now online and visible to customers!', 'success');
 }
 
 function centerOnLocation() {
@@ -341,6 +322,55 @@ function showActiveTrip() {
         } else if (activeTrip.status === 'picked_up') {
             pickupBtn.style.display = 'none';
             deliverBtn.style.display = 'block';
+        } else {
+            pickupBtn.style.display = 'none';
+            deliverBtn.style.display = 'none';
+        }
+    }
+    
+    // Initialize trip map
+    if (typeof initMap === 'function') {
+        initMap('currentTripMap');
+        
+        // Add pickup marker
+        if (activeTrip.pickup) {
+            L.marker([activeTrip.pickup.lat, activeTrip.pickup.lng], {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-warehouse" style="color: blue; font-size: 24px;"></i>',
+                    className: 'pickup-marker'
+                })
+            }).addTo(window.AppState.map)
+            .bindPopup('<strong>Pickup: TV Stands Warehouse</strong>');
+        }
+        
+        // Add destination marker
+        if (activeTrip.destination) {
+            L.marker([activeTrip.destination.lat, activeTrip.destination.lng], {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-flag" style="color: red; font-size: 24px;"></i>',
+                    className: 'destination-marker'
+                })
+            }).addTo(window.AppState.map)
+            .bindPopup(`<strong>Destination</strong><br>${activeTrip.destination.address || 'Customer Location'}`);
+        }
+        
+        // Add driver location marker
+        L.marker([currentLocation.lat, currentLocation.lng], {
+            icon: L.divIcon({
+                html: '<i class="fas fa-motorcycle" style="color: green; font-size: 24px;"></i>',
+                className: 'driver-marker'
+            })
+        }).addTo(window.AppState.map)
+        .bindPopup('<strong>Your Location</strong>');
+        
+        // Fit map to show all points
+        if (activeTrip.pickup && activeTrip.destination) {
+            const bounds = L.latLngBounds(
+                [activeTrip.pickup.lat, activeTrip.pickup.lng],
+                [activeTrip.destination.lat, activeTrip.destination.lng],
+                [currentLocation.lat, currentLocation.lng]
+            );
+            window.AppState.map.fitBounds(bounds);
         }
     }
 }
@@ -368,6 +398,10 @@ function acceptTrip() {
     
     // Update status to busy
     goBusy();
+    
+    // Show active trip section
+    showSection('current-trip');
+    showActiveTrip();
 }
 
 function declineTrip() {
@@ -384,10 +418,11 @@ function markAsPickedUp() {
     
     if (window.AppState.socket) {
         window.AppState.socket.emit('update-trip', {
-            tripId: activeTrip._id,
+            tripId: activeTrip._id || activeTrip.tripId,
             status: 'picked_up',
             location: currentLocation,
-            driverId: window.AppState.user.id
+            driverId: window.AppState.user.id,
+            driverName: window.AppState.user.name
         });
     }
     
@@ -401,10 +436,11 @@ function markAsDelivered() {
     
     if (window.AppState.socket) {
         window.AppState.socket.emit('update-trip', {
-            tripId: activeTrip._id,
+            tripId: activeTrip._id || activeTrip.tripId,
             status: 'completed',
             location: currentLocation,
-            driverId: window.AppState.user.id
+            driverId: window.AppState.user.id,
+            driverName: window.AppState.user.name
         });
     }
     
@@ -424,6 +460,7 @@ function markAsDelivered() {
     setTimeout(() => {
         activeTrip = null;
         goOnline();
+        showSection('dashboard');
     }, 3000);
 }
 
@@ -433,7 +470,7 @@ function cancelTrip() {
     if (confirm('Are you sure you want to cancel this delivery?')) {
         if (window.AppState.socket) {
             window.AppState.socket.emit('update-trip', {
-                tripId: activeTrip._id,
+                tripId: activeTrip._id || activeTrip.tripId,
                 status: 'cancelled',
                 driverId: window.AppState.user.id
             });
@@ -442,7 +479,27 @@ function cancelTrip() {
         activeTrip = null;
         showNotification('Delivery cancelled', 'info');
         goOnline();
+        showSection('dashboard');
     }
+}
+
+function navigateToWarehouse() {
+    const warehouseLat = APP_CONFIG.MAP_CENTER[0];
+    const warehouseLng = APP_CONFIG.MAP_CENTER[1];
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${warehouseLat},${warehouseLng}&travelmode=driving`;
+    window.open(url, '_blank');
+    showNotification('Opening Google Maps with directions to warehouse...', 'info');
+}
+
+function navigateToDestination() {
+    if (!activeTrip || !activeTrip.destination) {
+        showNotification('No destination available', 'warning');
+        return;
+    }
+    
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${activeTrip.destination.lat},${activeTrip.destination.lng}&travelmode=driving`;
+    window.open(url, '_blank');
+    showNotification('Opening Google Maps with directions to destination...', 'info');
 }
 
 // Socket event listeners for driver page
@@ -462,7 +519,15 @@ if (window.AppState && window.AppState.socket) {
             notificationElement.style.display = 'block';
         }
         
-        // Play notification sound
+        // Play notification sound if available
+        try {
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (e) {
+            console.log('Audio not supported');
+        }
+        
         showNotification('New delivery request received!', 'success');
     });
     
@@ -497,6 +562,8 @@ window.declineTrip = declineTrip;
 window.markAsPickedUp = markAsPickedUp;
 window.markAsDelivered = markAsDelivered;
 window.cancelTrip = cancelTrip;
+window.navigateToWarehouse = navigateToWarehouse;
+window.navigateToDestination = navigateToDestination;
 
 // Section switching
 window.showSection = function(sectionId) {
@@ -520,5 +587,12 @@ window.showSection = function(sectionId) {
     const clickedItem = event.target.closest('li');
     if (clickedItem) {
         clickedItem.classList.add('active');
+    }
+    
+    // If showing current trip and have active trip, update it
+    if (sectionId === 'current-trip' && activeTrip) {
+        setTimeout(() => {
+            showActiveTrip();
+        }, 100);
     }
 };
